@@ -8,6 +8,7 @@
  * Function naming convention: capitalize letters of words after the first one.
  */
 
+// Main function of the system
 int main(int argc, char * argv[])
 {
     g_boot_count = bootCount() ; // determines system boot count

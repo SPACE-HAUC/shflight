@@ -1,7 +1,7 @@
 #include <main_helper.h>
 #ifndef DEBUG_ALWAYS_S0
-int bootCount() // returns current boot count, and increases by 1 and stores it in nvmem
-// expected to be invoked only by _main()
+
+int bootCount()
 {
     int _bootCount = 0 ; // assume 0 boot
     if ( access(BOOTCOUNT_FNAME, F_OK) != -1 ) //file exists

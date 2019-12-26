@@ -1,14 +1,24 @@
 #include <stdio.h>
 #include <unistd.h>
 
+// Name of the file where bootcount is stored on the file system
 #define BOOTCOUNT_FNAME "bootcount_fname.txt"
+
+// Function that returns the current bootcount of the system.
+// returns current boot count, and increases by 1 and stores it in nvmem
+// expected to be invoked only by _main()
 int bootCount(void);
 
+// float q2isqrt(float): Returns the inverse square root of a floating point number.
+// Depending on whether QUAKE_SQRT is declared, it will use the bit-level hack 
+// and two rounds of Newton-Raphson or sqrt() from gcc-math.
 inline float q2isqrt(float);
 
+// DECLARE_BUFFER(name, type): Declares a buffer with name and type. Prepends x_, y_, z_ to the names (vector buffer!)
 #define DECLARE_BUFFER(name, type)                                    \
 type x_##name[SH_BUFFER_SIZE], y_##name[SH_BUFFER_SIZE], z_##name[SH_BUFFER_SIZE]
 
+// FLUSH_BUFFER(name): Flushes buffer with name, prepended by standard x_, y_, z_ suffixes.
 #define FLUSH_BUFFER(name)                                          \
 for(uint8_t sh__counter = SH_BUFFER_SIZE; sh__counter > 0; )        \
 {                                                                   \

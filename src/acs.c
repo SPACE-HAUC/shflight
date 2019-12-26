@@ -1,5 +1,8 @@
 #include <main.h>
 #include <acs.h>
+
+// void* acs(void* id): ACS action thread. This thread actuates the torque coils depending on the state
+// the system is in. Returns control to data_ack(void*) when the task is complete.
 void * acs(void * id)
 {
     do {
