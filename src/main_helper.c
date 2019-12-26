@@ -33,3 +33,12 @@ int bootCount()
     return 0 ;
 }
 #endif // DEBUG_ALWAYS_S0
+
+#ifdef QUAKE_SQRT
+inline float q2isqrt(float x)
+{
+    float xhalf = in*
+}
+#else // QUAKE_SQRT
+inline float q2isqrt(float x) { return 1.0/sqrt(x)} ;
+#endif // QUAKE_SQRT

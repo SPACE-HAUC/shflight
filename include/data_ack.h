@@ -2,11 +2,13 @@
 #define __DATA_ACK_H
 #include <main.h>
 
-int16_t g_Bx[SH_BUFFER_SIZE], g_By[SH_BUFFER_SIZE], g_Bz[SH_BUFFER_SIZE] ; // Raw magnetic field measurements
+DECLARE_BUFFER(g_B,uint16_t); // Raw magnetic field measurements
 
-float g_Wx[SH_BUFFER_SIZE], g_Wy[SH_BUFFER_SIZE], g_Wz[SH_BUFFER_SIZE] ; // Omega measurements from B
+DECLARE_BUFFER(g_W,float); // Omega measurements from B
 
-float g_Btx[SH_BUFFER_SIZE], g_Bty[SH_BUFFER_SIZE], g_Btz[SH_BUFFER_SIZE]; // bdot measurements
+DECLARE_BUFFER(g_Bt,float); // bdot measurements
+
+DECLARE_BUFFER(g_S,float); // Sun vector
 
 int getMagField(void)
 {
@@ -38,9 +40,8 @@ int getMagField(void)
         freq = 1./DETUMBLE_TIME_STEP ;
         break;
     }
-    g_Btx[bdot_index] = freq*(g_Bx[m1]-g_Bx[m0]);
-    g_Bty[bdot_index] = freq*(g_By[m1]-g_By[m0]);
-    g_Btz[bdot_index] = freq*(g_Bz[m1]-g_Bz[m0]);
+    MATRIX_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
+    MATRIX_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
     return status ;
 }
 

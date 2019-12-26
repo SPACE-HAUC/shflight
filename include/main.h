@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <main_helper.h>
+
 #define SH_BUFFER_SIZE 64 // size of circular buffers
 
 #define DETUMBLE_TIME_STEP 100000  // 100 msec, in usec
