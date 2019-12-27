@@ -19,7 +19,7 @@ DECLARE_BUFFER(g_S,float); // Sun vector
 int getMagField(void)
 {
     int status ;
-    // put values into g_Bx, g_By and g_Bz at [mag_index]
+    // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (g_bootup && mag_index < 1)
         return status ;
     // if we have > 1 values, calculate Bdot

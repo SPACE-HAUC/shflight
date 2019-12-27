@@ -34,7 +34,7 @@ int bootCount()
 }
 #endif // DEBUG_ALWAYS_S0
 
-#ifdef QUAKE_SQRT
+#ifndef MATH_SQRT
 inline float q2isqrt(float x)
 {
     float xhalf = x*0.5f ; // calculate 1/2 x before bit-level changes
@@ -46,6 +46,13 @@ inline float q2isqrt(float x)
     x = x*(1.5f-xhalf*x*x) ; // 3 round of Newton approximation
     return x;
 }
-#else // QUAKE_SQRT
+#else // MATH_SQRT
 inline float q2isqrt(float x) { return 1.0/sqrt(x);} ;
-#endif // QUAKE_SQRT
+#endif // MATH_SQRT
+
+// returns time elapsed from 1970-1-1, 00:00:00 UTC to now (UTC) in microseconds.
+inline uint64_t get_usec(void) {
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    return (uint64_t)ts.tv_sec * 1000000L + ((uint64_t)ts.tv_nsec)/1000;
+}

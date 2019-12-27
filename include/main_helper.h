@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <time.h>
 #include <unistd.h>
 
 // Name of the file where bootcount is stored on the file system
@@ -9,9 +11,12 @@
 // expected to be invoked only by _main()
 int bootCount(void);
 
-// float q2isqrt(float): Returns the inverse square root of a floating point number.
-// Depending on whether QUAKE_SQRT is declared, it will use the bit-level hack 
-// and two rounds of Newton-Raphson or sqrt() from gcc-math.
+/* float q2isqrt(float): Returns the inverse square root of a floating point number.
+ * Depending on whether MATH_SQRT is declared, it will use sqrt() function
+ * from gcc-math or bit-level hack and 3 rounds of Newton-Raphson to directly
+ * calculate inverse square root. The bit-level routine yields consistently better
+ * performance and 0.00001% maximum error.
+ */
 inline float q2isqrt(float);
 
 // DECLARE_BUFFER(name, type): Declares a buffer with name and type. Prepends x_, y_, z_ to the names (vector buffer!)
