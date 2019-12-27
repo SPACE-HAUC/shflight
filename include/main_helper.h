@@ -47,11 +47,10 @@ z_##dest=z_##s1 op s2
 
 // dest = norm(source)
 #define NORMALIZE(dest, s1)                             \
-for(;;){                                                \
-double sh__temp = INVNORM(s1);                          \
-x_##dest=x_##s1/sh__temp ;                              \
-y_##dest=y_##s1/sh__temp ;                              \
-z_##dest=z_##s1/sh__temp ;                              \
+for(double sh__temp = INVNORM(s1);sh__temp != 0;){      \
+x_##dest=x_##s1*sh__temp ;                              \
+y_##dest=y_##s1*sh__temp ;                              \
+z_##dest=z_##s1*sh__temp ;                              \
 break;                                                  \
 }
 
