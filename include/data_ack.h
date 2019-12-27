@@ -10,6 +10,12 @@ DECLARE_BUFFER(g_Bt,float); // bdot measurements
 
 DECLARE_BUFFER(g_S,float); // Sun vector
 
+/*
+ * Measures magnetic field from the LSM9DF1 sensor and
+ * returns the status word. Populates the cyclic magnetic 
+ * field buffer and calculates Bdot, which also goes 
+ * in a circular buffer.
+ */
 int getMagField(void)
 {
     int status ;
@@ -40,8 +46,8 @@ int getMagField(void)
         freq = 1./DETUMBLE_TIME_STEP ;
         break;
     }
-    MATRIX_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
-    MATRIX_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
+    VECTOR_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
+    VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
     return status ;
 }
 

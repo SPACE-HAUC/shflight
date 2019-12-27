@@ -37,8 +37,15 @@ int bootCount()
 #ifdef QUAKE_SQRT
 inline float q2isqrt(float x)
 {
-    float xhalf = in*
+    float xhalf = x*0.5f ; // calculate 1/2 x before bit-level changes
+    int i = *(int*)&x    ; // convert float to int for bit level operation
+    i = 0x5f375a86 - (i>>1) ; // bit level manipulation to get initial guess (ref: http://www.lomont.org/papers/2003/InvSqrt.pdf)
+    x = *(float*)&i ; // convert back to float
+    x = x*(1.5f-xhalf*x*x) ; // 1 round of Newton approximation
+    x = x*(1.5f-xhalf*x*x) ; // 2 round of Newton approximation
+    x = x*(1.5f-xhalf*x*x) ; // 3 round of Newton approximation
+    return x;
 }
 #else // QUAKE_SQRT
-inline float q2isqrt(float x) { return 1.0/sqrt(x)} ;
+inline float q2isqrt(float x) { return 1.0/sqrt(x);} ;
 #endif // QUAKE_SQRT
