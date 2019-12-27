@@ -18,6 +18,10 @@ inline float q2isqrt(float);
 #define DECLARE_BUFFER(name, type)                                    \
 type x_##name[SH_BUFFER_SIZE], y_##name[SH_BUFFER_SIZE], z_##name[SH_BUFFER_SIZE]
 
+// Declares a vector with the name and type. A vector is a three-variable entity with x_, y_, z_ prepended to the names
+# define DECLARE_VECTOR(name,type)                                    \
+type x_##name = 0, y_##name = 0, z_##name = 0 
+
 // FLUSH_BUFFER(name): Flushes buffer with name, prepended by standard x_, y_, z_ suffixes.
 #define FLUSH_BUFFER(name)                                          \
 for(uint8_t sh__counter = SH_BUFFER_SIZE; sh__counter > 0; )        \
@@ -28,6 +32,7 @@ for(uint8_t sh__counter = SH_BUFFER_SIZE; sh__counter > 0; )        \
     z_##name[sh__counter] = 0;                                      \
 }        
 // dest = s1 X s2; dest, s1, s2 are vectors with names x_dest, y_dest, z_dest and x_s1, y_s1, z_s1 etc
+// *** dest must not be the same as either s1 or s2 ***
 #define CROSS_PRODUCT(dest,s1,s2)                           \
 x_##dest=y_##s1*z_##s2 - z_##s1*y_##s2;                     \
 y_##dest=z_##s1*x_##s2 - x_##s1*z_##s2;                     \
@@ -60,4 +65,13 @@ z_##dest=z_##s1*sh__temp ;                                           \
 #define NORM2(s) x_##s*x_##s+y_##s*y_##s+z_##s*z_##s
 
 // INVNORM(source) returns the inverse of norm of vector in float32
-#define INVNORM(s) q2isqrt(NORM2(s))                                          
+#define INVNORM(s) q2isqrt(NORM2(s))
+
+// MATVECMUL(dest, s1, s2) multiplies vector s2 by matrix s1 (3x3) and stores
+// the result in vector dest. Uses the typical vector naming convention for dest, s2
+// s1 is a 3x3 matrix defined in the usual C way (s1[0][0] is the first element)
+// *** dest and s2 MUST BE different vectors ***
+#define MATVECMUL(dest,s1,s2)                                      \
+x_##dest = s1[0][0]*x_##s2 + s1[0][1]*y_##s2 + s1[0][2]*z_##s2;    \
+y_##dest = s1[1][0]*x_##s2 + s1[1][1]*y_##s2 + s1[1][2]*z_##s2;    \
+z_##dest = s1[2][0]*x_##s2 + s1[2][1]*y_##s2 + s1[2][2]*z_##s2     

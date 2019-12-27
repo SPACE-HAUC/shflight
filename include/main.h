@@ -39,12 +39,16 @@ pthread_mutex_t mutex_data_ack, mutex_acs, mutex_xband, mutex_uhf ;
 int8_t mag_index = -1 , bdot_index = -1 , omega_index = -1, sol_index = -1 ;
 uint8_t omega_ready = 0 ;
 
-extern int16_t x_gB[SH_BUFFER_SIZE], y_gB[SH_BUFFER_SIZE], z_gB[SH_BUFFER_SIZE] ; // Raw magnetic field measurements
+DECLARE_BUFFER(g_B,extern float);
 
-extern float x_gW[SH_BUFFER_SIZE], y_gW[SH_BUFFER_SIZE], z_gW[SH_BUFFER_SIZE] ; // Omega measurements from B
+DECLARE_BUFFER(g_W,extern float);
 
-extern float g_Sx[SH_BUFFER_SIZE], g_Sy[SH_BUFFER_SIZE], g_Sz[SH_BUFFER_SIZE] ; // sun vector measurements from B
+DECLARE_BUFFER(g_Bt, extern float);
+
+DECLARE_BUFFER(g_S, extern float);
 
 volatile uint8_t g_nightmode = 0 ; // determines if the program is at night
+
+static float MOI[3][3] = {{1, 0, 0},{0, 1, 0},{0, 0, 1}};
 
 #endif // __MAIN_H
