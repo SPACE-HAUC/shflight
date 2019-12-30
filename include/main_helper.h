@@ -42,7 +42,13 @@ for(uint8_t sh__counter = SH_BUFFER_SIZE; sh__counter > 0; )        \
 #define CROSS_PRODUCT(dest,s1,s2)                           \
 x_##dest=y_##s1*z_##s2 - z_##s1*y_##s2;                     \
 y_##dest=z_##s1*x_##s2 - x_##s1*z_##s2;                     \
-z_##dest=x_##s1*y_##s2 - y_##s1*x_##s2                     
+z_##dest=x_##s1*y_##s2 - y_##s1*x_##s2
+
+/*
+ * returns the dot product of vectors s1 and s2 as a float
+ */
+#define DOT_PRODUCT(s1,s2)                                  \
+(float)(x_##s1 * x_##s2 + y_##s1 * y_##s2 + z_##s1 * z_##s2)
 
 // dest = s1 (op) s2; dest, s1, s2 are vectors with names x_dest, y_dest, z_dest and x_s1, y_s1, z_s1 etc
 #define VECTOR_OP(dest,s1,s2,op)                            \
@@ -58,10 +64,11 @@ z_##dest=z_##s1 op s2
 
 // dest = norm(source), stores normalized vector of s1 in dest.
 #define NORMALIZE(dest, s1)                                          \
-for(float sh__temp = INVNORM(s1);sh__temp != 0; sh__temp = 0){       \
+for(float sh__temp = INVNORM(s1);sh__temp != 0; ){       \
 x_##dest=x_##s1*sh__temp ;                                           \
 y_##dest=y_##s1*sh__temp ;                                           \
 z_##dest=z_##s1*sh__temp ;                                           \
+break ;                                                              \
 }
 
 // NORM(source) returns magnitude of vector in float32

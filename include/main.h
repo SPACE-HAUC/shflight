@@ -18,6 +18,9 @@
 #define COARSE_TIME_STEP   1000000 // 1000 msec, in usec
 #define FINE_TIME_STEP     200000  // 200 msec, in usec
 #define MAG_MEASURE_TIME   20000   // 20 msec, in usec
+#define SUNPOINT_DUTY_CYCLE 20000  // 20 msec, in usec
+#define COARSE_MEASURE_TIME 100000 // 100 msec, in usec
+#define FINE_MEASURE_TIME 5000     // 5 ms, in usec (single shot mode)
 typedef enum {SH_SYS_INIT,
               SH_STATE_CHANGE,
               SH_ACS_DETUMBLE,
