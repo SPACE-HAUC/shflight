@@ -2,6 +2,8 @@
 #define __DATA_ACK_H
 #include <main.h>
 
+#define THREAD_TIMEOUT 5   // 5 seconds absolute timeout on the threads
+
 DECLARE_BUFFER(g_B,float); // Raw magnetic field measurements
 
 DECLARE_BUFFER(g_W,float); // Omega measurements from B

@@ -28,6 +28,7 @@ type x_##name[SH_BUFFER_SIZE], y_##name[SH_BUFFER_SIZE], z_##name[SH_BUFFER_SIZE
 type x_##name = 0, y_##name = 0, z_##name = 0 
 
 // FLUSH_BUFFER(name): Flushes buffer with name, prepended by standard x_, y_, z_ suffixes.
+// FLUSH_BUFFER does _not_ reset the index counters, which needs to be done by hand
 #define FLUSH_BUFFER(name)                                          \
 for(uint8_t sh__counter = SH_BUFFER_SIZE; sh__counter > 0; )        \
 {                                                                   \

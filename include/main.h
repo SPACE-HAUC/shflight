@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <main_helper.h>
 
@@ -33,6 +34,8 @@ volatile uint8_t g_boot_count ;
 volatile uint8_t g_program_state ;
 volatile uint8_t g_previous_state ;
 volatile uint8_t g_bootup ;
+
+int stat_condwait_data_ack , stat_condwait_acs, stat_condwait_xband, stat_condwait_uhf ;
 
 pthread_cond_t cond_data_ack, cond_acs, cond_xband, cond_uhf ;
 pthread_mutex_t mutex_data_ack, mutex_acs, mutex_xband, mutex_uhf ;
