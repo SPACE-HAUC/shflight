@@ -38,6 +38,8 @@ volatile uint8_t g_boot_count ;
 volatile uint8_t g_program_state ;
 volatile uint8_t g_previous_state ;
 volatile uint8_t g_bootup ;
+volatile uint8_t g_SunSensorBroken ;
+volatile uint8_t g_BatteryCharging ;
 
 int stat_condwait_data_ack , stat_condwait_acs, stat_condwait_xband, stat_condwait_uhf ;
 

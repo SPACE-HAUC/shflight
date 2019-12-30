@@ -15,13 +15,8 @@ int main(int argc, char * argv[])
     g_program_state = SH_SYS_INIT ; // On first boot, similar to detumble. On next boots, check all sensors and select appropriate state
     fprintf(stderr, "State: %d\n", g_program_state) ;
     g_bootup = 1 ; // the program is booting up
-    // write zeros into all buffers
-    FLUSH_BUFFER(g_B);
-    FLUSH_BUFFER(g_Bt);
-    FLUSH_BUFFER(g_W);
-    FLUSH_BUFFER(g_S);
-    // reset buffer heads
-    mag_index = -1 ; bdot_index = -1 ; omega_index = -1 ; sol_index = -1 ; L_err_index = -1 ;
+    // write zeros into all buffers and reset heads
+    FLUSH_BUFFER_ALL ;
     // calculate target angular momentum
     MATVECMUL(g_L_target,MOI,g_W_target);
     // initialize h-bridge

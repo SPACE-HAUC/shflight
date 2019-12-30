@@ -2,7 +2,14 @@
 #define __DATA_ACK_H
 #include <main.h>
 
-#define THREAD_TIMEOUT 5   // 5 seconds absolute timeout on the threads
+#define THREAD_TIMEOUT             5       // 5 seconds absolute timeout on the threads
+#define MIN_OMEGA_STABLE_THRESHOLD 3       // 4 readings during state change to ensure criteria holds
+#define MIN_SOL_STABLE_THRESHOLD   3       // 4 readings during state change to ensure criteria holds
+float FINE_POINTING_LIMIT =        0.996;  // cos(5 deg). Declared as a float as this value might change
+                                           // with time, if it is determined that in a sufficiently long time
+                                           // this limit can not be hit
+#define FINE_POINTING_THRESHOLD    0.940   // cos(20 deg), which is less the FOV of the FSS
+
 
 DECLARE_BUFFER(g_B,float); // Raw magnetic field measurements
 
@@ -57,6 +64,10 @@ int getMagField(void)
 int getSunVec(void)
 {
     int status ;
+    if ( g_SunSensorBroken ){
+        g_nightmode = 0 ;
+        return -1;
+    }
     // put values into g_Sx, g_Sy, g_Sz at at [sol_index]
     return status ;
 }
