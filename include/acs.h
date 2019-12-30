@@ -27,5 +27,49 @@ void insertionSort(int a1[], int a2[])
   }
 }
 
+#define HBRIDGE_ENABLE(name)                                              \
+int hbridge_enable(int x_##name, int y_##name, int z_##name) ;
+
+int hbridge_enable(int x, int y, int z)
+{
+    // Set up X
+    hbridge->pack->hbcnf1 = x > 0 ? 1 : 0 ;
+    hbridge->pack->hbcnf2 = x < 0 ? 1 : 0 ;
+    // Set up Y
+    hbridge->pack->hbcnf3 = y > 0 ? 1 : 0 ;
+    hbridge->pack->hbcnf4 = y < 0 ? 1 : 0 ;
+    // Set up Z
+    hbridge->pack->hbcnf5 = z > 0 ? 1 : 0 ;
+    hbridge->pack->hbcnf6 = z < 0 ? 1 : 0 ;
+    return ncv7708_xfer(hbridge) ;
+}
+
+int HBRIDGE_DISABLE(int num){
+    switch (num) {
+        case 0: // X axis
+            hbridge->pack->hbcnf1 = 0 ;
+            hbridge->pack->hbcnf2 = 0 ;
+            break ;
+        
+        case 1: // Y axis
+            hbridge->pack->hbcnf3 = 0 ;
+            hbridge->pack->hbcnf4 = 0 ;
+            break ;
+
+        case 2: // Z axis
+            hbridge->pack->hbcnf5 = 0 ;
+            hbridge->pack->hbcnf6 = 0 ;
+            break ;
+        
+        default: // disable all 
+            hbridge->pack->hbcnf1 = 0 ;
+            hbridge->pack->hbcnf2 = 0 ;
+            hbridge->pack->hbcnf3 = 0 ;
+            hbridge->pack->hbcnf4 = 0 ;
+            hbridge->pack->hbcnf5 = 0 ;
+            hbridge->pack->hbcnf6 = 0 ;
+            break ;
+    }
+}
 
 #endif // ACS_H

@@ -24,5 +24,11 @@ int main(int argc, char * argv[])
     mag_index = -1 ; bdot_index = -1 ; omega_index = -1 ; sol_index = -1 ; L_err_index = -1 ;
     // calculate target angular momentum
     MATVECMUL(g_L_target,MOI,g_W_target);
+    // initialize h-bridge
+    hbridge = (ncv7708 *) malloc(sizeof(ncv7708)) ;
+    snprintf(hbridge->fname,40,HBRIDGE_DEV_NAME);
+    int hbridge_init_status = hbridge_init(hbridge);
+
+    ncv7708_destroy(hbridge);
     return 0 ;
 }

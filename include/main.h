@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
+#include <spacehauc_devices.h>
 
 #include <main_helper.h>
 

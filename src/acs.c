@@ -126,6 +126,7 @@ void * acs(void * id)
             NORMALIZE(SxBxL, SxBxL) ;
 
             int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm)*SUNPOINT_DUTY_CYCLE) ; // essentially a duty cycle measure
+            time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on ; // safety measure            
             int time_off = SUNPOINT_DUTY_CYCLE - time_on ;
             int FiringTime = COARSE_TIME_STEP - COARSE_MEASURE_TIME ; // time allowed to fire
             DECLARE_VECTOR(fire, int) ; 
@@ -133,7 +134,7 @@ void * acs(void * id)
             while(FiringTime > 0){
                 HBRIDGE_ENABLE(fire);
                 usleep(time_on) ;
-                HBRIDGE_DISABLE(2) ; // 2 == z axis
+                HBRIDGE_DISABLE(3) ; // 3 == executes default, turns off ALL hbridges (safety)
                 usleep(time_off) ;
                 FiringTime -= SUNPOINT_DUTY_CYCLE ;
             }
@@ -170,6 +171,7 @@ void * acs(void * id)
             NORMALIZE(SxBxL, SxBxL) ;
 
             int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm)*SUNPOINT_DUTY_CYCLE) ; // essentially a duty cycle measure
+            time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on ; // safety measure
             int time_off = SUNPOINT_DUTY_CYCLE - time_on ;
             int FiringTime = FINE_TIME_STEP - FINE_MEASURE_TIME ; // time allowed to fire
             DECLARE_VECTOR(fire, int) ; 
@@ -177,7 +179,7 @@ void * acs(void * id)
             while(FiringTime > 0){
                 HBRIDGE_ENABLE(fire);
                 usleep(time_on) ;
-                HBRIDGE_DISABLE(2) ; // 2 == z axis
+                HBRIDGE_DISABLE(3) ; // 3 == executes default, turns off ALL hbridges (safety)
                 usleep(time_off) ;
                 FiringTime -= SUNPOINT_DUTY_CYCLE ;
             }
