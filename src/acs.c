@@ -44,7 +44,7 @@ void * acs(void * id)
             int finalWait = MAX_DETUMBLE_FIRING_TIME - firingTime[2] ;
             firingTime[2] -= firingTime[1] ; // time after second one turns off
             firingTime[1] -= firingTime[0] ; // time after first one turns off
-            HBRIDGE_ENABLE(fire); // Turns on the torque coils in the required directions determined by the fire vector
+            HBRIDGE_ENABLE(fire, int); // Turns on the torque coils in the required directions determined by the fire vector
             usleep(firingTime[0]<1?1:firingTime[0]); // sleep until first turnoff
             HBRIDGE_DISABLE(firingOrder[0]) ; // first turn off
             usleep(firingTime[1]<1?1:firingTime[1]); // sleep until second turnoff
