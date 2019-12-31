@@ -1,4 +1,4 @@
-#include <ncv7708.h>
+#include "ncv7708.h"
 
 // Initialize the SPI bus to communicate with the NCV7708
 int ncv7708_init(ncv7708 * dev)
@@ -6,7 +6,10 @@ int ncv7708_init(ncv7708 * dev)
         int file;
     __u8    mode, lsb, bits;
     __u32 speed=2500000;
- 
+    
+    // allocate memory for data packets
+    dev->pack = (ncv7708_packet*) malloc(sizeof(ncv7708_packet)) ;
+    
         if ((file = open(dev->fname,O_RDWR)) < 0)
         {
             /* ERROR HANDLING; you can check errno to see what went wrong */
@@ -84,8 +87,6 @@ int ncv7708_init(ncv7708 * dev)
     //dev->xfer[1].len = 2; /* Length of Data to read */
     //dev->xfer[1].cs_change = 1; /* Keep CS activated */
 
-    // allocate memory for data packets
-    dev->pack = (ncv7708_packet*) malloc(sizeof(ncv7708_packet)) ;
     return 1; // successful
 }
  
@@ -110,7 +111,7 @@ int ncv7708_transfer(ncv7708 * dev, uint16_t * data, uint16_t * cmd)
 
 int ncv7708_xfer(ncv7708 * dev)
 {
-    int status = ncv7708_transfer(dev, &(dev->pack->data), &(dev->pack->cmd));
+    return ncv7708_transfer(dev, &(dev->pack->data), &(dev->pack->cmd));
 }
 
 void ncv7708_destroy(ncv7708 * dev)
@@ -183,54 +184,54 @@ void ncv7708_destroy(ncv7708 * dev)
 //     failcount=0;
 //     }
 
-#include <stdio.h>
+// #include <stdio.h>
 
-int main()
-{   
-    // struct sigaction action;
-    // memset(&action, 0, sizeof(struct sigaction));
-    // action.sa_handler = term;
-    // sigaction(SIGTERM, &action, NULL);
+// int main()
+// {   
+//     // struct sigaction action;
+//     // memset(&action, 0, sizeof(struct sigaction));
+//     // action.sa_handler = term;
+//     // sigaction(SIGTERM, &action, NULL);
     
-    ncv7708 * hbridge = (ncv7708*)malloc(sizeof(ncv7708));
-    snprintf(hbridge->fname,40,"/dev/spidev1.0");
-    int status = ncv7708_init(hbridge);
-    ncv7708_packet * x = (ncv7708_packet*)malloc(sizeof(ncv7708_packet)) ;
-    x->cmd = 0 ;
-    x->srr = 1 ;
-    uint16_t cmd = x->cmd , data ;
-    status = ncv7708_transfer(hbridge, &data, &cmd) ;
-    printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
-    sleep(1);
-    x->srr = 0 ;
-    x->hben1 = 1 ;
-    x->hbsel = 0 ;
-    cmd = x->cmd ;
-    status = ncv7708_transfer(hbridge, &data, &cmd) ;
-    printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
-    sleep(1);
-    int i = 0 ;
-    while(1){
-    x->hben1 = 1 ;
-    x->hbcnf1 = 1 ;
-    cmd = x->cmd ;
-    status = ncv7708_transfer(hbridge, &data, &cmd) ;
-    //ioctl(file, CMD_SPI_SET_CSLOW,1);
-    printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
-    sleep(1);
-    x->hbcnf1 = 0 ;
-    x->hben1 = 1 ;
-    cmd = x->cmd ;
-    status = ncv7708_transfer(hbridge, &data, &cmd) ;
-    printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
-    sleep(1);
-    i++ ;
-    }
-    x->hbcnf1 = 0 ;
-    cmd = x->cmd ;
-    status = ncv7708_transfer(hbridge, &data, &cmd) ;
-    printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
-    ncv7708_destroy(hbridge) ;
-    free(x);
-    return 0 ;
-}
+//     ncv7708 * hbridge = (ncv7708*)malloc(sizeof(ncv7708));
+//     snprintf(hbridge->fname,40,"/dev/spidev1.0");
+//     int status = ncv7708_init(hbridge);
+//     ncv7708_packet * x = (ncv7708_packet*)malloc(sizeof(ncv7708_packet)) ;
+//     x->cmd = 0 ;
+//     x->srr = 1 ;
+//     uint16_t cmd = x->cmd , data ;
+//     status = ncv7708_transfer(hbridge, &data, &cmd) ;
+//     printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
+//     sleep(1);
+//     x->srr = 0 ;
+//     x->hben1 = 1 ;
+//     x->hbsel = 0 ;
+//     cmd = x->cmd ;
+//     status = ncv7708_transfer(hbridge, &data, &cmd) ;
+//     printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
+//     sleep(1);
+//     int i = 0 ;
+//     while(1){
+//     x->hben1 = 1 ;
+//     x->hbcnf1 = 1 ;
+//     cmd = x->cmd ;
+//     status = ncv7708_transfer(hbridge, &data, &cmd) ;
+//     //ioctl(file, CMD_SPI_SET_CSLOW,1);
+//     printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
+//     sleep(1);
+//     x->hbcnf1 = 0 ;
+//     x->hben1 = 1 ;
+//     cmd = x->cmd ;
+//     status = ncv7708_transfer(hbridge, &data, &cmd) ;
+//     printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
+//     sleep(1);
+//     i++ ;
+//     }
+//     x->hbcnf1 = 0 ;
+//     cmd = x->cmd ;
+//     status = ncv7708_transfer(hbridge, &data, &cmd) ;
+//     printf("Status: %d Cmd: 0x%x Data: 0x%x\n", status, cmd, data) ;
+//     ncv7708_destroy(hbridge) ;
+//     free(x);
+//     return 0 ;
+// }

@@ -35,11 +35,11 @@ int bootCount()
 #endif // DEBUG_ALWAYS_S0
 
 #ifndef MATH_SQRT
-inline float q2isqrt(float x)
+float q2isqrt(float x)
 {
     float xhalf = x*0.5f ; // calculate 1/2 x before bit-level changes
     int i = *(int*)&x    ; // convert float to int for bit level operation
-    i = 0x5f375a86 - (i>>1) ; // bit level manipulation to get initial guess (ref: http://www.lomont.org/papers/2003/InvSqrt.pdf)
+    i = 0x5f375a86 - ((*(int*)&x)>>1) ; // bit level manipulation to get initial guess (ref: http://www.lomont.org/papers/2003/InvSqrt.pdf)
     x = *(float*)&i ; // convert back to float
     x = x*(1.5f-xhalf*x*x) ; // 1 round of Newton approximation
     x = x*(1.5f-xhalf*x*x) ; // 2 round of Newton approximation
@@ -47,11 +47,11 @@ inline float q2isqrt(float x)
     return x;
 }
 #else // MATH_SQRT
-inline float q2isqrt(float x) { return 1.0/sqrt(x);} ;
+float q2isqrt(float x) { return 1.0/sqrt(x);} ;
 #endif // MATH_SQRT
 
 // returns time elapsed from 1970-1-1, 00:00:00 UTC to now (UTC) in microseconds.
-inline uint64_t get_usec(void) {
+uint64_t get_usec(void) {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     return (uint64_t)ts.tv_sec * 1000000L + ((uint64_t)ts.tv_nsec)/1000;

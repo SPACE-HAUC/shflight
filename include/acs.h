@@ -1,6 +1,10 @@
 #ifndef ACS_H
 #define ACS_H
 
+#include <main.h>
+
+void * acs(void* id) ;
+
 #define DIPOLE_MOMENT 0.21 // A m^2
 
 #define MAX_DETUMBLE_FIRING_TIME DETUMBLE_TIME_STEP-MAG_MEASURE_TIME
@@ -28,7 +32,7 @@ void insertionSort(int a1[], int a2[])
 }
 
 #define HBRIDGE_ENABLE(name)                                              \
-int hbridge_enable(int x_##name, int y_##name, int z_##name) ;
+hbridge_enable(x_##name, y_##name, z_##name) ;
 
 int hbridge_enable(int x, int y, int z)
 {
@@ -70,6 +74,7 @@ int HBRIDGE_DISABLE(int num){
             hbridge->pack->hbcnf6 = 0 ;
             break ;
     }
+    return ncv7708_xfer(hbridge) ;
 }
 
 #endif // ACS_H

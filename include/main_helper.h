@@ -17,7 +17,9 @@ int bootCount(void);
  * calculate inverse square root. The bit-level routine yields consistently better
  * performance and 0.00001% maximum error.
  */
-inline float q2isqrt(float);
+float q2isqrt(float);
+
+uint64_t get_usec() ;
 
 // DECLARE_BUFFER(name, type): Declares a buffer with name and type. Prepends x_, y_, z_ to the names (vector buffer!)
 #define DECLARE_BUFFER(name, type) \
@@ -26,6 +28,10 @@ inline float q2isqrt(float);
 // Declares a vector with the name and type. A vector is a three-variable entity with x_, y_, z_ prepended to the names
 #define DECLARE_VECTOR(name, type) \
     type x_##name = 0, y_##name = 0, z_##name = 0
+
+// Declares a vector with the name and type. A vector is a three-variable entity with x_, y_, z_ prepended to the names
+#define DECLARE_VECTOR2(name, type) \
+    type x_##name, y_##name, z_##name
 
 // FLUSH_BUFFER(name): Flushes buffer with name, prepended by standard x_, y_, z_ suffixes.
 // FLUSH_BUFFER does _not_ reset the index counters, which needs to be done by hand
@@ -103,3 +109,4 @@ inline float q2isqrt(float);
     x_##dest = s1[0][0] * x_##s2 + s1[0][1] * y_##s2 + s1[0][2] * z_##s2; \
     y_##dest = s1[1][0] * x_##s2 + s1[1][1] * y_##s2 + s1[1][2] * z_##s2; \
     z_##dest = s1[2][0] * x_##s2 + s1[2][1] * y_##s2 + s1[2][2] * z_##s2
+
