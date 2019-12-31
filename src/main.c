@@ -25,6 +25,8 @@ DECLARE_VECTOR(g_L_target,float);
 float g_L_pointing[SH_BUFFER_SIZE] ;
 float g_L_mag[SH_BUFFER_SIZE] ;
 
+p31u * g_eps ;
+
 ncv7708 * hbridge ;
 
 /* 

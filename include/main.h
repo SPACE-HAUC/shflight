@@ -81,4 +81,6 @@ extern float g_L_mag[SH_BUFFER_SIZE] ;
 
 typedef void (*func_list)(void * id) ;
 
+#include <eps_telem.h>
+
 #endif // __MAIN_H
