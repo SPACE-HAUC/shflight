@@ -1,8 +1,8 @@
 #include <eps_telem.h>
 
-void * eps_telem(void * id)
+void *eps_telem(void *id)
 {
-    return NULL ;
+    return NULL;
 }
 
 int p31u_init(p31u *dev)
@@ -41,6 +41,31 @@ void p31u_destroy(p31u *dev)
     free(dev);
 }
 
+int p31u_xfer(p31u *dev, char *out, ssize_t outsize, char *in, ssize_t insize)
+{
+    int status;
+    if ((status = write(dev->file, out, outsize)) != outsize)
+    {
+        perror("EPS"
+               "I2C Write failed!");
+        return EPS_I2C_WRITE_FAILED;
+    }
+    if (insize < 1) // no reply expected
+        return EPS_COMMAND_SUCCESS;
+    usleep(10000); // 10 ms sleep, max 10 ms for reply ready
+    if ((status = read(dev->file, in, insize)) != insize)
+    {
+        perror("EPS"
+               "I2C Read failed!");
+        return EPS_I2C_READ_FAILED;
+    }
+    if (in[0] != out[0]) // non-matching commands
+    {
+        return EPS_COMMAND_FAILED;
+    }
+    return EPS_COMMAND_SUCCESS;
+}
+
 int eps_ping(p31u *dev)
 {
     int status;
@@ -48,34 +73,17 @@ int eps_ping(p31u *dev)
     char buf[3];
     buf[0] = PING;
     buf[1] = val;
-    if ((status = write(dev->file, buf, 2)) != 2)
-    {
-        perror("EPS"
-               "I2C Write Failed in PING");
-        return status;
-    }
-    usleep(10000); // 10 ms
-    if ((status = read(dev->file, buf, 3)) != 3)
-    {
-        perror("EPS"
-               "I2C Read Failed in PING");
-        return status;
-    }
-    if (buf[0] != PING)
-    {
-        fprintf(stderr, "EPS"
-                        "PING command failed with error code %d\n",
-                buf[1]);
-        return -1;
-    }
-    if (buf[2] != val)
+    status = p31u_xfer(dev, buf, 2, buf, 3);
+    if (status > 0 && buf[2] == val)
+        return EPS_COMMAND_SUCCESS;
+    else
     {
         fprintf(stderr, "EPS"
                         "PING command returned wrong value: %d != %d\n",
                 val, buf[2]);
-        return -1;
+        return EPS_COMMAND_FAILED;
     }
-    return 1;
+    return EPS_COMMAND_SUCCESS;
 }
 
 int eps_reboot(p31u *dev)
@@ -167,7 +175,7 @@ int eps_get_hk(p31u *dev, uint8_t mode)
     switch (mode)
     {
     case 0:
-        memcpy(&(dev->full_hk), &(inbuf[2]), sizeof(eps_hk_t));
+        memcpy(&(dev->full_hk), &(inbuf[2]), sizeof(eps_hk_t)); // should be inverse memcpys due to endianness?
         break;
     case 1:
         memcpy(&(dev->battpower_hk), &(inbuf[2]), sizeof(eps_hk_vi_t));
@@ -292,17 +300,17 @@ int eps_set_single(p31u *dev, uint8_t channel, uint8_t value, int16_t delay)
     return 1;
 }
 
-int eps_reset_wdt(p31u* dev)
+int eps_reset_wdt(p31u *dev)
 {
-    int status ;
-    char buf[2] ;
-    buf[0] = RESET_WDT ;
-    buf[1] = 0x78 ; // magic
+    int status;
+    char buf[2];
+    buf[0] = RESET_WDT;
+    buf[1] = 0x78; // magic
     if ((status = write(dev->file, buf, 2)) != 2)
     {
         perror("EPS"
                "I2C Write Failed in RESET_WDT");
         return status;
     }
-    return 1 ;
+    return 1;
 }

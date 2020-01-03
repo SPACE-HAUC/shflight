@@ -5,16 +5,25 @@
 
 /*
  * TODO:
- * 1. Test endianness
+ * 1. ~Test endianness~ In all probability we need to implement an inverted memcpy operation to deal with bigendianness of I2C slave transactions.
  * 2. Implement the EPS telemetry thread
- * 3. Implement mutex locking on the p31u device so that telemetry thread and data_ack thread (resets WDT) does not
- *    crash together.
- * 4. Figure out how to declare the mutex variables so that multiple definition problems are avoided.
+ * 3. ~Implement mutex locking on the p31u device so that telemetry thread and data_ack thread (resets WDT) does not
+ *    crash together.~
+ * 4. ~Figure out how to declare the mutex variables so that multiple definition problems are avoided.~
  * 5. Implement the rest of the functions in eps_telem.h
- */ 
+ */
 
 #define EPS_I2C_ADDR 0x7d        // Temporary designation
 #define EPS_I2C_BUS "/dev/i2c-0" // I2C bus
+
+// Enumeration describing the return error codes of an EPS I2C transaction
+typedef enum
+{
+    EPS_I2C_READ_FAILED = -20,
+    EPS_I2C_WRITE_FAILED,
+    EPS_COMMAND_FAILED,
+    EPS_COMMAND_SUCCESS = 1
+} eps_xfer_ret_t;
 
 /*
  * Thread that runs the EPS telemetry and is involved in watchdog timing.
@@ -262,6 +271,12 @@ int p31u_init(p31u *);
  * Close the EPS I2C file descriptor and free memory for the EPS device.
  */
 void p31u_destroy(p31u *);
+/* 
+ * Write input buffer of size insize and read reply of expected size outsize in output buffer.
+ * This is the fundamental I2C transfer function that is used to communicate with the EPS.
+ * insize < 1 indicates that no reply is required and the function returns immediately after write.
+ */
+int p31u_xfer(p31u *, char *, ssize_t, char *, ssize_t);
 /*
  * Ping the EPS for response
  * TODO: Ensure if this is equivalent to a watchdog kick
@@ -296,14 +311,14 @@ int eps_set_single(p31u *, uint8_t, uint8_t, int16_t);
  * Set the voltage on the photovoltaic inputs V1, V2, V3 in mV. Takes effect when MODE=2.
  * Transmits V1 first and V3 last.
  */
-int eps_set_pv_volt(p31u*, uint16_t, uint16_t, uint16_t);
+int eps_set_pv_volt(p31u *, uint16_t, uint16_t, uint16_t);
 /*
  * Sets the solar cell power tracking mode:
  * MODE = 0 : Hardware default power point
  * MODE = 1 : Maximum power point tracking
  * MODE = 2 : Fixed software power point, value set with SET_PV_VOLT, default 4V
  */
-int eps_set_pv_mode(p31u*, uint8_t);
+int eps_set_pv_mode(p31u *, uint8_t);
 /*
  * Sets the heaters specified.
  * Cmd = 0 : Set heater on/off
@@ -314,55 +329,55 @@ int eps_set_pv_mode(p31u*, uint8_t);
  * 
  * TODO: Clarify what cmd and mode are. They seem similar.
  */
-int eps_set_heater(p31u*, uint8_t cmd, uint8_t heater, uint8_t mode, uint16_t * output);
+int eps_set_heater(p31u *, uint8_t cmd, uint8_t heater, uint8_t mode, uint16_t *output);
 /*
  * Reset boot and WDT counter
  */
-int eps_reset_counters(p31u*);
+int eps_reset_counters(p31u *);
 /*
  * Reset (kick) WDT
  */
-int eps_reset_wdt(p31u*);
+int eps_reset_wdt(p31u *);
 /*
  * Config command. cmd = 1 implies restore default.
  * 
  * TODO: Clarify if we need to set cmd = 0 to activate a config sent using CONFIG_SET
  */
-int eps_config_cmd(p31u*, uint8_t);
+int eps_config_cmd(p31u *, uint8_t);
 /*
  * Get current config. Stores the reply struct in the p31u structure.
  */
-int eps_config_get(p31u*);
+int eps_config_get(p31u *);
 /*
  * Set a configuration (eps_config_t) passed into the function.
  */
-int eps_config_set(p31u*, eps_config_t);
+int eps_config_set(p31u *, eps_config_t);
 /*
  * Hard reset the P31u. This power cycles every output including the battery.
  */
-int eps_hard_reset(p31u*);
+int eps_hard_reset(p31u *);
 /*
  * Config command. cmd = 1 implies restore default.
  * 
  * TODO: Clarify if we need to set cmd = 0 to activate a config sent using CONFIG_SET
  */
-int eps_config2_cmd(p31u*, uint8_t);
+int eps_config2_cmd(p31u *, uint8_t);
 /*
  * Get current config. Stores the reply struct in the p31u structure.
  */
-int eps_config2_get(p31u*);
+int eps_config2_get(p31u *);
 /*
  * Set a configuration (eps_config2_t) passed into the function.
  */
-int eps_config2_set(p31u*, eps_config2_t);
+int eps_config2_set(p31u *, eps_config2_t);
 /*
  * Controls the config3 system.
  */
-int eps_config3(p31u*, eps_config3_t);
+int eps_config3(p31u *, eps_config3_t);
 /*
  * Global EPS interface
  */
-extern p31u * g_eps ;
+extern p31u *g_eps;
 /*
  * 
  */

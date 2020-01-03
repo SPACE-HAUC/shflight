@@ -19,7 +19,7 @@ int bootCount(void);
  */
 float q2isqrt(float);
 
-uint64_t get_usec() ;
+uint64_t get_usec();
 
 // DECLARE_BUFFER(name, type): Declares a buffer with name and type. Prepends x_, y_, z_ to the names (vector buffer!)
 #define DECLARE_BUFFER(name, type) \
@@ -55,7 +55,7 @@ uint64_t get_usec() ;
     sol_index = -1;      \
     bdot_index = -1;     \
     omega_index = -1;    \
-    g_nightmode = 0 ;    \
+    g_nightmode = 0;     \
     omega_ready = -1;
 // dest = s1 X s2; dest, s1, s2 are vectors with names x_dest, y_dest, z_dest and x_s1, y_s1, z_s1 etc
 // *** dest must not be the same as either s1 or s2 ***
@@ -109,4 +109,3 @@ uint64_t get_usec() ;
     x_##dest = s1[0][0] * x_##s2 + s1[0][1] * y_##s2 + s1[0][2] * z_##s2; \
     y_##dest = s1[1][0] * x_##s2 + s1[1][1] * y_##s2 + s1[1][2] * z_##s2; \
     z_##dest = s1[2][0] * x_##s2 + s1[2][1] * y_##s2 + s1[2][2] * z_##s2
-
