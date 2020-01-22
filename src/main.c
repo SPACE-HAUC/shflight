@@ -25,7 +25,14 @@ DECLARE_VECTOR(g_L_target, float);
 float g_L_pointing[SH_BUFFER_SIZE];
 float g_L_mag[SH_BUFFER_SIZE];
 
-p31u *g_eps;
+#ifdef SERIAL_SIM
+pthread_mutex_t serial_read, serial_write;
+unsigned char dipole;
+DECLARE_VECTOR(g_readBp, short); // storage to put helmhotz positives
+DECLARE_VECTOR(g_readBn, short); // storage to put helmhotz negatives
+short g_readFS[2];               // storage to put FS X and Y angles
+unsigned short g_readCS[9];      // storage to put CS led brightnesses
+#endif
 
 ncv7708 *hbridge;
 

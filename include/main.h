@@ -16,12 +16,12 @@
 #define SH_BUFFER_SIZE 64 // size of circular buffers
 
 #define DETUMBLE_TIME_STEP 100000  // 100 msec, in usec
-#define COARSE_TIME_STEP 1000000   // 1000 msec, in usec
-#define FINE_TIME_STEP 200000      // 200 msec, in usec
-#define MAG_MEASURE_TIME 20000     // 20 msec, in usec
+#define COARSE_TIME_STEP DETUMBLE_TIME_STEP   // 1000 msec, in usec
+#define FINE_TIME_STEP DETUMBLE_TIME_STEP      // 200 msec, in usec
+#define MAG_MEASURE_TIME 15000     // 20 msec, in usec
 #define SUNPOINT_DUTY_CYCLE 20000  // 20 msec, in usec
-#define COARSE_MEASURE_TIME 100000 // 100 msec, in usec
-#define FINE_MEASURE_TIME 5000     // 5 ms, in usec (single shot mode)
+#define COARSE_MEASURE_TIME 15000 // 100 msec, in usec
+#define FINE_MEASURE_TIME 15000     // 5 ms, in usec (single shot mode)
 typedef enum
 {
     SH_SYS_INIT,
@@ -85,5 +85,11 @@ extern float g_L_mag[SH_BUFFER_SIZE];
 typedef void (*func_list)(void *id);
 
 #include <eps_telem.h>
+
+extern pthread_mutex_t serial_read, serial_write;
+extern unsigned char dipole;
+DECLARE_VECTOR(g_readB, extern short); // storage to put helmhotz coil voltages
+extern short g_readFS[2];               // storage to put FS X and Y angles
+extern unsigned short g_readCS[9];      // storage to put CS led brightnesses
 
 #endif // __MAIN_H

@@ -10,8 +10,7 @@
 
 extern pthread_mutex_t serial_read, serial_write;
 extern unsigned char dipole;
-DECLARE_VECTOR(g_readBp, extern short); // storage to put helmhotz positives
-DECLARE_VECTOR(g_readBn, extern short); // storage to put helmhotz negatives
+DECLARE_VECTOR(g_readB, extern short); // storage to put helmhotz values
 extern short g_readFS[2];               // storage to put FS X and Y angles
 extern unsigned short g_readCS[9];      // storage to put CS led brightnesses
 
@@ -112,7 +111,7 @@ void *sitl_comm(void)
     long long charsleep = 100;
     while (1)
     {
-        unsigned char inbuf[36], obuf, tmp, val = 0, frame_valid = 1;
+        unsigned char inbuf[30], obuf, tmp, val = 0, frame_valid = 1;
         int frame_valid = 1, nr = 0;
 #ifdef RPI
         digitalWrite(READ_SIG, 1);
@@ -129,10 +128,10 @@ void *sitl_comm(void)
                 preamble_count = -10;
         } while ((preamble_count < 0));
         // read data
-        usleep(charsleep * 36);      // wait till data is available
-        int n = read(fd, inbuf, 36); // read actual data
+        usleep(charsleep * 30);      // wait till data is available
+        int n = read(fd, inbuf, 30); // read actual data
         // read end frame
-        for (int i = 34; i < 36; i++)
+        for (int i = 28; i < 30; i++)
         {
             if (inbuf[i] != 0xb0)
                 frame_valid = 2;
@@ -156,13 +155,10 @@ void *sitl_comm(void)
             continue; // go back to beginning of the loop if the frame is bad
         // acquire lock before starting to assign to variables that are going to be read by data_acq thread
         pthread_mutex_lock(&serial_read);
-        x_g_readBp = *((unsigned short *)inbuf);      // first element, little endian order
-        y_g_readBp = *((unsigned short *)&inbuf[4]);  // second element
-        z_g_readBp = *((unsigned short *)&inbuf[8]);  // third element
-        x_g_readBn = *((unsigned short *)inbuf[2]);   // first element, little endian order
-        y_g_readBn = *((unsigned short *)&inbuf[8]);  // second element
-        z_g_readBn = *((unsigned short *)&inbuf[10]); // third element
-        int offset = 12;
+        x_g_readB = *((unsigned short *)inbuf);      // first element, little endian order
+        y_g_readB = *((unsigned short *)&inbuf[2]);  // second element
+        z_g_readB = *((unsigned short *)&inbuf[4]);  // third element
+        int offset = 6;
         for (int i = 0; i < 9; i++)
         {
             g_readCS[i] = *((unsigned short *)&inbuf[offset + 2 * i]);

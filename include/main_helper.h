@@ -25,6 +25,10 @@ uint64_t get_usec();
 #define DECLARE_BUFFER(name, type) \
     type x_##name[SH_BUFFER_SIZE], y_##name[SH_BUFFER_SIZE], z_##name[SH_BUFFER_SIZE]
 
+// VECTOR_CLEAR(name) : Clears a vector with name
+#define VECTOR_CLEAR(name) \
+    x_##name = 0 ; y_##name = 0 ; z_##name = 0
+
 // Declares a vector with the name and type. A vector is a three-variable entity with x_, y_, z_ prepended to the names
 #define DECLARE_VECTOR(name, type) \
     type x_##name = 0, y_##name = 0, z_##name = 0
