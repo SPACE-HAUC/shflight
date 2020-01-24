@@ -28,7 +28,7 @@ DECLARE_BUFFER(g_Bt, float);
 DECLARE_VECTOR(g_L_target, float);
 int mag_index = -1, omega_index = -1, bdot_index = -1;
 unsigned long long acs_ct = 0 ;
-float MOI[3][3] = {{1, 0, 0},{0, 1, 0},{0, 0, 1}};
+float MOI[3][3] = {{0.0647, 0, 0},{0, 0.0647, 0},{0, 0, 0.0792}};
 unsigned char g_Fire;
 
 void insertionSort(int a1[], int a2[])
@@ -259,8 +259,8 @@ void *sitl_comm(void* id)
         }
         pthread_mutex_unlock(&serial_read);
         // convert B to proper units
-        VECTOR_MIXED(g_readB, g_readB, 2048, -);
-        VECTOR_MIXED(g_readB, g_readB, 65e-6/2048, *);
+        VECTOR_MIXED(g_readB, g_readB, 2047, -);
+        VECTOR_MIXED(g_readB, g_readB, 65e-6/2047, *);
     }
     pthread_exit(NULL);
 }
