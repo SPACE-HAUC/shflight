@@ -3,6 +3,7 @@
 #include <main.h>
 
 #define THREAD_TIMEOUT 5              // 5 seconds absolute timeout on the threads
+#define XBAND_TIMEOUT  1200            // 20 minutes for X Band
 #define MIN_OMEGA_STABLE_THRESHOLD 3  // 4 readings during state change to ensure criteria holds
 #define MIN_SOL_STABLE_THRESHOLD 3    // 4 readings during state change to ensure criteria holds
 float FINE_POINTING_LIMIT = 0.996;    // cos(5 deg). Declared as a float as this value might change

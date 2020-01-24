@@ -21,7 +21,7 @@ int readSensors(void)
     VECTOR_CLEAR(g_B[mag_index]);                                  // clear the current B
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +);         // load B - equivalent reading from sensor
     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 65e-6 / 2048, *); // recover B
-    VECTOR_CLEAR(g_S[sol_index]);
+    VECTOR_CLEAR(g_S[sol_index]);                                  // for now, this is all we are doing since sun vector unimplemented in sim
     pthread_mutex_unlock(&serial_read);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (g_bootup && mag_index < 1)
@@ -36,7 +36,7 @@ int readSensors(void)
     VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
     return status;
 }
-
+// redundant now
 int getMagField(void)
 {
     int status = 1;
@@ -71,7 +71,7 @@ int getMagField(void)
     VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
     return status;
 }
-
+// redundant now
 // Populates the sun vector buffer at each timestep
 int getSunVec(void)
 {
