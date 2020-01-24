@@ -22,11 +22,12 @@ void catch_sigint()
 #define MAX_DETUMBLE_FIRING_TIME 80000 // 80 ms
 #define DETUMBLE_TIME_STEP 100000      // 100 ms
 #define MIN_DETUMBLE_FIRING_TIME 10000 // 10 ms
-DECLARE_BUFFER(g_W, float);
+DECLARE_BUFFER(g_W, double);
 DECLARE_BUFFER(g_B, float);
 DECLARE_BUFFER(g_Bt, float);
 DECLARE_VECTOR(g_L_target, float);
 int mag_index = -1, omega_index = -1, bdot_index = -1;
+int B_full = 0 , Bdot_full = 0 , W_full = 0 ; // required to deal with the circular buffer problem
 unsigned long long acs_ct = 0 ;
 float MOI[3][3] = {{0.0647, 0, 0},{0, 0.0647, 0},{0, 0, 0.0792}};
 unsigned char g_Fire;
@@ -68,6 +69,7 @@ int hbridge_enable(int x, int y, int z)
     pthread_mutex_lock(&serial_write);
     g_Fire = val;
     pthread_mutex_unlock(&serial_write);
+    // printf("Fire: %d %d %d: 0x%x\n", x, y, z, g_Fire);
     return val;
 }
 
@@ -191,7 +193,6 @@ void *sitl_comm(void* id)
     long long charsleep = 100;
     while (!done)
     {
-        printf("Serial: Beginning loop\n");
         unsigned char inbuf[30], obuf, tmp, val = 0;
         int frame_valid = 1, nr = 0;
 #ifdef RPI
@@ -240,13 +241,23 @@ void *sitl_comm(void* id)
         digitalWrite(WRITE_SIG, 0);
 #endif
         usleep(charsleep);
-        if (n < 36 || nr != 1 || frame_valid != 0)
+        if (n < 30 || nr != 1 || frame_valid != 1)
+        {
+            //printf("n: %d, nr: %d, frame_valid = %d\n", n, nr, frame_valid);
             continue; // go back to beginning of the loop if the frame is bad
+        }
         // acquire lock before starting to assign to variables that are going to be read by data_acq thread
         pthread_mutex_lock(&serial_read);
-        x_g_readB = *((unsigned short *)inbuf);      // first element, little endian order
-        y_g_readB = *((unsigned short *)&inbuf[2]);  // second element
-        z_g_readB = *((unsigned short *)&inbuf[4]);  // third element
+        x_g_readB = inbuf[0] | ((unsigned short)inbuf[1]) << 8 ;      // first element, little endian order
+        y_g_readB = inbuf[2] | ((unsigned short)inbuf[3]) << 8 ;  // second element
+        z_g_readB = inbuf[4] | ((unsigned short)inbuf[5]) << 8 ;  // third element
+        // printf("Serial: Raw B: ");
+        // for ( int i = 0 ; i < 6 ; i++ )
+        // {
+        //     printf("0x%02x ", inbuf[i]);
+        // }
+        // printf("0x%x 0x%x 0x%x", x_g_readB, y_g_readB, z_g_readB);
+        // printf("\n");
         int offset = 6;
         for (int i = 0; i < 9; i++)
         {
@@ -258,35 +269,34 @@ void *sitl_comm(void* id)
             g_readFS[i] = *((unsigned short *)&inbuf[offset + 2 * i]);
         }
         pthread_mutex_unlock(&serial_read);
-        // convert B to proper units
-        VECTOR_MIXED(g_readB, g_readB, 2047, -);
-        VECTOR_MIXED(g_readB, g_readB, 65e-6/2047, *);
     }
     pthread_exit(NULL);
 }
 
 void getOmega(void)
 {
-    if (mag_index < 2) // not enough measurements
+    if (mag_index < 2 && B_full == 0) // not enough measurements
         return;
     // once we have measurements, we declare that we proceed
+    if ( omega_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
+        W_full = 1 ;
     omega_index = (1 + omega_index) % SH_BUFFER_SIZE;
     int8_t m0, m1;
     m1 = bdot_index;
     m0 = (bdot_index - 1) < 0 ? SH_BUFFER_SIZE - bdot_index - 1 : bdot_index - 1;
     float freq;
-    freq = 1. / DETUMBLE_TIME_STEP;
+    freq = 1e6 / DETUMBLE_TIME_STEP; // time units!
     CROSS_PRODUCT(g_W[omega_index], g_Bt[m1], g_Bt[m0]); // apply cross product
     float invnorm = INVNORM(g_Bt[m0]);
     VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq * invnorm, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm(B_t dot)
     // Apply correction
-    DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
-    MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
-    DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
-    CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
-    MATVECMUL(omega_corr1, MOI, omega_corr0);                      // store back into temp 0
-    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*MOI*(-w[t-1] X MOI*w[t-1])
-    VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
+    // DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
+    // MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
+    // DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
+    // CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
+    // MATVECMUL(omega_corr1, MOI, omega_corr0);                      // store back into temp 0
+    // VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*MOI*(-w[t-1] X MOI*w[t-1])
+    // VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
     return;
 }
 
@@ -294,23 +304,31 @@ int readSensors(void)
 {
     // read magfield
     int status = 1;
+    if ( mag_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
+        B_full = 1 ;
     mag_index = (mag_index + 1) % SH_BUFFER_SIZE;
     pthread_mutex_lock(&serial_read);
     VECTOR_CLEAR(g_B[mag_index]);                                  // clear the current B
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +);         // load B - equivalent reading from sensor
-    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 65e-6 / 2048, *); // recover B
+    // convert B to proper units
+    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 2047, -);
+    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 65e-6*1e4/2047, *); // in Gauss to have precision
+    // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     pthread_mutex_unlock(&serial_read);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
-    if (mag_index < 1)
+    if (mag_index < 1 && B_full == 0)
         return status;
     // if we have > 1 values, calculate Bdot
+    if ( bdot_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
+        B_full = 1 ;
     bdot_index = (bdot_index + 1) % SH_BUFFER_SIZE;
     int8_t m0, m1;
     m1 = mag_index;
     m0 = (mag_index - 1) < 0 ? SH_BUFFER_SIZE - mag_index - 1 : mag_index - 1;
-    double freq = 1. / DETUMBLE_TIME_STEP;
+    double freq = 1e6 / DETUMBLE_TIME_STEP;
     VECTOR_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
-    VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
+    //printf("readSensors: m0: %d m1: %d Bx: %f By: %f Bz: %f\n", m0, m1, x_g_Bt[bdot_index], y_g_Bt[bdot_index], z_g_Bt[bdot_index]);
+    VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *); 
     getOmega();
     return status;
 }
@@ -329,9 +347,10 @@ void *acs_detumble(void *id)
         }
         unsigned long long s = get_usec();
         readSensors();
-        time_t now ; time(&now);
-        if ( omega_index > 0 )
-            printf("%s ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", ctime(&now), acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+        //time_t now ; time(&now);
+        if ( omega_index >= 0 )
+        //    printf("%s ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", ctime(&now), acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+        printf("ACS step: %llu | Wx = %f Wy = %f Wz = %f\r", acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
         unsigned long long e = get_usec();
         usleep(20000 - e + s);                   // sleep for total 20 ms with read
         DECLARE_VECTOR(currL, float);            // vector for current angular momentum
