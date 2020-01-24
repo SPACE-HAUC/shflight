@@ -265,6 +265,31 @@ void *sitl_comm(void* id)
     pthread_exit(NULL);
 }
 
+void getOmega(void)
+{
+    if (mag_index < 2) // not enough measurements
+        return;
+    // once we have measurements, we declare that we proceed
+    omega_index = (1 + omega_index) % SH_BUFFER_SIZE;
+    int8_t m0, m1;
+    m1 = bdot_index;
+    m0 = (bdot_index - 1) < 0 ? SH_BUFFER_SIZE - bdot_index - 1 : bdot_index - 1;
+    float freq;
+    freq = 1. / DETUMBLE_TIME_STEP;
+    CROSS_PRODUCT(g_W[omega_index], g_Bt[m1], g_Bt[m0]); // apply cross product
+    float invnorm = INVNORM(g_Bt[m0]);
+    VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq * invnorm, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm(B_t dot)
+    // Apply correction
+    DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
+    MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
+    DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
+    CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
+    MATVECMUL(omega_corr1, MOI, omega_corr0);                      // store back into temp 0
+    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*MOI*(-w[t-1] X MOI*w[t-1])
+    VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
+    return;
+}
+
 int readSensors(void)
 {
     // read magfield
@@ -286,6 +311,7 @@ int readSensors(void)
     double freq = 1. / DETUMBLE_TIME_STEP;
     VECTOR_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
     VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
+    getOmega();
     return status;
 }
 
