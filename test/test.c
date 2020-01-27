@@ -230,6 +230,7 @@ int mag_index = -1, omega_index = -1, bdot_index = -1;
 int B_full = 0 , Bdot_full = 0 , W_full = 0 ; // required to deal with the circular buffer problem
 unsigned long long acs_ct = 0 ;
 float MOI[3][3] = {{0.0647, 0, 0},{0, 0.0647, 0},{0, 0, 0.0792}};
+float IMOI[3][3] = {{15.455950540958270, 0 , 0},{0,15.455950540958270,0},{0,0,12.626262626262625}} ;
 
 void insertionSort(int a1[], int a2[])
 {
@@ -340,8 +341,8 @@ void getOmega(void)
     MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
     DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
     CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
-    MATVECMUL(omega_corr1, MOI, omega_corr0);                      // store back into temp 0
-    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*MOI*(-w[t-1] X MOI*w[t-1])
+    MATVECMUL(omega_corr1, IMOI, omega_corr0);                      // store back into temp 0
+    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
     VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
     return;
 }
