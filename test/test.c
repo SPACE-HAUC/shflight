@@ -107,7 +107,7 @@ int setup_serial(void)
         printf("error %d opening TTY: %s", errno, strerror(errno));
         return -1;
     }
-    set_interface_attribs(fd, B115200, 0);
+    set_interface_attribs(fd, B230400, 0);
     set_blocking(fd, 0);
     return fd;
 }
@@ -125,9 +125,10 @@ void *sitl_comm(void* id)
         printf("Error getting serial fd\n");
         return NULL;
     }
-    long long charsleep = 100;
+    long long charsleep = 75;
     while (!done)
     {
+        // unsigned long long s = get_usec();
         unsigned char inbuf[30], obuf, tmp, val = 0;
         int frame_valid = 1, nr = 0;
         // read 10 0xa0 bytes to make sure you got the full frame
@@ -145,8 +146,8 @@ void *sitl_comm(void* id)
             else
                 preamble_count = -10;
         } while ((preamble_count < 0));
-        if (first_run)
-            pthread_cond_broadcast(&data_available);
+        // if (first_run)
+        pthread_cond_broadcast(&data_available);
         if ( done )
             continue ;
         // read data
@@ -192,6 +193,8 @@ void *sitl_comm(void* id)
             g_readFS[i] = *((unsigned short *)&inbuf[offset + 2 * i]);
         }
         pthread_mutex_unlock(&serial_read);
+        // unsigned long long e = get_usec();
+        // printf("[%llu ms] Serial read\n", (e-s)/1000);
     }
     pthread_exit(NULL);
 }
@@ -229,8 +232,10 @@ DECLARE_VECTOR(g_W_target, float);
 int mag_index = -1, omega_index = -1, bdot_index = -1;
 int B_full = 0 , Bdot_full = 0 , W_full = 0 ; // required to deal with the circular buffer problem
 unsigned long long acs_ct = 0 ;
-float MOI[3][3] = {{0.0647, 0, 0},{0, 0.0647, 0},{0, 0, 0.0792}};
-float IMOI[3][3] = {{15.455950540958270, 0 , 0},{0,15.455950540958270,0},{0,0,12.626262626262625}} ;
+float MOI[3][3] = {{0.06467720404,         0,         0},\
+                   {0,    0.06474406267,         0},\
+                   {0,         0,    0.07921836177}};
+float IMOI[3][3] = {{15.461398105297564, 0 , 0},{0,15.461398105297564,0},{0,0,12.623336025344317}} ;
 
 void insertionSort(int a1[], int a2[])
 {
@@ -336,14 +341,14 @@ void getOmega(void)
     CROSS_PRODUCT(g_W[omega_index], g_Bt[m1], g_Bt[m0]); // apply cross product
     float norm2 = NORM2(g_Bt[m0]);
     VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq / norm2, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm(B_t dot)
-    // Apply correction
-    DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
-    MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
-    DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
-    CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
-    MATVECMUL(omega_corr1, IMOI, omega_corr0);                      // store back into temp 0
-    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
-    VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
+    // Apply correction // There is fast runaway with this on
+    // DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
+    // MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
+    // DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
+    // CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
+    // MATVECMUL(omega_corr1, IMOI, omega_corr0);                      // store back into temp 0
+    // VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
+    // VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
     return;
 }
 
@@ -391,10 +396,9 @@ void *acs_detumble(void *id)
         if ( first_run )
         {
             printf("ACS: Waiting for release...\n");
-            pthread_cond_wait(&data_available, &data_check) ;
-            printf("ACS: Released!\n");
             first_run = 0 ;
         }
+        pthread_cond_wait(&data_available, &data_check) ;
         unsigned long long s = get_usec();
         readSensors();
         //time_t now ; time(&now);
@@ -543,7 +547,7 @@ void * datavis_thread(void *t)
         pthread_cond_wait(&datavis_drdy, &datavis_mutex);
 		if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t*)&addrlen))<0) 
         { 
-            perror("accept"); 
+            // perror("accept"); 
 				// cerr << "DataVis: Accept from socket error!" <<endl ;
         }
         ssize_t numsent = send(new_socket,&global_p.buf,PACK_SIZE,0);
