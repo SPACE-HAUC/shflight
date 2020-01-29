@@ -366,7 +366,7 @@ int readSensors(void)
     // convert B to proper units
     #define B_RANGE 32767
     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
-    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 65e-6*1e7/B_RANGE, *); // in milliGauss to have precision
+    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4*1e7/B_RANGE, *); // in milliGauss to have precision
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (mag_index < 1 && B_full == 0)
