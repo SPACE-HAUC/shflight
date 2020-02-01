@@ -269,7 +269,7 @@ void calculateBessel(float arr[], int size, int order, float freq_cutoff)
     for (int j = 0; j < SH_BUFFER_SIZE; j++)
     {
         arr[j] = 0;  // initiate value to 0
-        pow_num = 1; //  (j/w_0)^0 is the start
+        double pow_num = 1; //  (j/w_0)^0 is the start
         for (int i = 0; i < order + 1; i++)
         {
             arr[j] += coeff[i] * pow_num; // add the coeff
