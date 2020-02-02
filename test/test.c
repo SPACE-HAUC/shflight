@@ -107,7 +107,7 @@ int setup_serial(void)
         printf("error %d opening TTY: %s", errno, strerror(errno));
         return -1;
     }
-    set_interface_attribs(fd, B230400, 0);
+    set_interface_attribs(fd, B2500000, 0);
     set_blocking(fd, 0);
     return fd;
 }
@@ -125,7 +125,7 @@ void *sitl_comm(void *id)
         printf("Error getting serial fd\n");
         return NULL;
     }
-    long long charsleep = 75;
+    long long charsleep = 30 ; // for 2500000 75; // for 230400
     while (!done)
     {
         // unsigned long long s = get_usec();
