@@ -107,7 +107,7 @@ int setup_serial(void)
         printf("error %d opening TTY: %s", errno, strerror(errno));
         return -1;
     }
-    set_interface_attribs(fd, B2500000, 0);
+    set_interface_attribs(fd, B230400, 0);
     set_blocking(fd, 0);
     return fd;
 }
@@ -116,7 +116,8 @@ int setup_serial(void)
  * This thread waits to read a dataframe, reads it over serial, writes the dipole action to serial and interprets the
  * dataframe that was read over serial. The values are atomically assigned.
  */
-
+unsigned long long t_comm = 0;
+unsigned long long comm_time;
 void *sitl_comm(void *id)
 {
     int fd = setup_serial();
@@ -125,7 +126,7 @@ void *sitl_comm(void *id)
         printf("Error getting serial fd\n");
         return NULL;
     }
-    long long charsleep = 30 ; // for 2500000 75; // for 230400
+    long long charsleep = 75; // 30 for 2500000; // 75 for 230400
     while (!done)
     {
         // unsigned long long s = get_usec();
@@ -166,6 +167,11 @@ void *sitl_comm(void *id)
         nr = write(fd, &obuf, 1);
         tcflush(fd, TCOFLUSH); // flush the output buffer
         usleep(charsleep);
+
+        unsigned long long s = get_usec();
+        comm_time = s - t_comm;
+        t_comm = s;
+
         if (n < 30 || nr != 1 || frame_valid != 1)
         {
             //printf("n: %d, nr: %d, frame_valid = %d\n", n, nr, frame_valid);
@@ -268,7 +274,7 @@ void calculateBessel(float arr[], int size, int order, float freq_cutoff)
     // evaluate transfer function coeffs
     for (int j = 0; j < SH_BUFFER_SIZE; j++)
     {
-        arr[j] = 0;  // initiate value to 0
+        arr[j] = 0;         // initiate value to 0
         double pow_num = 1; //  (j/w_0)^0 is the start
         for (int i = 0; i < order + 1; i++)
         {
@@ -485,7 +491,7 @@ int readSensors(void)
     return status;
 }
 // measure thread execution time
-unsigned long long t = 0;
+unsigned long long t_acs = 0;
 // detumble thread, will become master acs thread
 void *acs_detumble(void *id)
 {
@@ -496,15 +502,15 @@ void *acs_detumble(void *id)
         {
             printf("ACS: Waiting for release...\n");
             first_run = 0;
+            // wait till there is available data on serial
+            pthread_cond_wait(&data_available, &data_check);
         }
-        // wait till there is available data on serial
-        pthread_cond_wait(&data_available, &data_check);
         unsigned long long s = get_usec();
         readSensors();
         //time_t now ; time(&now);
         if (omega_index >= 0)
         {
-            printf("[%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", (s - t) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%llu ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
             // Update datavis variables [DO NOT TOUCH]
             global_p.data.x_B = x_g_B[mag_index];
             global_p.data.y_B = y_g_B[mag_index];
@@ -519,7 +525,7 @@ void *acs_detumble(void *id)
             pthread_cond_broadcast(&datavis_drdy);
         }
         //    printf("%s ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", ctime(&now), acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
-        t = s;
+        t_acs = s;
         unsigned long long e = get_usec();
         usleep(MEASURE_TIME - e + s); // sleep for total 20 ms with read
         if (omega_index < 0)
