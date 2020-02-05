@@ -8,6 +8,8 @@ import astropy.io.fits as pf
 import socket
 import sys
 
+import collections
+
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':10})
 ## for Palatino and other serif fonts use:
@@ -38,20 +40,32 @@ class packet_data(c.Structure):
 
 port = 12376
 
-SH_BUFFER_SIZE = 50
+SH_BUFFER_SIZE = 500
 
-x_B = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
-y_B = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
-z_B = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
+x_B = collections.deque(maxlen=SH_BUFFER_SIZE)
+y_B = collections.deque(maxlen=SH_BUFFER_SIZE)
+z_B = collections.deque(maxlen=SH_BUFFER_SIZE)
 
-x_Bt = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
-y_Bt = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
-z_Bt = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
+x_Bt = collections.deque(maxlen=SH_BUFFER_SIZE)
+y_Bt = collections.deque(maxlen=SH_BUFFER_SIZE)
+z_Bt = collections.deque(maxlen=SH_BUFFER_SIZE)
 
-x_W = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
-y_W = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
-z_W = np.zeros(SH_BUFFER_SIZE, dtype=np.double) # 5 seconds worth of data
+x_W = collections.deque(maxlen=SH_BUFFER_SIZE)
+y_W = collections.deque(maxlen=SH_BUFFER_SIZE)
+z_W = collections.deque(maxlen=SH_BUFFER_SIZE)
 
+for i in range(SH_BUFFER_SIZE):
+    x_B.append(0)
+    y_B.append(0)
+    z_B.append(0)
+
+    x_Bt.append(0)
+    y_Bt.append(0)
+    z_Bt.append(0)
+
+    x_W.append(0)
+    y_W.append(0)
+    z_W.append(0)
 
 #print(c.sizeof(packet_data))
 fig, (ax1, ax2, ax3) = plt.subplots(3,1,figsize=(10,8),sharex=True)
@@ -71,24 +85,13 @@ x_l_W, = ax3.plot([], [], color='r')
 y_l_W, = ax3.plot([], [], color='b')
 z_l_W, = ax3.plot([], [], color='g')
 
-x_l_Biv, = ax1.plot([], [], color='k')
-y_l_Biv, = ax1.plot([], [], color='k')
-z_l_Biv, = ax1.plot([], [], color='k')
-
-x_l_Btiv, = ax2.plot([], [], color='k')
-y_l_Btiv, = ax2.plot([], [], color='k')
-z_l_Btiv, = ax2.plot([], [], color='k')
-
-x_l_Wiv, = ax3.plot([], [], color='k')
-y_l_Wiv, = ax3.plot([], [], color='k')
-z_l_Wiv, = ax3.plot([], [], color='k')
 # all data plots
-line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, x_l_Biv, y_l_Biv, z_l_Biv, x_l_Btiv, y_l_Btiv, z_l_Btiv, x_l_Wiv, y_l_Wiv, z_l_Wiv]
+line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W]
 # vertical marker
-vline = []
+# vline = []
 for ax in [ax1, ax2, ax3]:
     ax.grid()
-    vline.append(ax.axvline(0, color='k'))
+#     vline.append(ax.axvline(0, color='k'))
 
 # Set limits
 ax1.set_title("B (mG)")
@@ -129,52 +132,37 @@ def animate(i):
     # copy read bytes to the packet
     c.memmove(c.addressof(a),val,c.sizeof(packet_data))
 
-    # determine current index on circular buffer
-    index = i % SH_BUFFER_SIZE
     # Time axis generation
-    xdata = (np.arange(SH_BUFFER_SIZE)+((i-index)//SH_BUFFER_SIZE))*0.1 # time in seconds
+    xdata = np.arange(SH_BUFFER_SIZE, dtype = float) + i - SH_BUFFER_SIZE # time in seconds
+    xdata *= 0.1
     # set time axis limits
     for ax in [ax1,ax2,ax3]:
         ax.set_xlim(xdata.min(), xdata.max())
-    # draw vertical lines to indicate boundaries
-    for l in vline:
-        l.set_data([index*0.1+xdata.min(),index*0.1+xdata.min()],[-1e3,1e3])
     # copy data into circular buffer
-    x_B[index] = a.x_B
-    y_B[index] = a.y_B
-    z_B[index] = a.z_B
-    x_Bt[index] = a.x_Bt
-    y_Bt[index] = a.y_Bt
-    z_Bt[index] = a.z_Bt
-    x_W[index] = a.x_W
-    y_W[index] = a.y_W
-    z_W[index] = a.z_W
+    x_B.append(a.x_B)
+    y_B.append(a.y_B)
+    z_B.append(a.z_B)
+    x_Bt.append(a.x_Bt)
+    y_Bt.append(a.y_Bt)
+    z_Bt.append(a.z_Bt)
+    x_W.append(a.x_W)
+    y_W.append(a.y_W)
+    z_W.append(a.z_W)
+
     # plot current data in color
-    x_l_B.set_data(xdata[0:index+1], x_B[0:index+1])
-    y_l_B.set_data(xdata[0:index+1], y_B[0:index+1])
-    z_l_B.set_data(xdata[0:index+1], z_B[0:index+1])
+    x_l_B.set_data(xdata, x_B)
+    y_l_B.set_data(xdata, y_B)
+    z_l_B.set_data(xdata, z_B)
 
-    x_l_Bt.set_data(xdata[0:index+1], x_Bt[0:index+1])
-    y_l_Bt.set_data(xdata[0:index+1], y_Bt[0:index+1])
-    z_l_Bt.set_data(xdata[0:index+1], z_Bt[0:index+1])
+    x_l_Bt.set_data(xdata, x_Bt)
+    y_l_Bt.set_data(xdata, y_Bt)
+    z_l_Bt.set_data(xdata, z_Bt)
 
-    x_l_W.set_data(xdata[0:index+1], x_W[0:index+1])
-    y_l_W.set_data(xdata[0:index+1], y_W[0:index+1])
-    z_l_W.set_data(xdata[0:index+1], z_W[0:index+1])
-    # plot invalid data in black
-    x_l_Biv.set_data(xdata[index:SH_BUFFER_SIZE], x_B[index:SH_BUFFER_SIZE])
-    y_l_Biv.set_data(xdata[index:SH_BUFFER_SIZE], y_B[index:SH_BUFFER_SIZE])
-    z_l_Biv.set_data(xdata[index:SH_BUFFER_SIZE], z_B[index:SH_BUFFER_SIZE])
-
-    x_l_Btiv.set_data(xdata[index:SH_BUFFER_SIZE], x_Bt[index:SH_BUFFER_SIZE])
-    y_l_Btiv.set_data(xdata[index:SH_BUFFER_SIZE], y_Bt[index:SH_BUFFER_SIZE])
-    z_l_Btiv.set_data(xdata[index:SH_BUFFER_SIZE], z_Bt[index:SH_BUFFER_SIZE])
-
-    x_l_Wiv.set_data(xdata[index:SH_BUFFER_SIZE], x_W[index:SH_BUFFER_SIZE])
-    y_l_Wiv.set_data(xdata[index:SH_BUFFER_SIZE], y_W[index:SH_BUFFER_SIZE])
-    z_l_Wiv.set_data(xdata[index:SH_BUFFER_SIZE], z_W[index:SH_BUFFER_SIZE])
+    x_l_W.set_data(xdata, x_W)
+    y_l_W.set_data(xdata, y_W)
+    z_l_W.set_data(xdata, z_W)
     # update line
-    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, x_l_Biv, y_l_Biv, z_l_Biv, x_l_Btiv, y_l_Btiv, z_l_Btiv, x_l_Wiv, y_l_Wiv, z_l_Wiv]
+    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W]
     return line
 
 
