@@ -245,7 +245,7 @@ float MOI[3][3] = {{0.06467720404, 0, 0},
                    {0, 0, 0.07921836177}};
 float IMOI[3][3] = {{15.461398105297564, 0, 0}, {0, 15.461398105297564, 0}, {0, 0, 12.623336025344317}};
 
-double bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as double precision
+float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as double precision
 
 inline int factorial(int i)
 {
@@ -272,7 +272,7 @@ void calculateBessel(float arr[], int size, int order, float freq_cutoff)
         coeff[i] = factorial(2 * order - i) / ((1 << (order - i)) * factorial(i) * factorial(order - i)); // https://en.wikipedia.org/wiki/Bessel_filter
     }
     // evaluate transfer function coeffs
-    for (int j = 0; j < SH_BUFFER_SIZE; j++)
+    for (int j = 0; j < size; j++)
     {
         arr[j] = 0;         // initiate value to 0
         double pow_num = 1; //  (j/w_0)^0 is the start
@@ -472,6 +472,9 @@ int readSensors(void)
 #define B_RANGE 32767
     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
+    dfilterBessel(x_g_B, mag_index);
+    dfilterBessel(y_g_B, mag_index);
+    dfilterBessel(z_g_B, mag_index);
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (mag_index < 1 && B_full == 0)
@@ -684,6 +687,7 @@ int main(void)
 
     z_g_W_target = 1;                       // 1 rad s^-1
     MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
+    calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
 
     int rc0, rc1, rc2;
     pthread_t thread0, thread1, thread2;
