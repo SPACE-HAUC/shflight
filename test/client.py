@@ -294,7 +294,17 @@ def animate(i):
     vx = (fft_base[np.where(fft_base>=0)][np.where(x_B_fft[np.where(fft_base>=0)]==x_B_fft[np.where(fft_base>=0)].max())])[0]
     vy = (fft_base[np.where(fft_base>=0)][np.where(y_B_fft[np.where(fft_base>=0)]==y_B_fft[np.where(fft_base>=0)].max())])[0]
     vz = (fft_base[np.where(fft_base>=0)][np.where(z_B_fft[np.where(fft_base>=0)]==z_B_fft[np.where(fft_base>=0)].max())])[0]
-
+    
+    vmax = np.array([vx,vy,vz]).max()
+    vmax *= 10
+    if vmax < 1:
+        vmax = 0.1
+    elif 1 < vmax <= 2:
+        vmax = 0.2
+    elif 2 < vmax <= 4:
+        vmax = 0.4
+    else:
+        vmax = 5*0.5/np.pi
     # Change limits for B
     B_fft_min = (np.array([np.min(x_B_fft), np.min(y_B_fft), np.min(z_B_fft)])).min()
     B_fft_min -= np.abs(B_fft_min) * 0.1 # 10%
@@ -305,6 +315,7 @@ def animate(i):
     vline[2].set_data([vz,vz],[B_fft_min-1e3, B_fft_max+1e3])
 
     ax6.set_ylim(B_fft_min, B_fft_max)
+    ax6.set_xlim(-0.01, vmax)
     ax6.set_title("Freq X: %.3f Hz, Y: %.3f Hz, Z: %.3f Hz"%(vx,vy,vz))
     # update line
     line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
