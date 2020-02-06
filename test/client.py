@@ -73,17 +73,21 @@ fig.suptitle("Timestamp: %s"%(datetime.datetime.fromtimestamp(timenow()//1e3)))
 
 plt.xlabel("time (s)")
 # intialize two line objects (one in each axes)
-x_l_B, = ax1.plot([], [], color='r')
-y_l_B, = ax1.plot([], [], color='b')
-z_l_B, = ax1.plot([], [], color='g')
+x_l_B, = ax1.plot([], [], color='r', label='x')
+y_l_B, = ax1.plot([], [], color='b', label='y')
+z_l_B, = ax1.plot([], [], color='g', label='z')
 
-x_l_Bt, = ax2.plot([], [], color='r')
-y_l_Bt, = ax2.plot([], [], color='b')
-z_l_Bt, = ax2.plot([], [], color='g')
+x_l_Bt, = ax2.plot([], [], color='r', label='x')
+y_l_Bt, = ax2.plot([], [], color='b', label='y')
+z_l_Bt, = ax2.plot([], [], color='g', label='z')
 
-x_l_W, = ax3.plot([], [], color='r')
-y_l_W, = ax3.plot([], [], color='b')
-z_l_W, = ax3.plot([], [], color='g')
+x_l_W, = ax3.plot([], [], color='r', label='x')
+y_l_W, = ax3.plot([], [], color='b', label='y')
+z_l_W, = ax3.plot([], [], color='g', label='z')
+
+ax1.legend()
+ax2.legend()
+ax3.legend()
 
 # all data plots
 line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W]
@@ -100,14 +104,16 @@ ax1.set_ylim(-65e-6*1e7,65e-6*1e7) # mag field in mG
 ax2.set_title("dB/dt (mG s^-1)")
 ax2.set_ylim(-500,500) # B dot in mG s^-1
 
+w_min = -1
+w_max = 1
 ax3.set_title("ω (rad s^-1)")
-ax3.set_ylim(-1,1) # 1 rad s^-1
+ax3.set_ylim(w_min, w_max) # 1 rad s^-1
 
 a = packet_data() 
 
 def animate(i):
     # Read packet over network
-    global a
+    global a, w_min, w_max
     fig.suptitle("Timestamp: %s"%(datetime.datetime.fromtimestamp(timenow()//1e3)))
     val = ''.encode('utf-8')
     #print("Receiving %d packets:"%(1))
@@ -148,6 +154,25 @@ def animate(i):
     x_W.append(a.x_W)
     y_W.append(a.y_W)
     z_W.append(a.z_W)
+
+    # Change limits for B_dot
+    Bt_min = (np.array([np.min(x_Bt), np.min(y_Bt), np.min(z_Bt)])).min()
+    Bt_min -= np.abs(Bt_min) * 0.1 # 10%
+    Bt_max = (np.array([np.max(x_Bt), np.max(y_Bt), np.max(z_Bt)])).max()
+    Bt_max += np.abs(Bt_max) * 0.1 # 10%
+
+    ax2.set_ylim(Bt_min, Bt_max)
+
+    # Change limits for W
+    W_min = (np.array([np.min(x_W), np.min(y_W), np.min(z_W)])).min()
+    W_min -= np.abs(W_min) * 0.1 # 10%
+    W_max = (np.array([np.max(x_W), np.max(y_W), np.max(z_W)])).max()
+    W_max += np.abs(W_max) * 0.1 # 10%
+
+    w_min = W_min if W_min < w_min else w_min
+    w_max = W_max if W_max > w_max else w_max
+
+    ax3.set_ylim(w_min, w_max)
 
     # plot current data in color
     x_l_B.set_data(xdata, x_B)

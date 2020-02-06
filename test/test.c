@@ -338,6 +338,17 @@ float ffilterBessel(float arr[], int index)
     }
     return val / coeff_sum;
 }
+// Apply Bessel filter over a buffer
+#define APPLY_DBESSEL(name, index)                    \
+    x_##name[index] = dfilterBessel(x_##name, index); \
+    y_##name[index] = dfilterBessel(y_##name, index); \
+    z_##name[index] = dfilterBessel(z_##name, index)
+
+// Apply Bessel filter over a buffer
+#define APPLY_FBESSEL(name, index)                    \
+    x_##name[index] = ffilterBessel(x_##name, index); \
+    y_##name[index] = ffilterBessel(y_##name, index); \
+    z_##name[index] = ffilterBessel(z_##name, index)
 
 // sort a1 and order a2 using the same order as a1.
 void insertionSort(int a1[], int a2[])
@@ -447,13 +458,14 @@ void getOmega(void)
     float norm2 = NORM2(g_Bt[m0]);
     VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq / norm2, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm(B_t dot)
     // Apply correction // There is fast runaway with this on
-    // DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
-    // MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
-    // DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
-    // CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
-    // MATVECMUL(omega_corr1, IMOI, omega_corr0);                      // store back into temp 0
-    // VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
-    // VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
+    DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
+    MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
+    DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
+    CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
+    MATVECMUL(omega_corr1, IMOI, omega_corr0);                     // store back into temp 0
+    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
+    VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
+    APPLY_DBESSEL(g_W, omega_index);                               // Bessel filter of order 3
     return;
 }
 // read all sensors (right now only magnetic)
@@ -472,9 +484,6 @@ int readSensors(void)
 #define B_RANGE 32767
     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
-    dfilterBessel(x_g_B, mag_index);
-    dfilterBessel(y_g_B, mag_index);
-    dfilterBessel(z_g_B, mag_index);
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (mag_index < 1 && B_full == 0)
