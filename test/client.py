@@ -104,8 +104,8 @@ ax1.set_ylim(-65e-6*1e7,65e-6*1e7) # mag field in mG
 ax2.set_title("dB/dt (mG s^-1)")
 ax2.set_ylim(-500,500) # B dot in mG s^-1
 
-w_min = -1
-w_max = 1
+w_min = -0.25
+w_max = 0.25
 ax3.set_title("ω (rad s^-1)")
 ax3.set_ylim(w_min, w_max) # 1 rad s^-1
 

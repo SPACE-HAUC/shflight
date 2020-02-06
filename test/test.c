@@ -522,7 +522,7 @@ void *acs_detumble(void *id)
         //time_t now ; time(&now);
         if (omega_index >= 0)
         {
-            printf("[%llu ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
             // Update datavis variables [DO NOT TOUCH]
             global_p.data.x_B = x_g_B[mag_index];
             global_p.data.y_B = y_g_B[mag_index];
