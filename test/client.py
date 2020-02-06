@@ -2,6 +2,7 @@ import ctypes as c
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
+from matplotlib import gridspec
 import time
 import datetime
 import astropy.io.fits as pf
@@ -15,6 +16,8 @@ rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':10})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
 #rc('text', usetex=True)
+
+plt.rcParams['figure.constrained_layout.use'] = True
 
 if len(sys.argv)<2:
     print("Invocation: python client.py <Server IP>")
@@ -78,10 +81,18 @@ for i in range(SH_BUFFER_SIZE):
     dang.append(0)
 
 #print(c.sizeof(packet_data))
-fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6,1,figsize=(10,8),sharex=True)
+fig = plt.figure(constrained_layout = True)
+spec = gridspec.GridSpec(ncols = 5, nrows = 5, figure = fig)
+ax1 = fig.add_subplot(spec[0, 0:3])
+ax2 = fig.add_subplot(spec[1, 0:3], sharex = ax1)
+ax3 = fig.add_subplot(spec[2, 0:3], sharex = ax1)
+ax4 = fig.add_subplot(spec[3, 0:3], sharex = ax1)
+ax5 = fig.add_subplot(spec[4, 0:3], sharex = ax1)
+ax6 = fig.add_subplot(spec[:, 3:5])
+# fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6,1,figsize=(10,8),sharex=True)
 fig.suptitle("Timestamp: %s"%(datetime.datetime.fromtimestamp(timenow()//1e3)))
 
-plt.xlabel("time (s)")
+ax5.set_xlabel("time (s)")
 # intialize two line objects (one in each axes)
 x_l_B, = ax1.plot([], [], color='r', label='x')
 y_l_B, = ax1.plot([], [], color='b', label='y')
@@ -115,7 +126,7 @@ ax6.legend()
 line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
 # vertical marker
 # vline = []
-for ax in [ax1, ax2, ax3, ax4, ax5]:
+for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
     ax.grid()
 #     vline.append(ax.axvline(0, color='k'))
 
@@ -141,11 +152,20 @@ dang_max = 90
 ax5.set_title("Angle of ω with B (°)")
 ax5.set_ylim(dang_min, dang_max)
 
+ax6.set_title("FFT(B)")
+ax6.set_xlim(-0.01, 5*0.5/np.pi) # in Hz; 1 rad/s = 0.16 Hz
+ax6.set_xlabel('Freq (Hz)')
+vline = []
+cols = ['k', 'y', 'magenta']
+for i in range(3):
+    vline.append(ax6.axvline(0, color = cols[i]))
+
+
 a = packet_data() 
 
 def animate(i):
     # Read packet over network
-    global a, w_min, w_max, ang_min, ang_max
+    global a, w_min, w_max, ang_min, ang_max, vline
     fig.suptitle("Timestamp: %s"%(datetime.datetime.fromtimestamp(timenow()//1e3)))
     val = ''.encode('utf-8')
     #print("Receiving %d packets:"%(1))
@@ -174,7 +194,7 @@ def animate(i):
     xdata = np.arange(SH_BUFFER_SIZE, dtype = float) + i - SH_BUFFER_SIZE # time in seconds
     xdata *= 0.1
     # set time axis limits
-    for ax in [ax1,ax2,ax3]:
+    for ax in [ax1,ax2,ax3,ax4,ax5]:
         ax.set_xlim(xdata.min(), xdata.max())
     # copy data into circular buffer
     x_B.append(a.x_B)
@@ -261,19 +281,31 @@ def animate(i):
     l_dang.set_data(xdata, dang)
     #print(np.real(np.fft.fftshift(np.fft.rfftn(x_B, norm='ortho'))).shape, xdata.shape)
     x_B_fft = np.abs(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))
-    x_l_B_fft.set_data(xdata,x_B_fft)
     y_B_fft = np.abs(np.fft.fftshift(np.fft.fft(y_B, norm='ortho')))
-    y_l_B_fft.set_data(xdata,y_B_fft)
     z_B_fft = np.abs(np.fft.fftshift(np.fft.fft(z_B, norm='ortho')))
-    z_l_B_fft.set_data(xdata,z_B_fft)
+
+    fft_base = 0.5/np.pi*np.fft.fftshift(np.fft.fftfreq(x_B_fft.shape[0], 0.1)) # time gap = 0.1 s
+    
+    x_l_B_fft.set_data(fft_base,x_B_fft)
+    y_l_B_fft.set_data(fft_base,y_B_fft)
+    z_l_B_fft.set_data(fft_base,z_B_fft)
+    #vx = fft_base[np.where(x_B_fft[np.where(fft_base>=0)]==x_B_fft[np.where(fft_base>=0)].max())]
+    #print(vx)
+    vx = (fft_base[np.where(fft_base>=0)][np.where(x_B_fft[np.where(fft_base>=0)]==x_B_fft[np.where(fft_base>=0)].max())])[0]
+    vy = (fft_base[np.where(fft_base>=0)][np.where(y_B_fft[np.where(fft_base>=0)]==y_B_fft[np.where(fft_base>=0)].max())])[0]
+    vz = (fft_base[np.where(fft_base>=0)][np.where(z_B_fft[np.where(fft_base>=0)]==z_B_fft[np.where(fft_base>=0)].max())])[0]
 
     # Change limits for B
     B_fft_min = (np.array([np.min(x_B_fft), np.min(y_B_fft), np.min(z_B_fft)])).min()
     B_fft_min -= np.abs(B_fft_min) * 0.1 # 10%
     B_fft_max = (np.array([np.max(x_B_fft), np.max(y_B_fft), np.max(z_B_fft)])).max()
     B_fft_max += np.abs(B_fft_max) * 0.1 # 10%
+    vline[0].set_data([vx,vx],[B_fft_min-1e3, B_fft_max+1e3])
+    vline[1].set_data([vy,vy],[B_fft_min-1e3, B_fft_max+1e3])
+    vline[2].set_data([vz,vz],[B_fft_min-1e3, B_fft_max+1e3])
 
     ax6.set_ylim(B_fft_min, B_fft_max)
+    ax6.set_title("Freq X: %.3f Hz, Y: %.3f Hz, Z: %.3f Hz"%(vx,vy,vz))
     # update line
     line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
     return line
