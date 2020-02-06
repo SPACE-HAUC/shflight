@@ -122,8 +122,6 @@ ax4.legend()
 ax5.legend()
 ax6.legend()
 
-# all data plots
-line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
 # vertical marker
 # vline = []
 for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
@@ -160,6 +158,8 @@ cols = ['k', 'y', 'magenta']
 for i in range(3):
     vline.append(ax6.axvline(0, color = cols[i]))
 
+# all data plots
+line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft, vline[0], vline[1], vline[2]]
 
 a = packet_data() 
 
@@ -318,10 +318,10 @@ def animate(i):
     ax6.set_xlim(-0.01, vmax)
     ax6.set_title("Freq X: %.3f Hz, Y: %.3f Hz, Z: %.3f Hz"%(vx,vy,vz))
     # update line
-    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
+    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft, vline[0], vline[1], vline[2]]
     return line
 
 
-animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=50)
+animator = anim.FuncAnimation(fig,animate,blit=True,repeat=False,interval=50)
 plt.show()
 print("\n")
