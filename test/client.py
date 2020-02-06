@@ -322,6 +322,6 @@ def animate(i):
     return line
 
 
-animator = anim.FuncAnimation(fig,animate,blit=True,repeat=False,interval=50)
+animator = anim.FuncAnimation(fig,animate,blit=False,repeat=False,interval=50)
 plt.show()
 print("\n")
