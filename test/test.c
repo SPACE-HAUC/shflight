@@ -458,13 +458,13 @@ void getOmega(void)
     float norm2 = NORM2(g_Bt[m0]);
     VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq / norm2, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm(B_t dot)
     // Apply correction // There is fast runaway with this on
-    DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
-    MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
-    DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
-    CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
-    MATVECMUL(omega_corr1, IMOI, omega_corr0);                     // store back into temp 0
-    VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
-    VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
+    // DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
+    // MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
+    // DECLARE_VECTOR(omega_corr1, float);                            // declare temporary space for correction vector
+    // CROSS_PRODUCT(omega_corr1, g_W[m1], omega_corr0);              // store into temp 1
+    // MATVECMUL(omega_corr1, IMOI, omega_corr0);                     // store back into temp 0
+    // VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
+    // VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
     APPLY_FBESSEL(g_W, omega_index);                               // Bessel filter of order 3
     return;
 }
