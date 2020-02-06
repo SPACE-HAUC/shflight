@@ -127,7 +127,7 @@ void *sitl_comm(void *id)
         printf("Error getting serial fd\n");
         return NULL;
     }
-    long long charsleep = 75; // 30 for 2500000; // 75 for 230400
+    long long charsleep = 70; // 30 for 2500000; // 75 for 230400
     while (!done)
     {
         // unsigned long long s = get_usec();
