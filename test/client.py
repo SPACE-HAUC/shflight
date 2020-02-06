@@ -57,6 +57,8 @@ z_W = collections.deque(maxlen=SH_BUFFER_SIZE)
 theta = collections.deque(maxlen=SH_BUFFER_SIZE)
 phi = collections.deque(maxlen=SH_BUFFER_SIZE)
 
+dang = collections.deque(maxlen=SH_BUFFER_SIZE)
+
 for i in range(SH_BUFFER_SIZE):
     x_B.append(0)
     y_B.append(0)
@@ -73,8 +75,10 @@ for i in range(SH_BUFFER_SIZE):
     theta.append(0)
     phi.append(0)
 
+    dang.append(0)
+
 #print(c.sizeof(packet_data))
-fig, (ax1, ax2, ax3, ax4) = plt.subplots(4,1,figsize=(10,8),sharex=True)
+fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1,figsize=(10,8),sharex=True)
 fig.suptitle("Timestamp: %s"%(datetime.datetime.fromtimestamp(timenow()//1e3)))
 
 plt.xlabel("time (s)")
@@ -94,16 +98,19 @@ z_l_W, = ax3.plot([], [], color='g', label='z')
 l_theta, = ax4.plot([], [], color='r', label='θ')
 l_phi, = ax4.plot([], [], color='b', label='φ')
 
+l_dang, = ax5.plot([], [], color='k', label = 'ω · B')
+
 ax1.legend()
 ax2.legend()
 ax3.legend()
 ax4.legend()
+ax5.legend()
 
 # all data plots
-line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi]
+line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang]
 # vertical marker
 # vline = []
-for ax in [ax1, ax2, ax3, ax4]:
+for ax in [ax1, ax2, ax3, ax4, ax5]:
     ax.grid()
 #     vline.append(ax.axvline(0, color='k'))
 
@@ -124,6 +131,10 @@ ang_max = 90
 ax4.set_title("Angles with axis (°)")
 ax4.set_ylim(ang_min, ang_max)
 
+dang_min = -90
+dang_max = 90
+ax5.set_title("Angle of ω with B (°)")
+ax5.set_ylim(dang_min, dang_max)
 
 a = packet_data() 
 
@@ -171,6 +182,15 @@ def animate(i):
     y_W.append(a.y_W)
     z_W.append(a.z_W)
     w_norm = np.sqrt(a.x_W**2 + a.y_W**2 + a.z_W**2)
+    B_norm = np.sqrt(a.x_B**2 + a.y_B**2 + a.z_B**2)
+    Bx = a.x_B/B_norm
+    By = a.y_B/B_norm
+    Bz = a.z_B/B_norm
+    Wx = a.x_W/w_norm
+    Wy = a.y_W/w_norm
+    Wz = a.z_W/w_norm
+    ang = 180/np.pi*np.arccos(Bx*Wx + By*Wy + Bz*Wz)
+    dang.append(ang)
     if w_norm > 0:
         theta.append(180/np.pi * np.arccos(a.z_W/w_norm))
         phi.append(180/np.pi * np.arctan2(a.y_W,a.x_W))
@@ -196,6 +216,7 @@ def animate(i):
     w_max = W_max if W_max > w_max else w_max
 
     ax3.set_ylim(w_min, w_max)
+    ax3.set_title("ω (rad s^-1); ω_z = %0.3f rad s^-1"%(a.z_W))
 
     # Change limits for angle
     ang_min = (np.array([np.min(theta), np.min(phi)])).min()
@@ -206,6 +227,15 @@ def animate(i):
     ax4.set_ylim(ang_min, ang_max)
 
     ax4.set_title(("Angles with axis (°); ω · z = %.5f°"%(np.average(theta))))
+
+    # Change limits for B angle
+    dang_min = np.min(dang)
+    dang_min -= np.abs(dang_min) * 0.1
+    dang_max = np.max(dang)
+    dang_max += np.abs(dang_max) * 0.1
+    
+    ax5.set_ylim(dang_min, dang_max)
+    ax5.set_title(("Angles with Magnetic Field (°); ω · B = %.5f°"%(ang)))
 
     # plot current data in color
     x_l_B.set_data(xdata, x_B)
@@ -222,8 +252,10 @@ def animate(i):
 
     l_theta.set_data(xdata, theta)
     l_phi.set_data(xdata, phi)
+
+    l_dang.set_data(xdata, dang)
     # update line
-    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi]
+    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang]
     return line
 
 
