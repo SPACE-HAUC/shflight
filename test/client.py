@@ -260,18 +260,18 @@ def animate(i):
 
     l_dang.set_data(xdata, dang)
     #print(np.real(np.fft.fftshift(np.fft.rfftn(x_B, norm='ortho'))).shape, xdata.shape)
-    x_B_fft = np.real(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))
+    x_B_fft = np.abs(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))
     x_l_B_fft.set_data(xdata,x_B_fft)
-    y_B_fft = np.real(np.fft.fftshift(np.fft.fft(y_B, norm='ortho')))
+    y_B_fft = np.abs(np.fft.fftshift(np.fft.fft(y_B, norm='ortho')))
     y_l_B_fft.set_data(xdata,y_B_fft)
-    z_B_fft = np.real(np.fft.fftshift(np.fft.fft(z_B, norm='ortho')))
+    z_B_fft = np.abs(np.fft.fftshift(np.fft.fft(z_B, norm='ortho')))
     z_l_B_fft.set_data(xdata,z_B_fft)
 
     # Change limits for B
     B_fft_min = (np.array([np.min(x_B_fft), np.min(y_B_fft), np.min(z_B_fft)])).min()
     B_fft_min -= np.abs(B_fft_min) * 0.1 # 10%
     B_fft_max = (np.array([np.max(x_B_fft), np.max(y_B_fft), np.max(z_B_fft)])).max()
-    B_fft_max -= np.abs(B_fft_max) * 0.1 # 10%
+    B_fft_max += np.abs(B_fft_max) * 0.1 # 10%
 
     ax6.set_ylim(B_fft_min, B_fft_max)
     # update line
