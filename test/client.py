@@ -152,7 +152,7 @@ ax5.set_ylim(dang_min, dang_max)
 
 ax6.set_title("FFT(B)")
 ax6.set_xlim(-0.01, 5*0.5/np.pi) # in Hz; 1 rad/s = 0.16 Hz
-ax6.set_xlabel('Freq (Hz)')
+ax6.set_xlabel('Freq (rad/s)')
 vline = []
 cols = ['k', 'y', 'magenta']
 for i in range(3):
@@ -284,7 +284,7 @@ def animate(i):
     y_B_fft = np.abs(np.fft.fftshift(np.fft.fft(y_B, norm='ortho')))
     z_B_fft = np.abs(np.fft.fftshift(np.fft.fft(z_B, norm='ortho')))
 
-    fft_base = 0.5/np.pi*np.fft.fftshift(np.fft.fftfreq(x_B_fft.shape[0], 0.1)) # time gap = 0.1 s
+    fft_base = 10*0.5/np.pi*np.fft.fftshift(np.fft.fftfreq(SH_BUFFER_SIZE, 0.1)) # time gap = 0.1 s, 10x to account for frequency mismatch in fft
     
     x_l_B_fft.set_data(fft_base,x_B_fft)
     y_l_B_fft.set_data(fft_base,y_B_fft)
@@ -296,15 +296,14 @@ def animate(i):
     vz = (fft_base[np.where(fft_base>=0)][np.where(z_B_fft[np.where(fft_base>=0)]==z_B_fft[np.where(fft_base>=0)].max())])[0]
     
     vmax = np.array([vx,vy,vz]).max()
-    vmax *= 10
     if vmax < 1:
-        vmax = 0.1
+        vmax = 1
     elif 1 < vmax <= 2:
-        vmax = 0.2
+        vmax = 2
     elif 2 < vmax <= 4:
-        vmax = 0.4
+        vmax = 4
     else:
-        vmax = 5*0.5/np.pi
+        vmax = SH_BUFFER_SIZE*0.1*0.5/np.pi
     # Change limits for B
     B_fft_min = (np.array([np.min(x_B_fft), np.min(y_B_fft), np.min(z_B_fft)])).min()
     B_fft_min -= np.abs(B_fft_min) * 0.1 # 10%
@@ -316,7 +315,7 @@ def animate(i):
 
     ax6.set_ylim(B_fft_min, B_fft_max)
     ax6.set_xlim(-0.01, vmax)
-    ax6.set_title("Freq X: %.3f Hz, Y: %.3f Hz, Z: %.3f Hz"%(vx,vy,vz))
+    ax6.set_title("Freq X: %.3f rad/s, Y: %.3f rad/s, Z: %.3f rad/s"%(vx,vy,vz))
     # update line
     line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft, vline[0], vline[1], vline[2]]
     return line
