@@ -465,7 +465,7 @@ void getOmega(void)
     MATVECMUL(omega_corr1, IMOI, omega_corr0);                     // store back into temp 0
     VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
     VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
-    APPLY_DBESSEL(g_W, omega_index);                               // Bessel filter of order 3
+    APPLY_FBESSEL(g_W, omega_index);                               // Bessel filter of order 3
     return;
 }
 // read all sensors (right now only magnetic)
