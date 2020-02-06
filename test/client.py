@@ -155,9 +155,10 @@ ax6.set_title("FFT(B)")
 ax6.set_xlim(-0.01, 5*0.5/np.pi) # in Hz; 1 rad/s = 0.16 Hz
 ax6.set_xlabel('Freq (rad/s)')
 vline = []
-cols = ['k', 'y', 'magenta']
+cols = ['r','b','g']
+lss = ['-','-.',':']
 for i in range(3):
-    vline.append(ax6.axvline(0, color = cols[i]))
+    vline.append(ax6.axvline(0, color = cols[i], ls=lss[i]))
 
 # all data plots
 line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft, vline[0], vline[1], vline[2]]
