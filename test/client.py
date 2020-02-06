@@ -30,6 +30,7 @@ def timenow():
 
 class packet_data(c.Structure):
     _fields_ = [
+        ('step',c.c_uint64),
         ('x_B',c.c_double),
         ('y_B',c.c_double),
         ('z_B',c.c_double),
@@ -191,7 +192,7 @@ def animate(i):
     c.memmove(c.addressof(a),val,c.sizeof(packet_data))
 
     # Time axis generation
-    xdata = np.arange(SH_BUFFER_SIZE, dtype = float) + i - SH_BUFFER_SIZE # time in seconds
+    xdata = np.arange(SH_BUFFER_SIZE, dtype = float) + a.step - SH_BUFFER_SIZE # time in seconds
     xdata *= 0.1
     # set time axis limits
     for ax in [ax1,ax2,ax3,ax4,ax5]:
