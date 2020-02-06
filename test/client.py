@@ -78,7 +78,7 @@ for i in range(SH_BUFFER_SIZE):
     dang.append(0)
 
 #print(c.sizeof(packet_data))
-fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1,figsize=(10,8),sharex=True)
+fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6,1,figsize=(10,8),sharex=True)
 fig.suptitle("Timestamp: %s"%(datetime.datetime.fromtimestamp(timenow()//1e3)))
 
 plt.xlabel("time (s)")
@@ -100,14 +100,19 @@ l_phi, = ax4.plot([], [], color='b', label='φ')
 
 l_dang, = ax5.plot([], [], color='k', label = 'ω · B')
 
+x_l_B_fft, = ax6.plot([], [], color='r', label = 'FFT(Bx)')
+y_l_B_fft, = ax6.plot([], [], color='b', label = 'FFT(By)')
+z_l_B_fft, = ax6.plot([], [], color='g', label = 'FFT(Bz)')
+
 ax1.legend()
 ax2.legend()
 ax3.legend()
 ax4.legend()
 ax5.legend()
+ax6.legend()
 
 # all data plots
-line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang]
+line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
 # vertical marker
 # vline = []
 for ax in [ax1, ax2, ax3, ax4, ax5]:
@@ -254,8 +259,23 @@ def animate(i):
     l_phi.set_data(xdata, phi)
 
     l_dang.set_data(xdata, dang)
+    #print(np.real(np.fft.fftshift(np.fft.rfftn(x_B, norm='ortho'))).shape, xdata.shape)
+    x_B_fft = np.real(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))
+    x_l_B_fft.set_data(xdata,x_B_fft)
+    y_B_fft = np.real(np.fft.fftshift(np.fft.fft(y_B, norm='ortho')))
+    y_l_B_fft.set_data(xdata,y_B_fft)
+    z_B_fft = np.real(np.fft.fftshift(np.fft.fft(z_B, norm='ortho')))
+    z_l_B_fft.set_data(xdata,z_B_fft)
+
+    # Change limits for B
+    B_fft_min = (np.array([np.min(x_B_fft), np.min(y_B_fft), np.min(z_B_fft)])).min()
+    B_fft_min -= np.abs(B_fft_min) * 0.1 # 10%
+    B_fft_max = (np.array([np.max(x_B_fft), np.max(y_B_fft), np.max(z_B_fft)])).max()
+    B_fft_max -= np.abs(B_fft_max) * 0.1 # 10%
+
+    ax6.set_ylim(B_fft_min, B_fft_max)
     # update line
-    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang]
+    line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta, l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft]
     return line
 
 
