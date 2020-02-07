@@ -633,7 +633,7 @@ void checkTransition(void)
     else if (g_acs_mode == STATE_ACS_SUNPOINT)
     {
         // If detumble criterion is not held, fall back to detumbling
-        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY)
+        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY * 3) // extra leeway for exact value of w_z 
         {
             next_mode = STATE_ACS_DETUMBLE;
         }
@@ -802,7 +802,7 @@ inline void sunpointAction(void)
             FiringTime -= SUNPOINT_DUTY_CYCLE;
             // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         }
-        usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
+        // usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
         HBRIDGE_DISABLE(2);                       // 3 == executes default, turns off ALL hbridges (safety)
     }
 }
