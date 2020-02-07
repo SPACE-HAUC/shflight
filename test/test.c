@@ -619,7 +619,7 @@ void checkTransition(void)
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
         {
-            if (NORM(avgSun) < CSS_MIN_LUX_THRESHOLD)
+            if (NORM(avgSun) < 1)
                 g_acs_mode = STATE_ACS_NIGHT;
         }
         break;
@@ -634,7 +634,7 @@ void checkTransition(void)
             break;
         }
         // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
-        if (NORM(avgSun) < CSS_MIN_LUX_THRESHOLD)
+        if (NORM(avgSun) < 1)
         {
             g_acs_mode = STATE_ACS_NIGHT;
             break;
