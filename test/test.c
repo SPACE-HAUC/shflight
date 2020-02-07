@@ -600,7 +600,7 @@ void checkTransition(void)
     FAVERAGE_BUFFER(avgSun, g_S, SH_BUFFER_SIZE);   // calculate time average of sun vector over buffer
 
     DECLARE_VECTOR(body, float); // Body frame vector oriented along Z axis
-
+    z_body = 1 ; // Body frame vector is Z
     float z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
     float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
 
