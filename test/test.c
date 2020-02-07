@@ -651,6 +651,7 @@ void checkTransition(void)
 
     else if (g_acs_mode == STATE_ACS_NIGHT)
     {
+        printf("[NIGHT] %.3f\n", NORM(avgSun));
         if (NORM(avgSun) > 0.8f)
         {
             if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY)
