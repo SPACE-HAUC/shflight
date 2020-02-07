@@ -739,6 +739,7 @@ inline void sunpointAction(void)
     fflush(stdout);
     if (sol_index < 0)
     {
+        printf("[Sunpoint Action Invalid, sleep]\n");
         usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
     }
     else
