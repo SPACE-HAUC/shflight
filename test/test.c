@@ -607,7 +607,7 @@ void checkTransition(void)
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, W_target_diff, z_w_ang, DOT_PRODUCT(avgOmega, body), NORM(avgSun));
-    uint8_t next_mode = 0xff ;
+    uint8_t next_mode = g_acs_mode ;
     switch (g_acs_mode)
     {
     case STATE_ACS_DETUMBLE:
