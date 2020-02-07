@@ -614,6 +614,7 @@ void checkTransition(void)
         // If detumble criterion is met, go to Sunpointing mode
         if (fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE && fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
+            printf("[DETUMBLE]");
             g_acs_mode = STATE_ACS_SUNPOINT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
