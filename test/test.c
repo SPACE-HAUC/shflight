@@ -605,33 +605,32 @@ void checkTransition(void)
     NORMALIZE(avgOmega, avgOmega);                   // Normalize avg omega to get omega hat
     float w_ang = (DOT_PRODUCT(avgOmega, body));
     w_ang = w_ang >= 1 ? 1 : w_ang;
-    volatile int z_w_ang = 180. * acos(w_ang) / M_PI; // average omega angle in degrees
-    z_w_ang = z_w_ang < 0 ? -z_w_ang : z_w_ang;
+    float z_w_ang = 180. * acos(w_ang) / M_PI;                   // average omega angle in degrees
     int z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
-    printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
+    // printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
     uint8_t next_mode = g_acs_mode;
-    if ( g_acs_mode == STATE_ACS_DETUMBLE)
+    if (g_acs_mode == STATE_ACS_DETUMBLE)
     {
-        printf("[CASE %d] %d\n", g_acs_mode , MIN_DETUMBLE_ANGLE - z_w_ang);
+        // printf("[CASE %d] %d\n", g_acs_mode , MIN_DETUMBLE_ANGLE - z_w_ang);
         // If detumble criterion is met, go to Sunpointing mode
-        if ( z_w_ang < 31 )
+        if (fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE && W_target_diff < OMEGA_TARGET_LEEWAY)
         {
-             printf("[DETUMBLE]\n");
-             fflush(stdout);
-            next_mode = 1;
+            //  printf("[DETUMBLE]\n");
+            //  fflush(stdout);
+            next_mode = STATE_ACS_SUNPOINT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
         {
             if (NORM(avgSun) < 0.8f)
             {
-                printf("Here!");
+                // printf("Here!");
                 next_mode = STATE_ACS_NIGHT;
             }
         }
     }
 
-    else if ( g_acs_mode == STATE_ACS_SUNPOINT)
+    else if (g_acs_mode == STATE_ACS_SUNPOINT)
     {
         // If detumble criterion is not held, fall back to detumbling
         if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
@@ -650,7 +649,7 @@ void checkTransition(void)
         }
     }
 
-    else if ( g_acs_mode == STATE_ACS_NIGHT)
+    else if (g_acs_mode == STATE_ACS_NIGHT)
     {
         if (NORM(avgSun) > CSS_MIN_LUX_THRESHOLD)
         {
@@ -664,9 +663,9 @@ void checkTransition(void)
             }
         }
     }
-    printf("{NEXT} %d\n", next_mode);
+    // printf("{NEXT} %d\n", next_mode);
     g_acs_mode = next_mode;
-    printf("{LATER} %d\n", g_acs_mode);
+    // printf("{LATER} %d\n", g_acs_mode);
 }
 // This function executes the detumble action
 inline void detumbleAction(void)
@@ -729,17 +728,19 @@ inline void detumbleAction(void)
         usleep(firingTime[2] < 1 ? 1 : firingTime[2]); // sleep until third turnoff
         HBRIDGE_DISABLE(firingOrder[2]);               // third turnoff
         usleep(finalWait < 1 ? 1 : finalWait);         // sleep for the remainder of the cycle
-        HBRIDGE_DISABLE(0); HBRIDGE_DISABLE(1); HBRIDGE_DISABLE(2);
+        HBRIDGE_DISABLE(0);
+        HBRIDGE_DISABLE(1);
+        HBRIDGE_DISABLE(2);
     }
 }
 // This function executes the sunpointing action
 inline void sunpointAction(void)
 {
-    printf("[Sunpoint Action]\n");
-    fflush(stdout);
+    // printf("[Sunpoint Action]\n");
+    // fflush(stdout);
     if (sol_index < 0)
     {
-        printf("[Sunpoint Action Invalid, sleep]\n");
+        // printf("[Sunpoint Action Invalid, sleep]\n");
         usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
     }
     else
@@ -750,55 +751,55 @@ inline void sunpointAction(void)
         //DECLARE_VECTOR(currLNorm, float) ;
         DECLARE_VECTOR(currS, float);
         DECLARE_VECTOR(currSNorm, float);
-        printf("[Sunpoint Action] %d\n", __LINE__);
+        // printf("[Sunpoint Action] %d\n", __LINE__);
         VECTOR_OP(currB, currB, g_B[mag_index], +); // get current magfield
         NORMALIZE(currBNorm, currB);                // normalize current magfield
         MATVECMUL(currL, MOI, g_W[omega_index]);    // calculate current angular momentum
         VECTOR_OP(currS, currS, g_S[sol_index], +); // get current sunvector
         NORMALIZE(currSNorm, currS);                // normalize sun vector
-        printf("[Sunpoint Action] %d\n", __LINE__);
+        // printf("[Sunpoint Action] %d\n", __LINE__);
         // calculate S_B_hat
         DECLARE_VECTOR(SBHat, float);
         float SdotB = DOT_PRODUCT(currSNorm, currBNorm);
         VECTOR_MIXED(SBHat, currBNorm, SdotB, *);
         VECTOR_OP(SBHat, currSNorm, SBHat, -);
         NORMALIZE(SBHat, SBHat);
-        printf("[Sunpoint Action] %d\n", __LINE__);
+        // printf("[Sunpoint Action] %d\n", __LINE__);
         // calculate L_B_hat
         DECLARE_VECTOR(LBHat, float);
         float LdotB = DOT_PRODUCT(currL, currBNorm);
         VECTOR_MIXED(LBHat, currBNorm, LdotB, *);
         VECTOR_OP(LBHat, currL, LBHat, -);
         NORMALIZE(LBHat, LBHat);
-        printf("[Sunpoint Action] %d\n", __LINE__);
+        // printf("[Sunpoint Action] %d\n", __LINE__);
         // cross product the two vectors
         DECLARE_VECTOR(SxBxL, float);
         CROSS_PRODUCT(SxBxL, SBHat, LBHat);
         NORMALIZE(SxBxL, SxBxL);
-        printf("[Sunpoint Action] %d\n", __LINE__);
+        // printf("[Sunpoint Action] %d\n", __LINE__);
         int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
-        int dir = time_on > 0 ? 1 : -1 ;
-        time_on = time_on > 0 ? time_on : -time_on ;
-        time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on;  // safety measure
-        time_on /= 5000 ;
-        time_on *= 5000 ; // granularity of 5 ms, essentially 5 bit precision
+        int dir = time_on > 0 ? 1 : -1;
+        time_on = time_on > 0 ? time_on : -time_on;
+        time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on; // safety measure
+        time_on /= 5000;
+        time_on *= 5000; // granularity of 5 ms, essentially 5 bit precision
         int time_off = SUNPOINT_DUTY_CYCLE - time_on;
         int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
         DECLARE_VECTOR(fire, int);
         z_fire = dir; // z direction is the only direction of fire
-        printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
+        // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         while (FiringTime > 0)
         {
-            printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
+            // printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
             HBRIDGE_ENABLE(fire);
             usleep(time_on);
             HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
             usleep(time_off);
             FiringTime -= SUNPOINT_DUTY_CYCLE;
-            printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
+            // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         }
         usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
-        HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
+        HBRIDGE_DISABLE(2);                       // 3 == executes default, turns off ALL hbridges (safety)
     }
 }
 // measure thread execution time
@@ -844,13 +845,12 @@ void *acs_detumble(void *id)
         t_acs = s;
         checkTransition(); // check if the system should transition from one state to another
         unsigned long long e = get_usec();
-        int sleep_time = MEASURE_TIME - e + s ;
-        sleep_time = sleep_time > 0 ? sleep_time : 0 ;
+        int sleep_time = MEASURE_TIME - e + s;
+        sleep_time = sleep_time > 0 ? sleep_time : 0;
         usleep(sleep_time); // sleep for total 20 ms with read
-        if (g_acs_mode == STATE_ACS_DETUMBLE )
+        if (g_acs_mode == STATE_ACS_DETUMBLE)
             detumbleAction();
-
-        else if (g_acs_mode == STATE_ACS_SUNPOINT )
+        else if (g_acs_mode == STATE_ACS_SUNPOINT)
             sunpointAction();
         else
             usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
