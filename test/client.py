@@ -42,7 +42,10 @@ class packet_data(c.Structure):
         ('z_Bt', c.c_float),
         ('x_W', c.c_float),
         ('y_W', c.c_float),
-        ('z_W', c.c_float)
+        ('z_W', c.c_float),
+        ('x_S', c.c_float),
+        ('y_S', c.c_float),
+        ('z_S', c.c_float)
     ]
 
 
