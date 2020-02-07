@@ -588,7 +588,7 @@ int readSensors(void)
 #define MIN_DETUMBLE_ANGLE 4                   // minimum angle for detumble to be a success
 
 // check if the program should transition from one state to another
-void checkTransition(void)
+inline void checkTransition(void)
 {
     if (!W_full) // not enough data to take a decision
         return;
