@@ -735,6 +735,8 @@ inline void detumbleAction(void)
 // This function executes the sunpointing action
 inline void sunpointAction(void)
 {
+    printf("[Sunpoint Action]\n");
+    fflush(stdout);
     if (sol_index < 0)
     {
         usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
@@ -835,19 +837,13 @@ void *acs_detumble(void *id)
         int sleep_time = MEASURE_TIME - e + s ;
         sleep_time = sleep_time > 0 ? sleep_time : 0 ;
         usleep(sleep_time); // sleep for total 20 ms with read
-        switch (g_acs_mode)
-        {
-        case STATE_ACS_DETUMBLE:
+        if (g_acs_mode == STATE_ACS_DETUMBLE )
             detumbleAction();
-            break;
 
-        case STATE_ACS_SUNPOINT:
+        else if (g_acs_mode == STATE_ACS_SUNPOINT )
             sunpointAction();
-            break;
-        default:
+        else
             usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
-            break;
-        }
     }
     pthread_exit(NULL);
 }
