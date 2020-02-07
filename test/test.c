@@ -599,22 +599,24 @@ void checkTransition(void)
     DECLARE_VECTOR(avgSun, float);                  // declare buffer to contain avg sun vector
     VECTOR_MIXED(avgSun, g_S[sol_index], 0, +);     // current sun angle
 
-    DECLARE_VECTOR(body, float);                                     // Body frame vector oriented along Z axis
-    z_body = 1;                                                      // Body frame vector is Z
-    float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
-    NORMALIZE(avgOmega, avgOmega);                                   // Normalize avg omega to get omega hat
-    int z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
-    z_w_ang = z_w_ang < 0 ? -z_w_ang : z_w_ang ;
+    DECLARE_VECTOR(body, float);                     // Body frame vector oriented along Z axis
+    z_body = 1;                                      // Body frame vector is Z
+    float W_target_diff = z_g_W_target - z_avgOmega; // difference of omega_z
+    NORMALIZE(avgOmega, avgOmega);                   // Normalize avg omega to get omega hat
+    float w_ang = (DOT_PRODUCT(avgOmega, body));
+    w_ang = w_ang >= 1 ? 1 : w_ang;
+    int z_w_ang = 180. * acos(w_ang) / M_PI; // average omega angle in degrees
+    z_w_ang = z_w_ang < 0 ? -z_w_ang : z_w_ang;
     int z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
-    uint8_t next_mode = g_acs_mode ;
+    uint8_t next_mode = g_acs_mode;
     switch (g_acs_mode)
     {
     case STATE_ACS_DETUMBLE:
     {
         printf("[CASE]\n");
         // If detumble criterion is met, go to Sunpointing mode
-        if (z_w_ang <= MIN_DETUMBLE_ANGLE)
+        if ( MIN_DETUMBLE_ANGLE - z_w_ang > 0 )
         {
             printf("[DETUMBLE]");
             next_mode = STATE_ACS_SUNPOINT;
@@ -626,7 +628,7 @@ void checkTransition(void)
             {
                 printf("Here!");
                 next_mode = STATE_ACS_NIGHT;
-            }      
+            }
         }
         break;
     }
@@ -677,7 +679,7 @@ void checkTransition(void)
     default:
         break;
     }
-    g_acs_mode = next_mode ;
+    g_acs_mode = next_mode;
 }
 // This function executes the detumble action
 inline void detumbleAction(void)
