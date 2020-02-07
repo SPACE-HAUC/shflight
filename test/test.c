@@ -614,11 +614,11 @@ void checkTransition(void)
     {
         printf("[CASE %d] %d\n", g_acs_mode , MIN_DETUMBLE_ANGLE - z_w_ang);
         // If detumble criterion is met, go to Sunpointing mode
-        if ( z_w_ang < MIN_DETUMBLE_ANGLE )
+        if ( 1 )
         {
             printf("[DETUMBLE]");
-            next_mode = STATE_ACS_SUNPOINT;
-            g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
+            // next_mode = STATE_ACS_SUNPOINT;
+            //g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
         {
