@@ -762,14 +762,14 @@ inline void sunpointAction(void)
         DECLARE_VECTOR(SBHat, float);
         float SdotB = DOT_PRODUCT(currSNorm, currBNorm);
         VECTOR_MIXED(SBHat, currBNorm, SdotB, *);
-        VECTOR_OP(SBHat, currSNorm, SBHat, -);
+        VECTOR_OP(SBHat, currSNorm, SBHat, +);
         NORMALIZE(SBHat, SBHat);
         // printf("[Sunpoint Action] %d\n", __LINE__);
         // calculate L_B_hat
         DECLARE_VECTOR(LBHat, float);
         float LdotB = DOT_PRODUCT(currL, currBNorm);
         VECTOR_MIXED(LBHat, currBNorm, LdotB, *);
-        VECTOR_OP(LBHat, currL, LBHat, -);
+        VECTOR_OP(LBHat, currL, LBHat, +);
         NORMALIZE(LBHat, LBHat);
         // printf("[Sunpoint Action] %d\n", __LINE__);
         // cross product the two vectors
