@@ -186,6 +186,7 @@ ax6.set_ylim(sang_min, sang_max)
 ax7.set_title("FFT(B)")
 ax7.set_xlim(-0.01, 5*0.5/np.pi)  # in Hz; 1 rad/s = 0.16 Hz
 ax7.set_xlabel('Freq (rad/s)')
+ax7.yaxis.set_visible(False)
 vline = []
 cols = ['r', 'b', 'g']
 lss = ['-', '-.', ':']
