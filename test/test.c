@@ -612,6 +612,7 @@ void checkTransition(void)
     {
     case STATE_ACS_DETUMBLE:
     {
+        pritf("[CASE]\n");
         // If detumble criterion is met, go to Sunpointing mode
         if ((fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE) && (fabsf(W_target_diff) < 0.1))
         {
