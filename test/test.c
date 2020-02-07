@@ -193,12 +193,12 @@ void *sitl_comm(void *id)
         int offset = 6;
         for (int i = 0; i < 9; i++)
         {
-            g_readCS[i] = *((unsigned short *)&inbuf[offset + 2 * i]);
+            g_readCS[i] = inbuf[offset + 2 * i] | ((unsigned short)inbuf[offset + 2 * i + 1]) << 8; //*((unsigned short *)&inbuf[offset + 2 * i]);
         }
         offset += 18; // read the FS shorts
         for (int i = 0; i < 2; i++)
         {
-            g_readFS[i] = *((unsigned short *)&inbuf[offset + 2 * i]);
+            g_readFS[i] = inbuf[offset + 2 * i] | ((unsigned short)inbuf[offset + 2 * i + 1]) << 8; //*((unsigned short *)&inbuf[offset + 2 * i]);
         }
         pthread_mutex_unlock(&serial_read);
         // unsigned long long e = get_usec();
@@ -210,10 +210,12 @@ void *sitl_comm(void *id)
 /* DataVis structures */
 typedef struct
 {
-    uint64_t step ;
-    double x_B, y_B, z_B;
-    double x_Bt, y_Bt, z_Bt;
-    double x_W, y_W, z_W;
+    uint8_t mode;               // ACS Mode
+    uint64_t step;              // ACS Step
+    DECLARE_VECTOR2(B, float);  // magnetic field
+    DECLARE_VECTOR2(Bt, float); // B dot
+    DECLARE_VECTOR2(W, float);  // Omega
+    DECLARE_VECTOR2(S, float);  // Sun vector
 } datavis_p;
 
 #define PACK_SIZE sizeof(datavis_p)
@@ -228,26 +230,47 @@ data_packet global_p;
 /* Starting ACS Thread and related functions */
 
 #define SH_BUFFER_SIZE 64
-#define DIPOLE_MOMENT 0.22        // A m^-2
-#define DETUMBLE_TIME_STEP 100000 // 100 ms for full loop
-#define MEASURE_TIME 20000        // 20 ms to measure
-#define MAX_DETUMBLE_FIRING_TIME (DETUMBLE_TIME_STEP - MEASURE_TIME)
 
-#define MIN_DETUMBLE_FIRING_TIME 10000 // 10 ms
-DECLARE_BUFFER(g_W, float);            // omega global circular buffer
-DECLARE_BUFFER(g_B, double);           // magnetic field global circular buffer
-DECLARE_BUFFER(g_Bt, double);          // Bdot global circular buffer
-DECLARE_VECTOR(g_L_target, float);     // angular momentum target vector
-DECLARE_VECTOR(g_W_target, float);     // angular velocity target vector
-int mag_index = -1, omega_index = -1, bdot_index = -1;
-int B_full = 0, Bdot_full = 0, W_full = 0; // required to deal with the circular buffer problem
-unsigned long long acs_ct = 0;
+#define DIPOLE_MOMENT 0.22                                             // A m^-2
+#define DETUMBLE_TIME_STEP 100000                                      // 100 ms for full loop
+#define MEASURE_TIME 20000                                             // 20 ms to measure
+#define MAX_DETUMBLE_FIRING_TIME (DETUMBLE_TIME_STEP - MEASURE_TIME)   // Max allowed detumble fire time
+#define MIN_DETUMBLE_FIRING_TIME 10000                                 // 10 ms
+#define SUNPOINT_DUTY_CYCLE 20000                                      // 20 msec, in usec
+#define COARSE_TIME_STEP DETUMBLE_TIME_STEP                            // 100 ms, in usec
+DECLARE_BUFFER(g_W, float);                                            // omega global circular buffer
+DECLARE_BUFFER(g_B, double);                                           // magnetic field global circular buffer
+DECLARE_BUFFER(g_Bt, double);                                          // Bdot global circular buffer1
+DECLARE_VECTOR(g_L_target, float);                                     // angular momentum target vector
+DECLARE_VECTOR(g_W_target, float);                                     // angular velocity target vector
+DECLARE_BUFFER(g_S, float);                                            // sun vector
+float g_CSS[9];                                                        // current CSS lux values, in HITL this will be populated by TSL2561 code
+float g_FSS[2];                                                        // current FSS angles, in rad; in HITL this will be populated by NANOSSOC A60 driver
+int mag_index = -1, omega_index = -1, bdot_index = -1, sol_index = -1; // circular buffer indices, -1 indicates uninitiated buffer
+int B_full = 0, Bdot_full = 0, W_full = 0, S_full = 0;                 // required to deal with the circular buffer problem
+uint8_t g_night = 0;                                                   // night mode?
+uint8_t g_acs_mode = 0;                                                // Detumble by default
+uint8_t g_first_detumble = 1;                                          // first time detumble by default even at night
+#define CSS_MIN_LUX_THRESHOLD 100                                      // 100 lux is the minimum threshold
+unsigned long long acs_ct = 0;                                         // counts the number of ACS steps
+
+typedef enum
+{
+    STATE_ACS_DETUMBLE, // Detumbling
+    STATE_ACS_SUNPOINT, // Sunpointing
+    STATE_ACS_NIGHT,    // Night
+    STATE_ACS_READY,    // Do nothing
+    STATE_XBAND_READY   // Ready to do X-Band things
+} SH_ACS_MODES;
+
 float MOI[3][3] = {{0.06467720404, 0, 0},
                    {0, 0.06474406267, 0},
                    {0, 0, 0.07921836177}};
-float IMOI[3][3] = {{15.461398105297564, 0, 0}, {0, 15.461398105297564, 0}, {0, 0, 12.623336025344317}};
+float IMOI[3][3] = {{15.461398105297564, 0, 0},
+                    {0, 15.461398105297564, 0},
+                    {0, 0, 12.623336025344317}};
 
-float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as double precision
+float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as floating point
 
 inline int factorial(int i)
 {
@@ -379,10 +402,11 @@ void print_bits(unsigned char octet)
 
     while (z > 0)
     {
+        int wr;
         if (oct & z)
-            write(1, "1", 1);
+            wr = write(1, "1", 1);
         else
-            write(1, "0", 1);
+            wr = write(1, "0", 1);
         z >>= 1;
     }
 }
@@ -467,13 +491,60 @@ void getOmega(void)
     // MATVECMUL(omega_corr1, IMOI, omega_corr0);                     // store back into temp 0
     // VECTOR_MIXED(omega_corr1, omega_corr1, -freq, *);              // omega_corr = freq*(MOI-1)*(-w[t-1] X MOI*w[t-1])
     // VECTOR_OP(g_W[omega_index], g_W[omega_index], omega_corr1, +); // add the correction term to omega
-    APPLY_FBESSEL(g_W, omega_index);                               // Bessel filter of order 3
+    APPLY_FBESSEL(g_W, omega_index); // Bessel filter of order 3
+    return;
+}
+// get sun vector using lux measurements
+void getSVec(void)
+{
+    if (sol_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
+        S_full = 1;
+    sol_index = (sol_index + 1) % SH_BUFFER_SIZE;
+
+    float fsx = g_FSS[0];
+    float fsy = g_FSS[1];
+#ifndef M_PI
+#define M_PI 3.1415
+#endif
+    // check if FSS results are acceptable
+    // if they are, use that to calculate the sun vector
+    if (fabsf(fsx) <= 60. / (180 * M_PI) && fabsf(fsy) <= 60. / (180 * M_PI)) // angle inside FOV
+    {
+        x_g_S[sol_index] = tan(fsx); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
+        y_g_S[sol_index] = tan(fsy);
+        z_g_S[sol_index] = 1;
+        NORMALIZE(g_S[sol_index], g_S[sol_index]);
+        return;
+    }
+
+    // get average -Z luminosity from 4 sensors
+    float znavg = 0;
+    for (int i = 5; i < 9; i++)
+        znavg += g_CSS[i];
+    znavg *= 0.250f;
+
+    x_g_S[sol_index] = g_CSS[0] - g_CSS[1]; // +x - -x
+    y_g_S[sol_index] = g_CSS[2] - g_CSS[3]; // +x - -x
+    z_g_S[sol_index] = g_CSS[4] - znavg;    // +z - avg(-z)
+
+    float css_mag = NORM(g_S[sol_index]); // norm of the CSS lux values
+
+    if (css_mag < CSS_MIN_LUX_THRESHOLD) // night time logic
+    {
+        g_night = 1;
+        VECTOR_CLEAR(g_S[sol_index]); // return 0 solar vector
+    }
+    else
+    {
+        g_night = 0;
+        NORMALIZE(g_S[sol_index], g_S[sol_index]); // return normalized sun vector
+    }
     return;
 }
 // read all sensors (right now only magnetic)
 int readSensors(void)
 {
-    // read magfield
+    // read magfield, CSS, FSS
     int status = 1;
     if (mag_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
         B_full = 1;
@@ -481,6 +552,10 @@ int readSensors(void)
     VECTOR_CLEAR(g_B[mag_index]); // clear the current B
     pthread_mutex_lock(&serial_read);
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
+    for (int i = 0; i < 9; i++)                            // load CSS
+        g_CSS[i] = (g_readCS[i]*5000.0)/0x0fff;
+    g_FSS[0] = (g_readFS[0]*M_PI)/0xffff - M_PI/2; // load FSS angle 0
+    g_FSS[1] = (g_readFS[1]*M_PI)/0xffff - M_PI/2; // load FSS angle 1
     pthread_mutex_unlock(&serial_read);
 // convert B to proper units
 #define B_RANGE 32767
@@ -502,52 +577,85 @@ int readSensors(void)
     VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
     // printf("readSensors: m0: %d m1: %d Btx: %f Bty: %f Btz: %f\n", m0, m1, x_g_Bt[bdot_index], y_g_Bt[bdot_index], z_g_Bt[bdot_index]);
     getOmega();
+    getSVec();
     return status;
 }
-// measure thread execution time
-unsigned long long t_acs = 0;
-// detumble thread, will become master acs thread
-void *acs_detumble(void *id)
+
+#define OMEGA_TARGET_LEEWAY z_g_W_target * 0.05 // 5% leeway in the value of omega_z
+#define MIN_SOL_ANGLE 4                         // minimum solar angle for sunpointing to be a success
+#define MIN_DETUMBLE_ANGLE 4                    // minimum angle for detumble to be a success
+
+// check if the program should transition from one state to another
+void checkTransition(void)
 {
-    while (!done)
+    if (!W_full) // not enough data to take a decision
+        return;
+    if (!S_full) // not enough data to take a decision
+        return;
+    DECLARE_VECTOR(avgOmega, float);                // declare buffer to contain average value of omega
+    FAVERAGE_BUFFER(avgOmega, g_W, SH_BUFFER_SIZE); // calculate time average of omega over buffer
+    DECLARE_VECTOR(avgSun, float);                  // declare buffer to contain avg sun vector
+    FAVERAGE_BUFFER(avgSun, g_S, SH_BUFFER_SIZE);   // calculate time average of sun vector over buffer
+
+    DECLARE_VECTOR(body, float); // Body frame vector oriented along Z axis
+
+    float z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
+    float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
+
+    float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
+
+    switch (g_acs_mode)
     {
-        // wait till there is available data on serial
-        if (first_run)
+    case STATE_ACS_DETUMBLE:
+    {
+        // If detumble criterion is met, go to Sunpointing mode
+        if (fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE && fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
-            printf("ACS: Waiting for release...\n");
-            first_run = 0;
-            // wait till there is available data on serial
-            pthread_cond_wait(&data_available, &data_check);
+            g_acs_mode = STATE_ACS_SUNPOINT;
+            g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
-        unsigned long long s = get_usec();
-        readSensors();
-        //time_t now ; time(&now);
-        if (omega_index >= 0)
+        if (!g_first_detumble) // if this var is unset, the system does not do anything at night
         {
-            printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
-            // Update datavis variables [DO NOT TOUCH]
-            global_p.data.step = acs_ct ;
-            global_p.data.x_B = x_g_B[mag_index];
-            global_p.data.y_B = y_g_B[mag_index];
-            global_p.data.z_B = z_g_B[mag_index];
-            global_p.data.x_Bt = x_g_Bt[bdot_index];
-            global_p.data.y_Bt = y_g_Bt[bdot_index];
-            global_p.data.z_Bt = z_g_Bt[bdot_index];
-            global_p.data.x_W = x_g_W[omega_index];
-            global_p.data.y_W = y_g_W[omega_index];
-            global_p.data.z_W = z_g_W[omega_index];
-            // wake up datavis thread [DO NOT TOUCH]
-            pthread_cond_broadcast(&datavis_drdy);
+            if (NORM(avgSun) < CSS_MIN_LUX_THRESHOLD)
+                g_acs_mode = STATE_ACS_NIGHT;
         }
-        //    printf("%s ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", ctime(&now), acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
-        t_acs = s;
-        unsigned long long e = get_usec();
-        usleep(MEASURE_TIME - e + s); // sleep for total 20 ms with read
-        if (omega_index < 0)
+        break;
+    }
+
+    case STATE_ACS_SUNPOINT:
+    {
+        // If detumble criterion is not held, fall back to detumbling
+        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
-            usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
-            continue;
+            g_acs_mode = STATE_ACS_DETUMBLE;
+            break;
         }
+        // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
+        if (NORM(avgSun) < CSS_MIN_LUX_THRESHOLD)
+        {
+            g_acs_mode = STATE_ACS_NIGHT;
+            break;
+        }
+        // if the satellite is detumbled, it is not night and the sun angle is less than 4 deg, declare ACS is ready
+        if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
+        {
+            g_acs_mode = STATE_ACS_READY;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+// This function executes the detumble action
+inline void detumbleAction(void)
+{
+    if (omega_index < 0)
+    {
+        usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
+    }
+    else
+    {
         DECLARE_VECTOR(currL, double);           // vector for current angular momentum
         MATVECMUL(currL, MOI, g_W[omega_index]); // calculate current angular momentum
         VECTOR_OP(currL, g_L_target, currL, -);  // calculate angular momentum error
@@ -600,6 +708,119 @@ void *acs_detumble(void *id)
         usleep(firingTime[2] < 1 ? 1 : firingTime[2]); // sleep until third turnoff
         HBRIDGE_DISABLE(firingOrder[2]);               // third turnoff
         usleep(finalWait < 1 ? 1 : finalWait);         // sleep for the remainder of the cycle
+    }
+}
+// This function executes the sunpointing action
+inline void sunpointAction(void)
+{
+    if (sol_index < 0)
+    {
+        usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
+    }
+    else
+    {
+        DECLARE_VECTOR(currB, float);
+        DECLARE_VECTOR(currBNorm, float);
+        DECLARE_VECTOR(currL, float);
+        //DECLARE_VECTOR(currLNorm, float) ;
+        DECLARE_VECTOR(currS, float);
+        DECLARE_VECTOR(currSNorm, float);
+        VECTOR_OP(currB, currB, g_B[mag_index], +); // get current magfield
+        NORMALIZE(currBNorm, currB);                // normalize current magfield
+        MATVECMUL(currL, MOI, g_W[omega_index]);    // calculate current angular momentum
+        VECTOR_OP(currS, currS, g_S[sol_index], +); // get current sunvector
+        NORMALIZE(currSNorm, currS);                // normalize sun vector
+        // calculate S_B_hat
+        DECLARE_VECTOR(SBHat, float);
+        float SdotB = DOT_PRODUCT(currSNorm, currBNorm);
+        VECTOR_MIXED(SBHat, currBNorm, SdotB, *);
+        VECTOR_OP(SBHat, currSNorm, SBHat, -);
+        NORMALIZE(SBHat, SBHat);
+        // calculate L_B_hat
+        DECLARE_VECTOR(LBHat, float);
+        float LdotB = DOT_PRODUCT(currL, currBNorm);
+        VECTOR_MIXED(LBHat, currBNorm, LdotB, *);
+        VECTOR_OP(LBHat, currL, LBHat, -);
+        NORMALIZE(LBHat, LBHat);
+        // cross product the two vectors
+        DECLARE_VECTOR(SxBxL, float);
+        CROSS_PRODUCT(SxBxL, SBHat, LBHat);
+        NORMALIZE(SxBxL, SxBxL);
+
+        int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
+        time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on;  // safety measure
+        int time_off = SUNPOINT_DUTY_CYCLE - time_on;
+        int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
+        DECLARE_VECTOR(fire, int);
+        z_fire = 1; // z direction is the only direction of fire
+        while (FiringTime > 0)
+        {
+            HBRIDGE_ENABLE(fire);
+            usleep(time_on);
+            HBRIDGE_DISABLE(3); // 3 == executes default, turns off ALL hbridges (safety)
+            usleep(time_off);
+            FiringTime -= SUNPOINT_DUTY_CYCLE;
+        }
+        usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
+    }
+}
+// measure thread execution time
+unsigned long long t_acs = 0;
+// detumble thread, will become master acs thread
+void *acs_detumble(void *id)
+{
+    while (!done)
+    {
+        // wait till there is available data on serial
+        if (first_run)
+        {
+            printf("ACS: Waiting for release...\n");
+            first_run = 0;
+            // wait till there is available data on serial
+            pthread_cond_wait(&data_available, &data_check);
+        }
+        unsigned long long s = get_usec();
+        readSensors();
+        //time_t now ; time(&now);
+        if (omega_index >= 0)
+        {
+            printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            // Update datavis variables [DO NOT TOUCH]
+            global_p.data.step = acs_ct;
+            global_p.data.mode = g_acs_mode;
+            global_p.data.x_B = x_g_B[mag_index];
+            global_p.data.y_B = y_g_B[mag_index];
+            global_p.data.z_B = z_g_B[mag_index];
+            global_p.data.x_Bt = x_g_Bt[bdot_index];
+            global_p.data.y_Bt = y_g_Bt[bdot_index];
+            global_p.data.z_Bt = z_g_Bt[bdot_index];
+            global_p.data.x_W = x_g_W[omega_index];
+            global_p.data.y_W = y_g_W[omega_index];
+            global_p.data.z_W = z_g_W[omega_index];
+            global_p.data.x_S = x_g_S[sol_index];
+            global_p.data.y_S = y_g_S[sol_index];
+            global_p.data.z_S = z_g_S[sol_index];
+            // wake up datavis thread [DO NOT TOUCH]
+            pthread_cond_broadcast(&datavis_drdy);
+        }
+        //    printf("%s ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", ctime(&now), acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+        t_acs = s;
+        checkTransition(); // check if the system should transition from one state to another
+        unsigned long long e = get_usec();
+        usleep(MEASURE_TIME - e + s); // sleep for total 20 ms with read
+        switch (g_acs_mode)
+        {
+        case STATE_ACS_DETUMBLE:
+            detumbleAction();
+            break;
+
+        case STATE_ACS_SUNPOINT:
+            sunpointAction();
+            break;
+        default:
+            usleep(DETUMBLE_TIME_STEP - MEASURE_TIME);
+            break;
+        }
     }
     pthread_exit(NULL);
 }

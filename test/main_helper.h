@@ -46,6 +46,26 @@ inline uint64_t get_usec(void)
     return (uint64_t)ts.tv_sec * 1000000L + ((uint64_t)ts.tv_nsec) / 1000;
 }
 
+// calculate floating point average of a float buffer of size size
+inline float faverage(float arr[], int size)
+{
+    float result = 0;
+    int count = size;
+    while (count--)
+        result += arr[count];
+    return result / size;
+}
+
+// calculate double precision average of a double buffer of size size
+inline double daverage(double arr[], int size)
+{
+    double result = 0;
+    int count = size;
+    while (count--)
+        result += arr[count];
+    return result / size;
+}
+
 // DECLARE_BUFFER(name, type): Declares a buffer with name and type. Prepends x_, y_, z_ to the names (vector buffer!)
 #define DECLARE_BUFFER(name, type) \
     type x_##name[SH_BUFFER_SIZE], y_##name[SH_BUFFER_SIZE], z_##name[SH_BUFFER_SIZE]
@@ -140,4 +160,20 @@ inline uint64_t get_usec(void)
     x_##dest = s1[0][0] * x_##s2 + s1[0][1] * y_##s2 + s1[0][2] * z_##s2; \
     y_##dest = s1[1][0] * x_##s2 + s1[1][1] * y_##s2 + s1[1][2] * z_##s2; \
     z_##dest = s1[2][0] * x_##s2 + s1[2][1] * y_##s2 + s1[2][2] * z_##s2
+
+/* 
+ * Calculates float average of buffer of name src and size size into vector dest.
+ */
+#define FAVERAGE_BUFFER(dest, src, size) \
+    x_##dest = faverage(x_##src, size);  \
+    y_##dest = faverage(y_##src, size);  \
+    z_##dest = faverage(z_##src, size)
+
+/* 
+ * Calculates double precision average of buffer of name src and size size into vector dest.
+ */
+#define DAVERAGE_BUFFER(dest, src, size) \
+    x_##dest = daverage(x_##src, size);  \
+    y_##dest = daverage(y_##src, size);  \
+    z_##dest = daverage(z_##src, size)
 #endif // __MAIN_HELPER_H

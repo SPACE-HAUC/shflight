@@ -32,22 +32,23 @@ def timenow():
 
 class packet_data(c.Structure):
     _fields_ = [
+        ('mode', c.c_uint8),
         ('step', c.c_uint64),
-        ('x_B', c.c_double),
-        ('y_B', c.c_double),
-        ('z_B', c.c_double),
-        ('x_Bt', c.c_double),
-        ('y_Bt', c.c_double),
-        ('z_Bt', c.c_double),
-        ('x_W', c.c_double),
-        ('y_W', c.c_double),
-        ('z_W', c.c_double)
+        ('x_B', c.c_float),
+        ('y_B', c.c_float),
+        ('z_B', c.c_float),
+        ('x_Bt', c.c_float),
+        ('y_Bt', c.c_float),
+        ('z_Bt', c.c_float),
+        ('x_W', c.c_float),
+        ('y_W', c.c_float),
+        ('z_W', c.c_float)
     ]
 
 
 port = 12376
 
-SH_BUFFER_SIZE = 500
+SH_BUFFER_SIZE = 512 # Updated to get 2^9 size for ease of FFT
 
 x_B = collections.deque(maxlen=SH_BUFFER_SIZE)
 y_B = collections.deque(maxlen=SH_BUFFER_SIZE)
@@ -65,6 +66,13 @@ theta = collections.deque(maxlen=SH_BUFFER_SIZE)
 phi = collections.deque(maxlen=SH_BUFFER_SIZE)
 
 dang = collections.deque(maxlen=SH_BUFFER_SIZE)
+
+x_S = collections.deque(maxlen=SH_BUFFER_SIZE)
+y_S = collections.deque(maxlen=SH_BUFFER_SIZE)
+z_S = collections.deque(maxlen=SH_BUFFER_SIZE)
+
+x_sang = collections.deque(maxlen=SH_BUFFER_SIZE)
+y_sang = collections.deque(maxlen=SH_BUFFER_SIZE)
 
 for i in range(SH_BUFFER_SIZE):
     x_B.append(0)
@@ -84,41 +92,52 @@ for i in range(SH_BUFFER_SIZE):
 
     dang.append(0)
 
+    x_S.append(0)
+    y_S.append(0)
+    z_S.append(0)
+
+    x_sang.append(0)
+    y_sang.append(0)
+
 # print(c.sizeof(packet_data))
 fig = plt.figure(constrained_layout=True)
-spec = gridspec.GridSpec(ncols=5, nrows=5, figure=fig)
+spec = gridspec.GridSpec(ncols=5, nrows=6, figure=fig)
 ax1 = fig.add_subplot(spec[0, 0:3])
 ax2 = fig.add_subplot(spec[1, 0:3], sharex=ax1)
 ax3 = fig.add_subplot(spec[2, 0:3], sharex=ax1)
 ax4 = fig.add_subplot(spec[3, 0:3], sharex=ax1)
 ax5 = fig.add_subplot(spec[4, 0:3], sharex=ax1)
-ax6 = fig.add_subplot(spec[:, 3:5])
-# fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6,1,figsize=(10,8),sharex=True)
+ax6 = fig.add_subplot(spec[5, 0:3], sharex=ax1)
+ax7 = fig.add_subplot(spec[:, 3:5])
+# fig, (ax1, ax2, ax3, ax4, ax5, ax7) = plt.subplots(6,1,figsize=(10,8),sharex=True)
 fig.suptitle("Timestamp: %s" %
              (datetime.datetime.fromtimestamp(timenow()//1e3)))
 
-ax5.set_xlabel("time (s)")
+ax6.set_xlabel("time (s)")
 # intialize two line objects (one in each axes)
 x_l_B, = ax1.plot([], [], color='r', label='x')
 y_l_B, = ax1.plot([], [], color='b', label='y')
-z_l_B, = ax1.plot([], [], color='g', label='z')
+z_l_B, = ax1.plot([], [], color='k', label='z')
 
 x_l_Bt, = ax2.plot([], [], color='r', label='x')
 y_l_Bt, = ax2.plot([], [], color='b', label='y')
-z_l_Bt, = ax2.plot([], [], color='g', label='z')
+z_l_Bt, = ax2.plot([], [], color='k', label='z')
 
 x_l_W, = ax3.plot([], [], color='r', label='x')
 y_l_W, = ax3.plot([], [], color='b', label='y')
-z_l_W, = ax3.plot([], [], color='g', label='z')
+z_l_W, = ax3.plot([], [], color='k', label='z')
 
 l_theta, = ax4.plot([], [], color='r', label='θ')
 l_phi, = ax4.plot([], [], color='b', label='φ')
 
 l_dang, = ax5.plot([], [], color='k', label='ω · B')
 
-x_l_B_fft, = ax6.plot([], [], color='r', label='FFT(Bx)')
-y_l_B_fft, = ax6.plot([], [], color='b', label='FFT(By)')
-z_l_B_fft, = ax6.plot([], [], color='g', label='FFT(Bz)')
+x_l_sang, = ax6.plot([], [], color='r', label='x')
+y_l_sang, = ax6.plot([], [], color='b', label='y')
+
+x_l_B_fft, = ax7.plot([], [], color='r', label='FFT(Bx)')
+y_l_B_fft, = ax7.plot([], [], color='b', label='FFT(By)')
+z_l_B_fft, = ax7.plot([], [], color='k', label='FFT(Bz)')
 
 ax1.legend()
 ax2.legend()
@@ -126,10 +145,11 @@ ax3.legend()
 ax4.legend()
 ax5.legend()
 ax6.legend()
+ax7.legend()
 
 # vertical marker
 # vline = []
-for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
+for ax in [ax1, ax2, ax3, ax4, ax5, ax6, ax7]:
     ax.grid()
 #     vline.append(ax.axvline(0, color='k'))
 
@@ -155,18 +175,23 @@ dang_max = 90
 ax5.set_title("Angle of ω with B (°)")
 ax5.set_ylim(dang_min, dang_max)
 
-ax6.set_title("FFT(B)")
-ax6.set_xlim(-0.01, 5*0.5/np.pi)  # in Hz; 1 rad/s = 0.16 Hz
-ax6.set_xlabel('Freq (rad/s)')
+sang_min = -90
+sang_max = 90
+ax6.set_title("Sun vector")
+ax6.set_ylim(sang_min, sang_max)
+
+ax7.set_title("FFT(B)")
+ax7.set_xlim(-0.01, 5*0.5/np.pi)  # in Hz; 1 rad/s = 0.16 Hz
+ax7.set_xlabel('Freq (rad/s)')
 vline = []
 cols = ['r', 'b', 'g']
 lss = ['-', '-.', ':']
 for i in range(3):
-    vline.append(ax6.axvline(0, color=cols[i], ls=lss[i]))
+    vline.append(ax7.axvline(0, color=cols[i], ls=lss[i]))
 
 # all data plots
 line = [x_l_B, y_l_B, z_l_B, x_l_Bt, y_l_Bt, z_l_Bt, x_l_W, y_l_W, z_l_W, l_theta,
-        l_phi, l_dang, x_l_B_fft, y_l_B_fft, z_l_B_fft, vline[0], vline[1], vline[2]]
+        l_phi, l_dang, x_l_sang, y_l_sang, x_l_B_fft, y_l_B_fft, z_l_B_fft, vline[0], vline[1], vline[2]]
 
 a = packet_data()
 
@@ -220,8 +245,12 @@ def animate(i):
     x_W.append(a.x_W)
     y_W.append(a.y_W)
     z_W.append(a.z_W)
+    x_S.append(a.x_S)
+    y_S.append(a.y_S)
+    z_S.append(a.z_S)
     w_norm = np.sqrt(a.x_W**2 + a.y_W**2 + a.z_W**2)
     B_norm = np.sqrt(a.x_B**2 + a.y_B**2 + a.z_B**2)
+    S_norm = np.sqrt(a.x_S**2 + a.y_S**2 + a.z_S**2)
     Bx = a.x_B/B_norm
     By = a.y_B/B_norm
     Bz = a.z_B/B_norm
@@ -236,6 +265,12 @@ def animate(i):
     else:
         theta.append(0)
         phi.append(0)
+    s_valid = False
+    s_dir = 1 if a.z_S > 0 else -1
+    if S_norm > 0 and a.z_S != 0: # valid sun vector
+        s_valid = True
+        x_sang.append(180/np.pi * np.arctan2(a.x_S, a.z_S))
+        y_sang.append(180/np.pi * np.arctan2(a.y_S, a.z_S))
 
     # Change limits for B_dot
     Bt_min = (np.array([np.min(x_Bt), np.min(y_Bt), np.min(z_Bt)])).min()
@@ -277,6 +312,9 @@ def animate(i):
     ax5.set_ylim(dang_min, dang_max)
     ax5.set_title(("Angles with Magnetic Field (°); ω · B = %.5f°" % (ang)))
 
+    # Set title for Sun vector
+    ax6.set_title("Sun vector, status: %d | Z: %d, X: %.3f°, Y: %.3f°"%(s_valid, s_dir, np.average(x_sang), np.average(y_sang)))
+
     #print(np.real(np.fft.fftshift(np.fft.rfftn(x_B, norm='ortho'))).shape, xdata.shape)
     x_B_fft = np.abs(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))
     y_B_fft = np.abs(np.fft.fftshift(np.fft.fft(y_B, norm='ortho')))
@@ -312,9 +350,9 @@ def animate(i):
         np.array([np.max(x_B_fft), np.max(y_B_fft), np.max(z_B_fft)])).max()
     B_fft_max += np.abs(B_fft_max) * 0.1  # 10%
 
-    ax6.set_ylim(B_fft_min, B_fft_max)
-    ax6.set_xlim(-0.01, vmax)
-    ax6.set_title(
+    ax7.set_ylim(B_fft_min, B_fft_max)
+    ax7.set_xlim(-0.01, vmax)
+    ax7.set_title(
         "Freq X: %.3f rad/s, Y: %.3f rad/s, Z: %.3f rad/s" % (vx, vy, vz))
 
     # plot current data in color
@@ -334,6 +372,9 @@ def animate(i):
     l_phi.set_data(xdata, phi)
 
     l_dang.set_data(xdata, dang)
+
+    x_l_sang.set_data(xdata, x_sang)
+    y_l_sang.set_data(xdata, y_sang)
 
     x_l_B_fft.set_data(fft_base, x_B_fft)
     y_l_B_fft.set_data(fft_base, y_B_fft)
