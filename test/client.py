@@ -103,7 +103,7 @@ for i in range(SH_BUFFER_SIZE):
     y_sang.append(0)
 
 # print(c.sizeof(packet_data))
-fig = plt.figure(constrained_layout=True)
+fig = plt.figure(figsize=(10,10),constrained_layout=True)
 spec = gridspec.GridSpec(ncols=5, nrows=6, figure=fig)
 ax1 = fig.add_subplot(spec[0, 0:3])
 ax2 = fig.add_subplot(spec[1, 0:3], sharex=ax1)
