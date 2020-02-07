@@ -605,7 +605,7 @@ void checkTransition(void)
     float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
-    printf("[state %d] dW = %.3f\n", g_acs_mode, W_target_diff);
+    printf("[state %d] dW = %.3f, Ang = %.3f\n", g_acs_mode, W_target_diff, z_w_ang);
     switch (g_acs_mode)
     {
     case STATE_ACS_DETUMBLE:
