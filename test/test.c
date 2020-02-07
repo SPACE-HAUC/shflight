@@ -508,7 +508,7 @@ void getSVec(void)
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
-    if (fabsf(fsx) <= 60. / (180 * M_PI) && fabsf(fsy) <= 60. / (180 * M_PI)) // angle inside FOV
+    if (fabsf(fsx) <= 30. / (180 * M_PI) && fabsf(fsy) <= 30. / (180 * M_PI)) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
         x_g_S[sol_index] = tan(fsx); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy);
@@ -542,7 +542,7 @@ void getSVec(void)
     // printf("[sunvec %d] %0.3f %0.3f | %0.3f %0.3f %0.3f\n", sol_index, fsx, fsy, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
     return;
 }
-// read all sensors (right now only magnetic)
+// read all sensors
 int readSensors(void)
 {
     // read magfield, CSS, FSS
@@ -605,8 +605,8 @@ void checkTransition(void)
     NORMALIZE(avgOmega, avgOmega);                   // Normalize avg omega to get omega hat
     float w_ang = (DOT_PRODUCT(avgOmega, body));
     w_ang = w_ang >= 1 ? 1 : w_ang;
-    float z_w_ang = 180. * acos(w_ang) / M_PI;                   // average omega angle in degrees
-    int z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
+    float z_w_ang = 180. * acos(w_ang) / M_PI;                     // average omega angle in degrees
+    float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // Sun angle in degrees
     // printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
     uint8_t next_mode = g_acs_mode;
     if (g_acs_mode == STATE_ACS_DETUMBLE)
