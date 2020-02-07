@@ -784,7 +784,7 @@ inline void sunpointAction(void)
         int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
         DECLARE_VECTOR(fire, int);
         z_fire = 1; // z direction is the only direction of fire
-        printf("[Sunpoint Action] %d\n", __LINE__);
+        printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         while (FiringTime > 0)
         {
             HBRIDGE_ENABLE(fire);
