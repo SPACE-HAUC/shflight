@@ -616,7 +616,7 @@ void checkTransition(void)
     {
         printf("[CASE] %d\n", MIN_DETUMBLE_ANGLE - z_w_ang);
         // If detumble criterion is met, go to Sunpointing mode
-        if ( MIN_DETUMBLE_ANGLE - z_w_ang > 0 )
+        if ( 4 > 0 )
         {
             printf("[DETUMBLE]");
             next_mode = STATE_ACS_SUNPOINT;
