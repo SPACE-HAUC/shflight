@@ -750,28 +750,32 @@ inline void sunpointAction(void)
         //DECLARE_VECTOR(currLNorm, float) ;
         DECLARE_VECTOR(currS, float);
         DECLARE_VECTOR(currSNorm, float);
+        printf("[Sunpoint Action] %d\n", __LINE__);
         VECTOR_OP(currB, currB, g_B[mag_index], +); // get current magfield
         NORMALIZE(currBNorm, currB);                // normalize current magfield
         MATVECMUL(currL, MOI, g_W[omega_index]);    // calculate current angular momentum
         VECTOR_OP(currS, currS, g_S[sol_index], +); // get current sunvector
         NORMALIZE(currSNorm, currS);                // normalize sun vector
+        printf("[Sunpoint Action] %d\n", __LINE__);
         // calculate S_B_hat
         DECLARE_VECTOR(SBHat, float);
         float SdotB = DOT_PRODUCT(currSNorm, currBNorm);
         VECTOR_MIXED(SBHat, currBNorm, SdotB, *);
         VECTOR_OP(SBHat, currSNorm, SBHat, -);
         NORMALIZE(SBHat, SBHat);
+        printf("[Sunpoint Action] %d\n", __LINE__);
         // calculate L_B_hat
         DECLARE_VECTOR(LBHat, float);
         float LdotB = DOT_PRODUCT(currL, currBNorm);
         VECTOR_MIXED(LBHat, currBNorm, LdotB, *);
         VECTOR_OP(LBHat, currL, LBHat, -);
         NORMALIZE(LBHat, LBHat);
+        printf("[Sunpoint Action] %d\n", __LINE__);
         // cross product the two vectors
         DECLARE_VECTOR(SxBxL, float);
         CROSS_PRODUCT(SxBxL, SBHat, LBHat);
         NORMALIZE(SxBxL, SxBxL);
-
+        printf("[Sunpoint Action] %d\n", __LINE__);
         int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on;  // safety measure
         time_on /= 5000 ;
@@ -780,6 +784,7 @@ inline void sunpointAction(void)
         int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
         DECLARE_VECTOR(fire, int);
         z_fire = 1; // z direction is the only direction of fire
+        printf("[Sunpoint Action] %d\n", __LINE__);
         while (FiringTime > 0)
         {
             HBRIDGE_ENABLE(fire);
@@ -787,6 +792,7 @@ inline void sunpointAction(void)
             HBRIDGE_DISABLE(3); // 3 == executes default, turns off ALL hbridges (safety)
             usleep(time_off);
             FiringTime -= SUNPOINT_DUTY_CYCLE;
+            printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         }
         usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
         HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
