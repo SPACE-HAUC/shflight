@@ -659,6 +659,11 @@ void checkTransition(void)
             }
             break;
         }
+        else
+        {
+            break;
+        }
+        
     }
 
     default:
