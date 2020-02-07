@@ -663,6 +663,8 @@ void checkTransition(void)
             {
                 next_mode = STATE_ACS_READY;
             }
+            else
+                next_mode = STATE_ACS_SUNPOINT ;
         }
     }
     // printf("{NEXT} %d\n", next_mode);
