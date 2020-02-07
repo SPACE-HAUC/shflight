@@ -597,7 +597,7 @@ void checkTransition(void)
     DECLARE_VECTOR(avgOmega, float);                // declare buffer to contain average value of omega
     FAVERAGE_BUFFER(avgOmega, g_W, SH_BUFFER_SIZE); // calculate time average of omega over buffer
     DECLARE_VECTOR(avgSun, float);                  // declare buffer to contain avg sun vector
-    FAVERAGE_BUFFER(avgSun, g_S, SH_BUFFER_SIZE);   // calculate time average of sun vector over buffer
+    VECTOR_MIXED(avgSun, g_S[sol_index], 0, +);     // current sun angle
 
     DECLARE_VECTOR(body, float);                                     // Body frame vector oriented along Z axis
     z_body = 1;                                                      // Body frame vector is Z
