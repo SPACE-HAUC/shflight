@@ -607,6 +607,7 @@ void checkTransition(void)
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, W_target_diff, z_w_ang, DOT_PRODUCT(avgOmega, body), NORM(avgSun));
+    uint8_t next_mode = 0xff ;
     switch (g_acs_mode)
     {
     case STATE_ACS_DETUMBLE:
@@ -615,7 +616,7 @@ void checkTransition(void)
         if (fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE && fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
             printf("[DETUMBLE]");
-            g_acs_mode = STATE_ACS_SUNPOINT;
+            next_mode = STATE_ACS_SUNPOINT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
@@ -623,7 +624,7 @@ void checkTransition(void)
             if (NORM(avgSun) < 1)
             {
                 printf("Here!");
-                g_acs_mode = STATE_ACS_NIGHT;
+                next_mode = STATE_ACS_NIGHT;
             }      
         }
         break;
@@ -634,19 +635,19 @@ void checkTransition(void)
         // If detumble criterion is not held, fall back to detumbling
         if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
-            g_acs_mode = STATE_ACS_DETUMBLE;
+            next_mode = STATE_ACS_DETUMBLE;
             break;
         }
         // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
         if (NORM(avgSun) < 1)
         {
-            g_acs_mode = STATE_ACS_NIGHT;
+            next_mode = STATE_ACS_NIGHT;
             break;
         }
         // if the satellite is detumbled, it is not night and the sun angle is less than 4 deg, declare ACS is ready
         if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
         {
-            g_acs_mode = STATE_ACS_READY;
+            next_mode = STATE_ACS_READY;
         }
         break;
     }
@@ -657,12 +658,12 @@ void checkTransition(void)
         {
             if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
             {
-                g_acs_mode = STATE_ACS_DETUMBLE;
+                next_mode = STATE_ACS_DETUMBLE;
                 break;
             }
             if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
             {
-                g_acs_mode = STATE_ACS_READY;
+                next_mode = STATE_ACS_READY;
             }
             break;
         }
@@ -675,6 +676,7 @@ void checkTransition(void)
     default:
         break;
     }
+    g_acs_mode = next_mode ;
 }
 // This function executes the detumble action
 inline void detumbleAction(void)
