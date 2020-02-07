@@ -316,7 +316,7 @@ def animate(i):
     ax5.set_title(("Angles with Magnetic Field (°); ω · B = %.5f°" % (ang)))
 
     # Set title for Sun vector
-    ax6.set_title("Sun vector, status: %d | Z: %d, X: %.3f°, Y: %.3f°"%(s_valid, s_dir, np.average(x_sang), np.average(y_sang)))
+    ax6.set_title("Sun vector, status: %d | Z: %d, X: %.3f°, Y: %.3f°"%(s_valid, s_dir, x_sang[SH_BUFFER_SIZE-1], y_sang[SH_BUFFER_SIZE-1]))
 
     #print(np.real(np.fft.fftshift(np.fft.rfftn(x_B, norm='ortho'))).shape, xdata.shape)
     x_B_fft = np.abs(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))

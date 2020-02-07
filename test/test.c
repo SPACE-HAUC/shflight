@@ -251,7 +251,7 @@ int B_full = 0, Bdot_full = 0, W_full = 0, S_full = 0;                 // requir
 uint8_t g_night = 0;                                                   // night mode?
 uint8_t g_acs_mode = 0;                                                // Detumble by default
 uint8_t g_first_detumble = 1;                                          // first time detumble by default even at night
-#define CSS_MIN_LUX_THRESHOLD 100                                      // 100 lux is the minimum threshold
+#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5                               // 5000 lux is max sun, half of that is our threshold
 unsigned long long acs_ct = 0;                                         // counts the number of ACS steps
 
 typedef enum
@@ -665,7 +665,6 @@ void checkTransition(void)
         {
             break;
         }
-        
     }
 
     default:
