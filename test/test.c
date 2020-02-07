@@ -553,9 +553,9 @@ int readSensors(void)
     pthread_mutex_lock(&serial_read);
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
     for (int i = 0; i < 9; i++)                            // load CSS
-        g_CSS[i] = (g_readCS[i]*5000.0)/0x0fff;
-    g_FSS[0] = (g_readFS[0]*M_PI)/0xffff - M_PI/2; // load FSS angle 0
-    g_FSS[1] = (g_readFS[1]*M_PI)/0xffff - M_PI/2; // load FSS angle 1
+        g_CSS[i] = (g_readCS[i] * 5000.0) / 0x0fff;
+    g_FSS[0] = (g_readFS[0] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 0
+    g_FSS[1] = (g_readFS[1] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 1
     pthread_mutex_unlock(&serial_read);
 // convert B to proper units
 #define B_RANGE 32767
@@ -643,6 +643,24 @@ void checkTransition(void)
         }
         break;
     }
+
+    case STATE_ACS_NIGHT:
+    {
+        if (NORM(avgSun) > CSS_MIN_LUX_THRESHOLD)
+        {
+            if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
+            {
+                g_acs_mode = STATE_ACS_DETUMBLE;
+                break;
+            }
+            if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
+            {
+                g_acs_mode = STATE_ACS_READY;
+            }
+            break;
+        }
+    }
+
     default:
         break;
     }

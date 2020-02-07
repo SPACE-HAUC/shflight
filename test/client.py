@@ -197,12 +197,10 @@ a = packet_data()
 
 acs_ct = 0
 
-
+acs_mode = ["Detumble", "Sunpoint", "Night", "Ready"]
 def animate(i):
     # Read packet over network
     global a, acs_ct, w_min, w_max, ang_min, ang_max, vline
-    fig.suptitle("Timestamp: %s" %
-                 (datetime.datetime.fromtimestamp(timenow()//1e3)))
     val = ''.encode('utf-8')
     #print("Receiving %d packets:"%(1))
     for j in range(1):
@@ -226,6 +224,8 @@ def animate(i):
     # copy read bytes to the packet
     c.memmove(c.addressof(a), val, c.sizeof(packet_data))
 
+    fig.suptitle("Timestamp: %s, Mode: %s" %
+                 (datetime.datetime.fromtimestamp(timenow()//1e3),acs_mode[a.mode]))
     # Time axis generation
     if i == 0:
         acs_ct = a.step
