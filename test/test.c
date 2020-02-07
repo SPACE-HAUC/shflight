@@ -539,7 +539,7 @@ void getSVec(void)
         g_night = 0;
         NORMALIZE(g_S[sol_index], g_S[sol_index]); // return normalized sun vector
     }
-    printf("[sunvec %d] %0.3f %0.3f | %0.3f %0.3f %0.3f\n", sol_index, fsx, fsy, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
+    // printf("[sunvec %d] %0.3f %0.3f | %0.3f %0.3f %0.3f\n", sol_index, fsx, fsy, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
     return;
 }
 // read all sensors (right now only magnetic)
@@ -557,7 +557,7 @@ int readSensors(void)
         g_CSS[i] = (g_readCS[i] * 5000.0) / 0x0fff;
     g_FSS[0] = (g_readFS[0] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 0
     g_FSS[1] = (g_readFS[1] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 1
-    printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
+    // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
     pthread_mutex_unlock(&serial_read);
 // convert B to proper units
 #define B_RANGE 32767
@@ -583,7 +583,7 @@ int readSensors(void)
     return status;
 }
 
-#define OMEGA_TARGET_LEEWAY z_g_W_target * 0.05 // 5% leeway in the value of omega_z
+#define OMEGA_TARGET_LEEWAY z_g_W_target * 0.1 // 10% leeway in the value of omega_z
 #define MIN_SOL_ANGLE 4                         // minimum solar angle for sunpointing to be a success
 #define MIN_DETUMBLE_ANGLE 4                    // minimum angle for detumble to be a success
 
@@ -613,6 +613,7 @@ void checkTransition(void)
         // If detumble criterion is met, go to Sunpointing mode
         if (fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE && fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
+            printf("[state] dW = %.3f\n", W_target_diff);
             g_acs_mode = STATE_ACS_SUNPOINT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
