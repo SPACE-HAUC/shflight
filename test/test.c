@@ -620,7 +620,10 @@ void checkTransition(void)
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
         {
             if (NORM(avgSun) < 1)
+            {
+                printf("Here!");
                 g_acs_mode = STATE_ACS_NIGHT;
+            }      
         }
         break;
     }
