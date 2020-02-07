@@ -610,9 +610,7 @@ inline void checkTransition(void)
     int z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
     uint8_t next_mode = g_acs_mode;
-    switch (g_acs_mode)
-    {
-    case STATE_ACS_DETUMBLE:
+    if ( g_acs_mode == STATE_ACS_DETUMBLE)
     {
         printf("[CASE] %d\n", MIN_DETUMBLE_ANGLE - z_w_ang);
         // If detumble criterion is met, go to Sunpointing mode
@@ -630,56 +628,43 @@ inline void checkTransition(void)
                 next_mode = STATE_ACS_NIGHT;
             }
         }
-        break;
     }
 
-    case STATE_ACS_SUNPOINT:
+    else if ( g_acs_mode == STATE_ACS_SUNPOINT)
     {
         // If detumble criterion is not held, fall back to detumbling
         if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
             next_mode = STATE_ACS_DETUMBLE;
-            break;
         }
         // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
         if (NORM(avgSun) < 0.8f)
         {
             next_mode = STATE_ACS_NIGHT;
-            break;
         }
         // if the satellite is detumbled, it is not night and the sun angle is less than 4 deg, declare ACS is ready
         if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
         {
             next_mode = STATE_ACS_READY;
         }
-        break;
     }
 
-    case STATE_ACS_NIGHT:
+    else if ( g_acs_mode == STATE_ACS_NIGHT)
     {
         if (NORM(avgSun) > CSS_MIN_LUX_THRESHOLD)
         {
             if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
             {
                 next_mode = STATE_ACS_DETUMBLE;
-                break;
             }
             if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
             {
                 next_mode = STATE_ACS_READY;
             }
-            break;
-        }
-        else
-        {
-            break;
         }
     }
 
-    default:
-        break;
-    }
-    g_acs_mode = next_mode;
+       g_acs_mode = next_mode;
 }
 // This function executes the detumble action
 inline void detumbleAction(void)
