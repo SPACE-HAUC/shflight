@@ -633,7 +633,7 @@ void checkTransition(void)
     else if (g_acs_mode == STATE_ACS_SUNPOINT)
     {
         // If detumble criterion is not held, fall back to detumbling
-        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
+        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY)
         {
             next_mode = STATE_ACS_DETUMBLE;
         }
@@ -653,7 +653,7 @@ void checkTransition(void)
     {
         if (NORM(avgSun) > CSS_MIN_LUX_THRESHOLD)
         {
-            if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
+            if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY)
             {
                 next_mode = STATE_ACS_DETUMBLE;
             }
