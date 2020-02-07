@@ -605,7 +605,7 @@ void checkTransition(void)
     float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
-
+    printf("[state %d] dW = %.3f\n", g_acs_state, W_target_diff);
     switch (g_acs_mode)
     {
     case STATE_ACS_DETUMBLE:
@@ -613,7 +613,6 @@ void checkTransition(void)
         // If detumble criterion is met, go to Sunpointing mode
         if (fabsf(z_w_ang) < MIN_DETUMBLE_ANGLE && fabsf(W_target_diff) < OMEGA_TARGET_LEEWAY)
         {
-            printf("[state] dW = %.3f\n", W_target_diff);
             g_acs_mode = STATE_ACS_SUNPOINT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
