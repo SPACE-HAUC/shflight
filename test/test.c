@@ -602,7 +602,7 @@ void checkTransition(void)
     DECLARE_VECTOR(body, float);                                     // Body frame vector oriented along Z axis
     z_body = 1;                                                      // Body frame vector is Z
     float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
-    NORMALIZE(avgOmega, angOmega);                                   // Normalize avg omega to get omega hat
+    NORMALIZE(avgOmega, avgOmega);                                   // Normalize avg omega to get omega hat
     float z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
