@@ -588,7 +588,7 @@ int readSensors(void)
 #define MIN_DETUMBLE_ANGLE 4                   // minimum angle for detumble to be a success
 
 // check if the program should transition from one state to another
-inline void checkTransition(void)
+void checkTransition(void)
 {
     if (!W_full) // not enough data to take a decision
         return;
@@ -769,6 +769,8 @@ inline void sunpointAction(void)
 
         int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on;  // safety measure
+        time_on /= 5000 ;
+        time_on *= 5000 ; // granularity of 5 ms, essentially 5 bit precision
         int time_off = SUNPOINT_DUTY_CYCLE - time_on;
         int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
         DECLARE_VECTOR(fire, int);
@@ -782,6 +784,7 @@ inline void sunpointAction(void)
             FiringTime -= SUNPOINT_DUTY_CYCLE;
         }
         usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
+        HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
     }
 }
 // measure thread execution time
@@ -827,7 +830,9 @@ void *acs_detumble(void *id)
         t_acs = s;
         checkTransition(); // check if the system should transition from one state to another
         unsigned long long e = get_usec();
-        usleep(MEASURE_TIME - e + s); // sleep for total 20 ms with read
+        int sleep_time = MEASURE_TIME - e + s ;
+        sleep_time = sleep_time > 0 ? sleep_time : 0 ;
+        usleep(sleep_time); // sleep for total 20 ms with read
         switch (g_acs_mode)
         {
         case STATE_ACS_DETUMBLE:
