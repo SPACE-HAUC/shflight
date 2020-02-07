@@ -666,6 +666,7 @@ void checkTransition(void)
     }
     printf("{NEXT} %d\n", next_mode);
     g_acs_mode = next_mode;
+    printf("{LATER} %d\n", g_acs_mode);
 }
 // This function executes the detumble action
 inline void detumbleAction(void)
