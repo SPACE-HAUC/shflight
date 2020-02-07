@@ -539,6 +539,7 @@ void getSVec(void)
         g_night = 0;
         NORMALIZE(g_S[sol_index], g_S[sol_index]); // return normalized sun vector
     }
+    printf("[sunvec %d] %0.3f %0.3f %0.3f\n", sol_index, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
     return;
 }
 // read all sensors (right now only magnetic)
