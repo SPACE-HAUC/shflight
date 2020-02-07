@@ -787,7 +787,7 @@ inline void sunpointAction(void)
         printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         while (FiringTime > 0)
         {
-            printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
+            printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
             HBRIDGE_ENABLE(fire);
             usleep(time_on);
             HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
