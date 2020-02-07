@@ -604,7 +604,7 @@ void checkTransition(void)
     float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
     NORMALIZE(avgOmega, avgOmega);                                   // Normalize avg omega to get omega hat
     int z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
-
+    z_w_ang = z_w_ang < 0 ? -z_w_ang : z_w_ang ;
     int z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
     uint8_t next_mode = g_acs_mode ;
@@ -614,7 +614,7 @@ void checkTransition(void)
     {
         printf("[CASE]\n");
         // If detumble criterion is met, go to Sunpointing mode
-        if ((abs(z_w_ang) <= MIN_DETUMBLE_ANGLE) )
+        if (abs(z_w_ang) <= MIN_DETUMBLE_ANGLE)
         {
             printf("[DETUMBLE]");
             next_mode = STATE_ACS_SUNPOINT;
