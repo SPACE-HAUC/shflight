@@ -742,6 +742,7 @@ inline void detumbleAction(void)
         usleep(firingTime[2] < 1 ? 1 : firingTime[2]); // sleep until third turnoff
         HBRIDGE_DISABLE(firingOrder[2]);               // third turnoff
         usleep(finalWait < 1 ? 1 : finalWait);         // sleep for the remainder of the cycle
+        HBRIDGE_DISABLE(0); HBRIDGE_DISABLE(1); HBRIDGE_DISABLE(2);
     }
 }
 // This function executes the sunpointing action
