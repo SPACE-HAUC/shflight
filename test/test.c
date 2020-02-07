@@ -605,7 +605,7 @@ void checkTransition(void)
     NORMALIZE(avgOmega, avgOmega);                   // Normalize avg omega to get omega hat
     float w_ang = (DOT_PRODUCT(avgOmega, body));
     w_ang = w_ang >= 1 ? 1 : w_ang;
-    int z_w_ang = 180. * acos(w_ang) / M_PI; // average omega angle in degrees
+    volatile int z_w_ang = 180. * acos(w_ang) / M_PI; // average omega angle in degrees
     z_w_ang = z_w_ang < 0 ? -z_w_ang : z_w_ang;
     int z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, fabs(W_target_diff), fabs(z_w_ang), DOT_PRODUCT(avgOmega, body), NORM(avgSun));
