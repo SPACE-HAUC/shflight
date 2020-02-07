@@ -616,7 +616,8 @@ void checkTransition(void)
         // If detumble criterion is met, go to Sunpointing mode
         if ( 1 )
         {
-            printf("[DETUMBLE]");
+            printf("[DETUMBLE]\n\n\n\n\n\n\n\n\n\n\nX");
+            fflush(stdout);
             // next_mode = STATE_ACS_SUNPOINT;
             //g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
