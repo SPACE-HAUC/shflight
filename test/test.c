@@ -584,8 +584,8 @@ int readSensors(void)
 }
 
 #define OMEGA_TARGET_LEEWAY z_g_W_target * 0.1 // 10% leeway in the value of omega_z
-#define MIN_SOL_ANGLE 4                         // minimum solar angle for sunpointing to be a success
-#define MIN_DETUMBLE_ANGLE 4                    // minimum angle for detumble to be a success
+#define MIN_SOL_ANGLE 4                        // minimum solar angle for sunpointing to be a success
+#define MIN_DETUMBLE_ANGLE 4                   // minimum angle for detumble to be a success
 
 // check if the program should transition from one state to another
 void checkTransition(void)
@@ -599,10 +599,11 @@ void checkTransition(void)
     DECLARE_VECTOR(avgSun, float);                  // declare buffer to contain avg sun vector
     FAVERAGE_BUFFER(avgSun, g_S, SH_BUFFER_SIZE);   // calculate time average of sun vector over buffer
 
-    DECLARE_VECTOR(body, float); // Body frame vector oriented along Z axis
-    z_body = 1 ; // Body frame vector is Z
-    float z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
+    DECLARE_VECTOR(body, float);                                     // Body frame vector oriented along Z axis
+    z_body = 1;                                                      // Body frame vector is Z
     float W_target_diff = z_g_W_target - z_avgOmega;                 // difference of omega_z
+    NORMALIZE(avgOmega, angOmega);                                   // Normalize avg omega to get omega hat
+    float z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
     printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f\n", g_acs_mode, W_target_diff, z_w_ang, DOT_PRODUCT(avgOmega, body));
