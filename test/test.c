@@ -606,7 +606,7 @@ void checkTransition(void)
     float z_w_ang = 180. * acos(DOT_PRODUCT(avgOmega, body)) / M_PI; // average omega angle in degrees
 
     float z_S_ang = 180. * acos(DOT_PRODUCT(avgSun, body)) / M_PI; // average Sun angle in degrees
-    printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f\n", g_acs_mode, W_target_diff, z_w_ang, DOT_PRODUCT(avgOmega, body));
+    printf("[state %d] dW = %.3f, Ang = %.3f, DP = %.3f, |SUN| = %.3f\n", g_acs_mode, W_target_diff, z_w_ang, DOT_PRODUCT(avgOmega, body), NORM(avgSun));
     switch (g_acs_mode)
     {
     case STATE_ACS_DETUMBLE:
