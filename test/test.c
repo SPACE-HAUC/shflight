@@ -618,7 +618,7 @@ void checkTransition(void)
         {
              printf("[DETUMBLE]\n");
              fflush(stdout);
-            next_mode = STATE_ACS_SUNPOINT;
+            next_mode = 1;
             // g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
