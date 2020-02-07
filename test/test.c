@@ -777,6 +777,8 @@ inline void sunpointAction(void)
         NORMALIZE(SxBxL, SxBxL);
         printf("[Sunpoint Action] %d\n", __LINE__);
         int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
+        int dir = time_on > 0 ? 1 : -1 ;
+        time_on = time_on > 0 ? time_on : -time_on ;
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on;  // safety measure
         time_on /= 5000 ;
         time_on *= 5000 ; // granularity of 5 ms, essentially 5 bit precision
