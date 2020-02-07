@@ -178,8 +178,8 @@ dang_max = 90
 ax5.set_title("Angle of ω with B (°)")
 ax5.set_ylim(dang_min, dang_max)
 
-sang_min = -90
-sang_max = 90
+sang_min = -180
+sang_max = 180
 ax6.set_title("Sun vector")
 ax6.set_ylim(sang_min, sang_max)
 
