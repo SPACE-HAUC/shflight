@@ -621,7 +621,7 @@ void checkTransition(void)
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
         {
-            if (NORM(avgSun) < 1)
+            if (NORM(avgSun) < 0.8f)
             {
                 printf("Here!");
                 next_mode = STATE_ACS_NIGHT;
@@ -639,7 +639,7 @@ void checkTransition(void)
             break;
         }
         // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
-        if (NORM(avgSun) < 1)
+        if (NORM(avgSun) < 0.8f)
         {
             next_mode = STATE_ACS_NIGHT;
             break;
