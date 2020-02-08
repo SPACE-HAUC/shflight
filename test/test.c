@@ -509,7 +509,7 @@ void getSVec(void)
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
     printf("[FSS] %.3f %.3f\n", fsx * 180./M_PI, fsy *180./M_PI);
-    if (fabsf(fsx) <= 30. / (180 * M_PI) && fabsf(fsy) <= 30. / (180 * M_PI)) // angle inside FOV (FOV -> 60°, half angle 30°)
+    if (fabsf(fsx) <= 50. / (180 * M_PI) && fabsf(fsy) <= 50. / (180 * M_PI)) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
         printf("[FSS VALID]");
         x_g_S[sol_index] = tan(fsx); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
