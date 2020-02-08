@@ -508,8 +508,10 @@ void getSVec(void)
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
-    if (fabsf(fsx) <= 30. / (180 * M_PI) && fabsf(fsy) <= 30. / (180 * M_PI)) // angle inside FOV (FOV -> 60°, half angle 30°)
+    printf("[FSS] %.3f %.3f\n", fsx * 180./M_PI, fsy *180./M_PI);
+    if (fabsf(fsx) <= 50. / 180 * M_PI && fabsf(fsy) <= 50. / 180 * M_PI )// angle inside FOV (FOV -> 60°, half angle 30°)
     {
+        printf("[FSS VALID]");
         x_g_S[sol_index] = tan(fsx); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy);
         z_g_S[sol_index] = 1;
@@ -555,8 +557,8 @@ int readSensors(void)
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
     for (int i = 0; i < 9; i++)                            // load CSS
         g_CSS[i] = (g_readCS[i] * 5000.0) / 0x0fff;
-    g_FSS[0] = (g_readFS[0] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 0
-    g_FSS[1] = (g_readFS[1] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 1
+    g_FSS[0] = ((g_readFS[0] * M_PI) / 65535.0) -( M_PI / 2); // load FSS angle 0
+    g_FSS[1] = ((g_readFS[1] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 1
     // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
     pthread_mutex_unlock(&serial_read);
 // convert B to proper units
@@ -781,10 +783,13 @@ inline void sunpointAction(void)
         CROSS_PRODUCT(SxBxL, SBHat, LBHat);
         NORMALIZE(SxBxL, SxBxL);
         // printf("[Sunpoint Action] %d\n", __LINE__);
-        int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
+        int time_on = (int) (DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
+        printf("[SUNPOINT] %d\n", time_on);
         int dir = time_on > 0 ? 1 : -1;
         time_on = time_on > 0 ? time_on : -time_on;
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on; // safety measure
+        if ( time_on < 5000 && time_on > 2499 )
+            time_on = 5000 ;
         time_on /= 5000;
         time_on *= 5000; // granularity of 5 ms, essentially 5 bit precision
         int time_off = SUNPOINT_DUTY_CYCLE - time_on;
