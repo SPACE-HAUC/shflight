@@ -508,6 +508,7 @@ void getSVec(void)
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
+    printf("[FSS] %.3f %.3f\n"; fsx * 180./M_PI, fsy *180./M_PI);
     if (fabsf(fsx) <= 30. / (180 * M_PI) && fabsf(fsy) <= 30. / (180 * M_PI)) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
         printf("[FSS VALID]");
