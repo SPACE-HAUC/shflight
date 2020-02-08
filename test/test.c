@@ -784,6 +784,7 @@ inline void sunpointAction(void)
         NORMALIZE(SxBxL, SxBxL);
         // printf("[Sunpoint Action] %d\n", __LINE__);
         int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
+        printf("[SUNPOINT] %f\n", time_on);
         int dir = time_on > 0 ? 1 : -1;
         time_on = time_on > 0 ? time_on : -time_on;
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on; // safety measure
@@ -793,10 +794,10 @@ inline void sunpointAction(void)
         int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
         DECLARE_VECTOR(fire, int);
         z_fire = dir; // z direction is the only direction of fire
-        printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
+        // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         while (FiringTime > 0)
         {
-            printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
+            // printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
             HBRIDGE_ENABLE(fire);
             usleep(time_on);
             HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
