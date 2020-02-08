@@ -793,7 +793,7 @@ inline void sunpointAction(void)
         int FiringTime = COARSE_TIME_STEP - MEASURE_TIME; // time allowed to fire
         DECLARE_VECTOR(fire, int);
         z_fire = dir; // z direction is the only direction of fire
-        // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
+        printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         while (FiringTime > 0)
         {
             printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
