@@ -3,16 +3,12 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import matplotlib.animation as animation
 import collections
+fig = plt.figure()
+ax = fig.add_subplot(111)
 my_map = Basemap(projection='cyl', resolution=None,
             llcrnrlat=-90, urcrnrlat=90,
-            llcrnrlon=-180, urcrnrlon=180, ) #ax=axes[1])
-my_map.shadedrelief(scale=0.2)
-#my_map.drawcoastlines()
-#my_map.drawcountries()
-#my_map.fillcontinents(color = 'gray')
-#my_map.drawmapboundary()
-#my_map.drawmeridians(np.arange(0, 360, 30))
-#my_map.drawparallels(np.arange(-90, 90, 30))
+            llcrnrlon=-180, urcrnrlon=180, ax=ax,)
+my_map.shadedrelief(scale=0.1)
 
 # my_map = Basemap(projection='ortho', resolution=None, lat_0=0, lon_0=-100)
 # my_map.bluemarble(scale=0.5)
@@ -20,7 +16,7 @@ lats = collections.deque(maxlen=180)
 lons = collections.deque(maxlen=180)
 x,y = my_map(0, 0)
 point = my_map.plot(x, y, 'ro', markersize=5)[0]
-line, = plt.plot([], [], marker='.', ls='')
+line, = ax.plot([], [], marker='.', ls='')
 dats = [point, line]
 def init():
     point.set_data([], [])
