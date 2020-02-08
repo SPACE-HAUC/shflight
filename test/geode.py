@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 import collections
 my_map = Basemap(projection='cyl', resolution=None,
             llcrnrlat=-90, urcrnrlat=90,
-            llcrnrlon=-180, urcrnrlon=180, )
+            llcrnrlon=-180, urcrnrlon=180, ) #ax=axes[1])
 my_map.shadedrelief(scale=0.2)
 #my_map.drawcoastlines()
 #my_map.drawcountries()
