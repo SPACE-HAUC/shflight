@@ -783,8 +783,8 @@ inline void sunpointAction(void)
         CROSS_PRODUCT(SxBxL, SBHat, LBHat);
         NORMALIZE(SxBxL, SxBxL);
         // printf("[Sunpoint Action] %d\n", __LINE__);
-        int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
-        printf("[SUNPOINT] %f\n", time_on);
+        int time_on = (int) (DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE); // essentially a duty cycle measure
+        printf("[SUNPOINT] %d\n", time_on);
         int dir = time_on > 0 ? 1 : -1;
         time_on = time_on > 0 ? time_on : -time_on;
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on; // safety measure
