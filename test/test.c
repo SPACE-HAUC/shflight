@@ -556,8 +556,8 @@ int readSensors(void)
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
     for (int i = 0; i < 9; i++)                            // load CSS
         g_CSS[i] = (g_readCS[i] * 5000.0) / 0x0fff;
-    g_FSS[0] = (g_readFS[0] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 0
-    g_FSS[1] = (g_readFS[1] * M_PI) / 0xffff - M_PI / 2; // load FSS angle 1
+    g_FSS[0] = ((g_readFS[0] * M_PI) / 65535.0) -( M_PI / 2); // load FSS angle 0
+    g_FSS[1] = ((g_readFS[1] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 1
     // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
     pthread_mutex_unlock(&serial_read);
 // convert B to proper units
