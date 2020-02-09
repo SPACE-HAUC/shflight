@@ -790,7 +790,7 @@ inline void sunpointAction(void)
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on; // safety measure
         if ( time_on < 5000 && time_on > 2499 )
             time_on = 5000 ;
-        time_on = round(time_on / 1000.0f); // added rounding to increase gain
+        time_on = 1000 * round(time_on / 1000.0f); // added rounding to increase gain
         time_on /= 5000;
         time_on *= 5000; // granularity of 5 ms, essentially 5 bit precision
         printf("[SUNPOINT] %d\n", time_on);
