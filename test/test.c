@@ -785,6 +785,7 @@ inline void sunpointAction(void)
         // printf("[Sunpoint Action] %d\n", __LINE__);
         float sun_ang = fabs(z_g_S[sol_index]);
         uint8_t gain = round(sun_ang * 32) ;
+        gain = gain < 1 ? 1 : gain ; // do not allow gain to be lower than zero
         int time_on = (int) (DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE * gain); // essentially a duty cycle measure
         printf("[SUNPOINT] %d", time_on);
         int dir = time_on > 0 ? 1 : -1;
@@ -806,8 +807,11 @@ inline void sunpointAction(void)
             // printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
             HBRIDGE_ENABLE(fire);
             usleep(time_on);
-            HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
-            usleep(time_off);
+            if ( time_off > 0 )
+            {
+                HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
+                usleep(time_off);
+            }
             FiringTime -= SUNPOINT_DUTY_CYCLE;
             // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         }
