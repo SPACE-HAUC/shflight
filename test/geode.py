@@ -59,7 +59,11 @@ class geode_data(c.Structure):
 
         ('x_T', c.c_float),
         ('y_T', c.c_float),
-        ('z_T', c.c_float)
+        ('z_T', c.c_float),
+
+        ('x_Td', c.c_float),
+        ('y_Td', c.c_float),
+        ('z_Td', c.c_float)
     ]
 
 
