@@ -880,6 +880,7 @@ void *acs_detumble(void *id)
             // wake up datavis thread [DO NOT TOUCH]
             pthread_cond_broadcast(&datavis_drdy);
         }
+        fprintf(datalog, "%llu %d %e %e %e %e %e %e %e %e %e\n", acs_ct, g_acs_mode, x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index], x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index], x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
         //    printf("%s ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", ctime(&now), acs_ct++ , x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
         t_acs = s;
         checkTransition(); // check if the system should transition from one state to another
@@ -983,12 +984,52 @@ void *datavis_thread(void *t)
 }
 /* Data visualization server thread */
 
+/* Data logging stuff */
+FILE * datalog ;
+
+int bootCount()
+{
+    int _bootCount = 0;                      // assume 0 boot
+    if (access(BOOTCOUNT_FNAME, F_OK) != -1) //file exists
+    {
+        FILE *fp;
+        fp = fopen(BOOTCOUNT_FNAME, "r+");              // open file for reading
+        int read_bytes = fscanf(fp, "%d", &_bootCount); // read bootcount
+        if (read_bytes < 0)
+            perror("File not read");
+        fclose(fp);                       // close
+        fp = fopen(BOOTCOUNT_FNAME, "w"); // reopen to overwrite
+        fprintf(fp, "%d", ++_bootCount);  // write var+1
+        fclose(fp);                       // close
+        sync();                           // sync file system
+    }
+    else //file does not exist, create it
+    {
+        FILE *fp;
+        fp = fopen(BOOTCOUNT_FNAME, "w"); // open for writing
+        fprintf(fp, "%d", ++_bootCount);  // write 1
+        fclose(fp);                       // close
+        sync();                           // sync file system
+    }
+    return --_bootCount; // return 0 on first boot, return 1 on second boot etc
+}
+
+/* End datalogging stuff */
+
 int main(void)
 {
     // handle sigint
     struct sigaction saction;
     saction.sa_handler = &catch_sigint;
     sigaction(SIGINT, &saction, NULL);
+
+    /* Set up data logging */
+    int bc = bootCount();
+    char fname[40] ={0};
+    sprintf(fname, "logfile%d.txt", bc);
+
+    datalog = fopen(fname, 'w');
+    /* End setup datalogging */
 
     z_g_W_target = 1;                       // 1 rad s^-1
     MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
@@ -1037,6 +1078,9 @@ int main(void)
     {
         printf("Main: Error: Unable to join DataVis thread %d: Errno %d\n", rc2, errno);
     }
+    fflush(stdout);
+    fflush(datalog);
+    fclose(datalog);
 
     return 0;
 }
