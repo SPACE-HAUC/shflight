@@ -1,3 +1,4 @@
+// TODO: Separate code into individual files
 #include <stdio.h>
 #include <stdlib.h>
 #include <main_helper.h>
