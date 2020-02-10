@@ -508,8 +508,8 @@ void getSVec(void)
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
-    printf("[FSS] %.3f %.3f\n", fsx * 180./M_PI, fsy *180./M_PI);
-    if (fabsf(fsx) <= 50. / 180 * M_PI && fabsf(fsy) <= 50. / 180 * M_PI )// angle inside FOV (FOV -> 60°, half angle 30°)
+    printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
+    if (fabsf(fsx) <= 50. / 180 * M_PI && fabsf(fsy) <= 50. / 180 * M_PI) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
         printf("[FSS VALID]");
         x_g_S[sol_index] = tan(fsx); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
@@ -557,7 +557,7 @@ int readSensors(void)
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
     for (int i = 0; i < 9; i++)                            // load CSS
         g_CSS[i] = (g_readCS[i] * 5000.0) / 0x0fff;
-    g_FSS[0] = ((g_readFS[0] * M_PI) / 65535.0) -( M_PI / 2); // load FSS angle 0
+    g_FSS[0] = ((g_readFS[0] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 0
     g_FSS[1] = ((g_readFS[1] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 1
     // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
     pthread_mutex_unlock(&serial_read);
@@ -635,7 +635,7 @@ void checkTransition(void)
     else if (g_acs_mode == STATE_ACS_SUNPOINT)
     {
         // If detumble criterion is not held, fall back to detumbling
-        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY * 3) // extra leeway for exact value of w_z 
+        if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY * 3) // extra leeway for exact value of w_z
         {
             next_mode = STATE_ACS_DETUMBLE;
         }
@@ -666,11 +666,32 @@ void checkTransition(void)
                 next_mode = STATE_ACS_READY;
             }
             else
-                next_mode = STATE_ACS_SUNPOINT ;
+                next_mode = STATE_ACS_SUNPOINT;
+        }
+    }
+
+    else if (g_acs_mode == STATE_ACS_READY)
+    {
+        if (NORM(avgSun) < 0.8f) // transition to night
+            next_mode = STATE_ACS_NIGHT;
+        else
+        {
+            if (fabsf(z_w_ang) > MIN_DETUMBLE_ANGLE || fabsf(W_target_diff) > OMEGA_TARGET_LEEWAY) // Detumble required
+            {
+                next_mode = STATE_ACS_DETUMBLE;
+            }
+            if (fabsf(z_S_ang) > MIN_SOL_ANGLE) // sunpointing required
+            {
+                next_mode = STATE_ACS_SUNPOINT;
+            }
+            else // everything good
+            {
+                next_mode = STATE_ACS_READY;
+            }
         }
     }
     // printf("{NEXT} %d\n", next_mode);
-    g_acs_mode = next_mode;
+    g_acs_mode = next_mode; // update the global state
     // printf("{LATER} %d\n", g_acs_mode);
 }
 // This function executes the detumble action
@@ -784,15 +805,15 @@ inline void sunpointAction(void)
         NORMALIZE(SxBxL, SxBxL);
         // printf("[Sunpoint Action] %d\n", __LINE__);
         float sun_ang = fabs(z_g_S[sol_index]);
-        uint8_t gain = round(sun_ang * 32) ;
-        gain = gain < 1 ? 1 : gain ; // do not allow gain to be lower than zero
-        int time_on = (int) (DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE * gain); // essentially a duty cycle measure
+        uint8_t gain = round(sun_ang * 32);
+        gain = gain < 1 ? 1 : gain;                                                      // do not allow gain to be lower than one
+        int time_on = (int)(DOT_PRODUCT(SxBxL, currBNorm) * SUNPOINT_DUTY_CYCLE * gain); // essentially a duty cycle measure
         printf("[SUNPOINT] %d", time_on);
         int dir = time_on > 0 ? 1 : -1;
         time_on = time_on > 0 ? time_on : -time_on;
         time_on = time_on > SUNPOINT_DUTY_CYCLE ? SUNPOINT_DUTY_CYCLE : time_on; // safety measure
-        if ( time_on < 5000 && time_on > 2499 )
-            time_on = 5000 ;
+        if (time_on < 5000 && time_on > 2499)
+            time_on = 5000;
         time_on = 10000 * round(time_on / 10000.0f); // added rounding to increase gain
         time_on /= 5000;
         time_on *= 5000; // granularity of 5 ms, essentially 5 bit precision
@@ -807,7 +828,7 @@ inline void sunpointAction(void)
             // printf("[Sunpoint Action] %d %d %d %d\n", __LINE__, FiringTime, time_on, time_off);
             HBRIDGE_ENABLE(fire);
             usleep(time_on);
-            if ( time_off > 0 )
+            if (time_off > 0)
             {
                 HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
                 usleep(time_off);
@@ -816,7 +837,7 @@ inline void sunpointAction(void)
             // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         }
         // usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
-        HBRIDGE_DISABLE(2);                       // 3 == executes default, turns off ALL hbridges (safety)
+        HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
     }
 }
 // measure thread execution time
