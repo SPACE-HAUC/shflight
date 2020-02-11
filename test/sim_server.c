@@ -170,6 +170,8 @@ void *sitl_comm(void *id)
 #define PORT 12380
 #endif
 
+int firstrun = 1 ;
+
 typedef struct sockaddr sk_sockaddr;
 
 void *datavis_thread(void *t)
@@ -224,10 +226,15 @@ void *datavis_thread(void *t)
     // cerr << "DataVis: Main: Server File: " << server_fd << endl ;
     while (!done)
     {
+        if ( firstrun )
+        {
+            printf("DataVis: Waiting for release...\n");
+            firstrun = 0 ;
+        }
         pthread_cond_wait(&datavis_drdy, &datavis_mutex);
         if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
         {
-            // perror("accept");
+            perror("accept");
             // cerr << "DataVis: Accept from socket error!" <<endl ;
         }
         ssize_t numsent = send(new_socket, &datavis_dat, 88, 0);
