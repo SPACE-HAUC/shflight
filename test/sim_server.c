@@ -95,7 +95,7 @@ int setup_serial(void)
         printf("error %d opening TTY: %s", errno, strerror(errno));
         return -1;
     }
-    set_interface_attribs(fd, B230400, 0);
+    set_interface_attribs(fd, B115200, 0);
     set_blocking(fd, 0);
     return fd;
 }
