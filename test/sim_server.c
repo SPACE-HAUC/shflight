@@ -119,7 +119,7 @@ void *sitl_comm(void *id)
     {
         // unsigned long long s = get_usec();
         unsigned char inbuf[90], obuf, tmp, val = 0;
-        int frame_valid = 1, nr = 0;
+        int frame_valid = 1;
         // read 10 0xa0 bytes to make sure you got the full frame
         int preamble_count = -10;
         do
@@ -148,7 +148,7 @@ void *sitl_comm(void *id)
                 frame_valid = 2;
         }
 
-        if (n < 90 || nr != 1 || frame_valid != 1)
+        if (n < 90 || frame_valid != 1)
         {
             printf("n: %d, nr: %d, frame_valid = %d\n", n, nr, frame_valid);
             continue; // go back to beginning of the loop if the frame is bad
