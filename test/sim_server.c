@@ -150,7 +150,7 @@ void *sitl_comm(void *id)
 
         if (n < 90 || frame_valid != 1)
         {
-            printf("n: %d, nr: %d, frame_valid = %d\n", n, nr, frame_valid);
+            printf("n: %d, nr: %d, frame_valid = %d\n", n, frame_valid);
             continue; // go back to beginning of the loop if the frame is bad
         }
         // acquire lock before starting to assign to variables that are going to be read by data_acq thread
