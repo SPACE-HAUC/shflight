@@ -1028,7 +1028,7 @@ int main(void)
     char fname[40] ={0};
     sprintf(fname, "logfile%d.txt", bc);
 
-    datalog = fopen(fname, 'w');
+    datalog = fopen(fname, "w");
     /* End setup datalogging */
 
     z_g_W_target = 1;                       // 1 rad s^-1
