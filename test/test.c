@@ -843,6 +843,7 @@ inline void sunpointAction(void)
 }
 // measure thread execution time
 unsigned long long t_acs = 0;
+FILE * datalog ;
 // detumble thread, will become master acs thread
 void *acs_detumble(void *id)
 {
@@ -985,7 +986,6 @@ void *datavis_thread(void *t)
 /* Data visualization server thread */
 
 /* Data logging stuff */
-FILE * datalog ;
 
 int bootCount()
 {
