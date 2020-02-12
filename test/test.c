@@ -583,6 +583,29 @@ int readSensors(void)
     // printf("readSensors: m0: %d m1: %d Btx: %f Bty: %f Btz: %f\n", m0, m1, x_g_Bt[bdot_index], y_g_Bt[bdot_index], z_g_Bt[bdot_index]);
     getOmega();
     getSVec();
+    // check if any of the values are NaN. If so, return -1
+    // the NaN may stem from Bdot = 0, which may stem from the fact that during sunpointing
+    // B may align itself with Z/ω
+    if (isnan(x_g_B[mag_index]))
+        return -1;
+    if (isnan(y_g_B[mag_index]))
+        return -1;
+    if (isnan(z_g_B[mag_index]))
+        return -1;
+
+    if (isnan(x_g_W[omega_index]))
+        return -1;
+    if (isnan(y_g_W[omega_index]))
+        return -1;
+    if (isnan(z_g_W[omega_index]))
+        return -1;
+
+    if (isnan(x_g_S[sol_index]))
+        return -1;
+    if (isnan(y_g_S[sol_index]))
+        return -1;
+    if (isnan(z_g_S[sol_index]))
+        return -1;
     return status;
 }
 
@@ -843,7 +866,7 @@ inline void sunpointAction(void)
 }
 // measure thread execution time
 unsigned long long t_acs = 0;
-FILE * datalog ;
+FILE *datalog;
 // detumble thread, will become master acs thread
 void *acs_detumble(void *id)
 {
@@ -858,7 +881,35 @@ void *acs_detumble(void *id)
             pthread_cond_wait(&data_available, &data_check);
         }
         unsigned long long s = get_usec();
-        readSensors();
+        if (readSensors() < 0)
+        {
+            // Flush all buffers
+            FLUSH_BUFFER(g_B);
+            mag_index = -1 ;
+            B_full = 0;
+
+            FLUSH_BUFFER(g_Bt);
+            bdot_index = -1 ;
+
+            FLUSH_BUFFER(g_W);
+            omega_index = -1 ;
+            W_full = 0;
+
+            FLUSH_BUFFER(g_S);
+            sol_index = -1 ;
+            S_full = 0;
+            /*
+             * Fall back into night mode which is the safe mode
+             * NOTE: Since the buffers are empty at this point, 
+             * checkTransition() will not be called. Hence, 
+             * after flushing the buffer the system will spend
+             * 64 cycles reading the sensors.
+             * 
+             * TODO: Add more checks and do a system reboot if
+             * such a state persists.
+             */
+            g_acs_mode = STATE_ACS_NIGHT;
+        }
         //time_t now ; time(&now);
         if (omega_index >= 0)
         {
@@ -1025,7 +1076,7 @@ int main(void)
 
     /* Set up data logging */
     int bc = bootCount();
-    char fname[40] ={0};
+    char fname[40] = {0};
     sprintf(fname, "logfile%d.txt", bc);
 
     datalog = fopen(fname, "w");
