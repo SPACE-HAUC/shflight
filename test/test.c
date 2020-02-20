@@ -963,16 +963,16 @@ void *acs_detumble(void *id)
 {
     while (!done)
     {
-#ifdef SITL
         // wait till there is available data on serial
         if (first_run)
         {
             printf("ACS: Waiting for release...\n");
             first_run = 0;
             // wait till there is available data on serial
+#ifdef SITL            
             pthread_cond_wait(&data_available, &data_check);
-        }
 #endif // SITL
+        }
         unsigned long long s = get_usec();
         if (readSensors() < 0)
         {
