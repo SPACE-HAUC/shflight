@@ -24,7 +24,8 @@ void catch_sigint()
     pthread_cond_broadcast(&datavis_drdy);
     pthread_cond_broadcast(&data_available);
 }
-
+/* These functions are related to the software in the loop testing only */
+#ifdef SITL
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -207,7 +208,22 @@ void *sitl_comm(void *id)
     }
     pthread_exit(NULL);
 }
+#else // Set up HITL
+#include "ncv7708.h"
+#include "lsm9ds1.h"
+#include "tsl2561.h"
+#include "ads1115.h"
+#include "tca9458a.h"
 
+#define I2C_BUS "/dev/i2c-1" // default for Raspberry Pi, on flight computer use i2c-0
+
+lsm9ds1 *mag;     // magnetometer
+ncv7708 *hbridge; // h-bridge
+tca9458a *mux;    // I2C mux
+tsl2561 **css;    // coarse sun sensors
+ads1115 *adc;     // analog to digital converters
+
+#endif // SITL
 /* DataVis structures */
 typedef struct
 {
@@ -417,6 +433,7 @@ void print_bits(unsigned char octet)
     hbridge_enable(x_##name, y_##name, z_##name);
 // enable H bridge in the given direction using a vector input
 int hbridge_enable(int x, int y, int z)
+#ifdef SITL
 {
     uint8_t val = 0x00;
     // Set up Z
@@ -448,8 +465,23 @@ int hbridge_enable(int x, int y, int z)
     // printf("HBEnable: %d %d %d: 0x%x\n", x, y, z, g_Fire);
     return val;
 }
+#else  // HITL
+{
+    // Set up X
+    hbridge->pack->hbcnf1 = x > 0 ? 1 : 0;
+    hbridge->pack->hbcnf2 = x < 0 ? 1 : 0;
+    // Set up Y
+    hbridge->pack->hbcnf3 = y > 0 ? 1 : 0;
+    hbridge->pack->hbcnf4 = y < 0 ? 1 : 0;
+    // Set up Z
+    hbridge->pack->hbcnf5 = z > 0 ? 1 : 0;
+    hbridge->pack->hbcnf6 = z < 0 ? 1 : 0;
+    return ncv7708_xfer(hbridge);
+}
+#endif // SITL
 // disable selected channel on the hbridge
 int HBRIDGE_DISABLE(int i)
+#ifdef SITL
 {
     int tmp = 0xff;
     tmp ^= 0x03 << 2 * i;
@@ -467,6 +499,37 @@ int HBRIDGE_DISABLE(int i)
     // fflush(stdout);
     return tmp;
 }
+#else  // HITL
+{
+    switch (i)
+    {
+    case 0: // X axis
+        hbridge->pack->hbcnf1 = 0;
+        hbridge->pack->hbcnf2 = 0;
+        break;
+
+    case 1: // Y axis
+        hbridge->pack->hbcnf3 = 0;
+        hbridge->pack->hbcnf4 = 0;
+        break;
+
+    case 2: // Z axis
+        hbridge->pack->hbcnf5 = 0;
+        hbridge->pack->hbcnf6 = 0;
+        break;
+
+    default: // disable all
+        hbridge->pack->hbcnf1 = 0;
+        hbridge->pack->hbcnf2 = 0;
+        hbridge->pack->hbcnf3 = 0;
+        hbridge->pack->hbcnf4 = 0;
+        hbridge->pack->hbcnf5 = 0;
+        hbridge->pack->hbcnf6 = 0;
+        break;
+    }
+    return ncv7708_xfer(hbridge);
+}
+#endif // SITL
 // get omega using magnetic field measurements (Bdot)
 void getOmega(void)
 {
@@ -554,6 +617,7 @@ int readSensors(void)
         B_full = 1;
     mag_index = (mag_index + 1) % SH_BUFFER_SIZE;
     VECTOR_CLEAR(g_B[mag_index]); // clear the current B
+#ifdef SITL
     pthread_mutex_lock(&serial_read);
     VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
     for (int i = 0; i < 9; i++)                            // load CSS
@@ -562,10 +626,37 @@ int readSensors(void)
     g_FSS[1] = ((g_readFS[1] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 1
     // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
     pthread_mutex_unlock(&serial_read);
+#else  // HITL
+    short mag_measure[3];
+    status = lsm9ds1_read_mag(mag, mag_measure);
+    if (status < 0) // failure
+        return status;
+    x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
+    y_g_B[mag_index] = mag_measure[1]/6.842;
+    z_g_B[mag_index] = mag_measure[2]/6.842;
+    for (int i = 0; i < 3; i++)
+    {
+        tca9458a_set(mux, i); // activate channel
+        for (int j = 0; j < 3; j++)
+        {
+            uint32_t measure;
+            errno = 0;                                 // unset errno
+            tsl2561_measure(css[i * 3 + j], &measure); // make measurement
+            if (errno)
+            {
+                perror("CSS measure");
+                return -1;
+            }
+            g_CSS[i * 3 + j] = tsl2561_get_lux(measure);
+        }
+    }
+    g_FSS[0] = -M_PI / 2;
+    g_FSS[1] = -M_PI / 2;
+#endif // SITL
 // convert B to proper units
-#define B_RANGE 32767
-    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
-    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
+// #define B_RANGE 32767
+//     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
+//     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (mag_index < 1 && B_full == 0)
@@ -872,6 +963,7 @@ void *acs_detumble(void *id)
 {
     while (!done)
     {
+#ifdef SITL
         // wait till there is available data on serial
         if (first_run)
         {
@@ -880,23 +972,24 @@ void *acs_detumble(void *id)
             // wait till there is available data on serial
             pthread_cond_wait(&data_available, &data_check);
         }
+#endif // SITL
         unsigned long long s = get_usec();
         if (readSensors() < 0)
         {
             // Flush all buffers
             FLUSH_BUFFER(g_B);
-            mag_index = -1 ;
+            mag_index = -1;
             B_full = 0;
 
             FLUSH_BUFFER(g_Bt);
-            bdot_index = -1 ;
+            bdot_index = -1;
 
             FLUSH_BUFFER(g_W);
-            omega_index = -1 ;
+            omega_index = -1;
             W_full = 0;
 
             FLUSH_BUFFER(g_S);
-            sol_index = -1 ;
+            sol_index = -1;
             S_full = 0;
             /*
              * Fall back into night mode which is the safe mode
@@ -913,8 +1006,12 @@ void *acs_detumble(void *id)
         //time_t now ; time(&now);
         if (omega_index >= 0)
         {
+#ifdef SITL
             printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
-            // Update datavis variables [DO NOT TOUCH]
+#else
+            printf("[%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+#endif // SITL \
+    // Update datavis variables [DO NOT TOUCH]
             global_p.data.step = acs_ct;
             global_p.data.mode = g_acs_mode;
             global_p.data.x_B = x_g_B[mag_index];
@@ -1086,6 +1183,82 @@ int main(void)
     MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
     calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
 
+#ifndef SITL // Prepare devices for HITL
+    ncv7708 *hbridge = (ncv7708 *)malloc(sizeof(ncv7708));
+    snprintf(hbridge->fname, 40, "/dev/spidev0.0");
+#ifdef FSS_READY
+    ads1115 *adc = (ads1115 *)malloc(sizeof(ads1115));
+#endif
+    tsl2561 **css = (tsl2561 **)malloc(9 * sizeof(tsl2561 *));
+    for (int i = 0; i < 9; i++)
+        css[i] = (tsl2561 *)malloc(sizeof(tsl2561));
+    lsm9ds1 *mag = (lsm9ds1 *)malloc(sizeof(lsm9ds1));
+    tca9458a *mux = (tca9458a *)malloc(sizeof(tca9458a));
+    // copy bus name to lsm9ds1 struct. This interface will change.
+    snprintf(mag->fname, 40, I2C_BUS);
+    snprintf(mux->fname, 40, I2C_BUS);
+    ncv7708_init(hbridge); // Initialize hbridge
+    // Initialize MUX
+    int init_stat = 0;
+    if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
+    {
+        perror("Mux init failed");
+        exit(-1);
+    }
+    // Initialize CSSs
+    for (int i = 0; i < 3; i++)
+    {
+        uint8_t css_addr = TSL2561_ADDR_LOW;
+        tca9458a_set(mux, i);
+        for (int j = 0; j < 3; j++)
+        {
+            if ((init_stat = tsl2561_init(css[3 * i + j], css_addr)) < 0)
+            {
+                perror("CSS init failed");
+                printf("CSS Init failed at channel %d addr 0x%02x\n", i, css_addr);
+                fflush(stdout);
+                exit(-1);
+            }
+            css_addr += 0x10;
+        }
+    }
+    tca9458a_set(mux, 8); // disables mux
+    // Initialize magnetometer
+    if ((init_stat = lsm9ds1_init(mag, 0x6b, 0x1e)) < 0)
+    {
+        perror("Magnetometer init failed");
+        exit(-1);
+    }
+    // Initialize adc
+#ifdef FSS_READY
+    init_stat = ads1115_init(adc, ADS1115_S_ADDR);
+    if (init_stat < 0)
+    {
+        perror("ADC init failed");
+        exit(-1);
+    }
+    ads1115_config adc_conf;
+
+    adc_conf.raw = 0x0000;
+
+    adc_conf.os = 0;
+    adc_conf.mux = 0;
+    adc_conf.pga = 1;
+    adc_conf.mode = 0;
+    adc_conf.dr = 5;
+    adc_conf.comp_mode = 0;
+    adc_conf.comp_pol = 0;
+    adc_conf.comp_lat = 0;
+    adc_conf.comp_que = 3;
+
+    init_stat = ads1115_configure(adc, adc_conf);
+    if (init_stat < 0)
+    {
+        perror("ADC config failed");
+        exit(-1);
+    }
+#endif // FSS_READY
+#endif // ifndef SITL
     int rc0, rc1, rc2;
     pthread_t thread0, thread1, thread2;
     pthread_attr_t attr;
@@ -1098,12 +1271,14 @@ int main(void)
         printf("Main: Error: Unable to create ACS thread %d: Errno %d\n", rc0, errno);
         exit(-1);
     }
+#ifdef SITL
     rc1 = pthread_create(&thread1, &attr, sitl_comm, (void *)0);
     if (rc1)
     {
         printf("Main: Error: Unable to create Serial thread %d: Errno %d\n", rc1, errno);
         exit(-1);
     }
+#endif // SITL
     rc2 = pthread_create(&thread2, &attr, datavis_thread, (void *)0);
     if (rc2)
     {
@@ -1118,12 +1293,13 @@ int main(void)
     {
         printf("Main: Error: Unable to join ACS thread %d: Errno %d\n", rc0, errno);
     }
-
+#ifdef SITL
     rc1 = pthread_join(thread1, &status);
     if (rc1)
     {
         printf("Main: Error: Unable to join Serial thread %d: Errno %d\n", rc1, errno);
     }
+#endif // SITL
     rc2 = pthread_join(thread2, &status);
     if (rc2)
     {

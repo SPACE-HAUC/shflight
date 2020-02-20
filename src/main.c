@@ -1,68 +1,83 @@
-#include <main.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <signal.h>
+#include <math.h>
+#include <errno.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <termios.h>
 #include <main_helper.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
-const float MOI[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-
-int8_t mag_index = -1, bdot_index = -1, omega_index = -1, sol_index = -1, L_err_index = -1;
-uint8_t omega_ready = 0;
-
-DECLARE_BUFFER(g_B, float);
-
-DECLARE_BUFFER(g_W, float);
-
-DECLARE_BUFFER(g_Bt, float);
-
-DECLARE_BUFFER(g_S, float);
-
-volatile uint8_t g_nightmode = 0;
-
-// target angular speed
-DECLARE_VECTOR(g_W_target, float);
-
-// target angular momentum
-DECLARE_VECTOR(g_L_target, float);
-
-float g_L_pointing[SH_BUFFER_SIZE];
-float g_L_mag[SH_BUFFER_SIZE];
-
-#ifdef SERIAL_SIM
-pthread_mutex_t serial_read, serial_write;
-unsigned char dipole;
-DECLARE_VECTOR(g_readBp, short); // storage to put helmhotz positives
-DECLARE_VECTOR(g_readBn, short); // storage to put helmhotz negatives
-short g_readFS[2];               // storage to put FS X and Y angles
-unsigned short g_readCS[9];      // storage to put CS led brightnesses
-#endif
-
-ncv7708 *hbridge;
-
-/* 
- * Variable naming convention: separated by underscore, clear naming. Globals
- * require a `g_' in front.
- * 
- * Function naming convention: capitalize letters of words after the first one.
- */
-
-// Main function of the system
-int main(int argc, char *argv[])
+int main(void)
 {
-    g_boot_count = bootCount();    // determines system boot count
-    g_bootmoment = get_usec();     // store moment of boot in usec
-    g_program_state = SH_SYS_INIT; // On first boot, similar to detumble. On next boots, check all sensors and select appropriate state
-    fprintf(stderr, "State: %d\n", g_program_state);
-    g_bootup = 1; // the program is booting up
-    // write zeros into all buffers and reset heads
-    FLUSH_BUFFER_ALL;
-    // calculate target angular momentum
-    MATVECMUL(g_L_target, MOI, g_W_target);
-    // initialize h-bridge
-    hbridge = (ncv7708 *)malloc(sizeof(ncv7708));
-    snprintf(hbridge->fname, 40, HBRIDGE_DEV_NAME);
-    int hbridge_init_status = hbridge_init(hbridge);
-    // implement thread spawning
-    int rc[5];
-    //pthread_t threads[5] ;
-    //func_list threadList[5] = {data_ack, acs, xband, uhf, eps_telem} ;
-    ncv7708_destroy(hbridge);
+    // handle sigint
+    struct sigaction saction;
+    saction.sa_handler = &catch_sigint;
+    sigaction(SIGINT, &saction, NULL);
+
+    /* Set up data logging */
+    int bc = bootCount();
+    char fname[40] = {0};
+    sprintf(fname, "logfile%d.txt", bc);
+
+    datalog = fopen(fname, "w");
+    /* End setup datalogging */
+
+    z_g_W_target = 1;                       // 1 rad s^-1
+    MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
+    calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
+
+    int rc0, rc1, rc2;
+    pthread_t thread0, thread1, thread2;
+    pthread_attr_t attr;
+    void *status;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    rc0 = pthread_create(&thread0, &attr, acs_detumble, (void *)0);
+    if (rc0)
+    {
+        printf("Main: Error: Unable to create ACS thread %d: Errno %d\n", rc0, errno);
+        exit(-1);
+    }
+    rc1 = pthread_create(&thread1, &attr, sitl_comm, (void *)0);
+    if (rc1)
+    {
+        printf("Main: Error: Unable to create Serial thread %d: Errno %d\n", rc1, errno);
+        exit(-1);
+    }
+    rc2 = pthread_create(&thread2, &attr, datavis_thread, (void *)0);
+    if (rc2)
+    {
+        printf("Main: Error: Unable to create DataVis thread %d: Errno %d\n", rc2, errno);
+        exit(-1);
+    }
+
+    pthread_attr_destroy(&attr);
+
+    rc0 = pthread_join(thread0, &status);
+    if (rc0)
+    {
+        printf("Main: Error: Unable to join ACS thread %d: Errno %d\n", rc0, errno);
+    }
+
+    rc1 = pthread_join(thread1, &status);
+    if (rc1)
+    {
+        printf("Main: Error: Unable to join Serial thread %d: Errno %d\n", rc1, errno);
+    }
+    rc2 = pthread_join(thread2, &status);
+    if (rc2)
+    {
+        printf("Main: Error: Unable to join DataVis thread %d: Errno %d\n", rc2, errno);
+    }
+    fflush(stdout);
+    fflush(datalog);
+    fclose(datalog);
+
     return 0;
 }
