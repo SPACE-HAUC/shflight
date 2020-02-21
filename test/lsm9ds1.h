@@ -173,7 +173,7 @@ int lsm9ds1_reset_mag(lsm9ds1 *);
  * lsm9ds1_read_mag(lsm9ds1*, short *):
  * Store the magnetic field readings in the array of shorts, order: X Y Z
  */
-int lsm9ds1_read_mag(lsm9ds1 *dev, short B[]);
+int lsm9ds1_read_mag(lsm9ds1 *, short *);
 /*
  * lsm9ds1_offset_mag(lsm9ds1*, short *):
  * Set the mag field offsets using the array, order: X Y Z
