@@ -546,7 +546,7 @@ void getOmega(void)
     freq = 1e6 / DETUMBLE_TIME_STEP;                     // time units!
     CROSS_PRODUCT(g_W[omega_index], g_Bt[m1], g_Bt[m0]); // apply cross product
     float norm2 = NORM2(g_Bt[m0]);
-    VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq / norm2, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm(B_t dot)
+    VECTOR_MIXED(g_W[omega_index], g_W[omega_index], freq / norm2, *); // omega = (B_t dot x B_t-dt dot)*freq/Norm2(B_t dot)
     // Apply correction // There is fast runaway with this on
     // DECLARE_VECTOR(omega_corr0, float);                            // declare temporary space for correction vector
     // MATVECMUL(omega_corr0, MOI, g_W[m1]);                          // MOI X w[t-1]
@@ -572,7 +572,7 @@ void getSVec(void)
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
-    printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
+    // printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
     if (fabsf(fsx) <= 50. / 180 * M_PI && fabsf(fsy) <= 50. / 180 * M_PI) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
         printf("[FSS VALID]");
