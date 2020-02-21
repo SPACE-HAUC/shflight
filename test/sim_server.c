@@ -155,6 +155,7 @@ void *sitl_comm(void *id)
         }
         // acquire lock before starting to assign to variables that are going to be read by data_acq thread
         memcpy(datavis_dat, inbuf, 88);
+	printf("Batt: %f\n", (*(float*)(&inbuf[84]))*1e-3/3600);
         pthread_cond_broadcast(&datavis_drdy);
         // unsigned long long e = get_usec();
         // printf("[%llu ms] Serial read\n", (e-s)/1000);
