@@ -1261,6 +1261,7 @@ int main(void)
         exit(-1);
     }
 #endif // FSS_READY
+    usleep(1000000);
 #endif // ifndef SITL
     int rc0, rc1, rc2;
     pthread_t thread0, thread1, thread2;
