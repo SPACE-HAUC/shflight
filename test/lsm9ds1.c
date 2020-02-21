@@ -125,7 +125,7 @@ int lsm9ds1_reset_mag(lsm9ds1 *dev)
     }
     return 1;
 }
-int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
+int lsm9ds1_read_mag(lsm9ds1 *dev, short B[])
 {
     printf("In read_mag %d\n", __LINE__);
     uint8_t buf, reg = MAG_OUT_X_L - 1;
