@@ -1187,18 +1187,15 @@ int main(void)
     calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
 
 #ifndef SITL // Prepare devices for HITL
-    ncv7708 *hbridge = (ncv7708 *)malloc(sizeof(ncv7708));
+    hbridge = (ncv7708 *)malloc(sizeof(ncv7708));
     snprintf(hbridge->fname, 40, "/dev/spidev0.0");
 #ifdef FSS_READY
     ads1115 *adc = (ads1115 *)malloc(sizeof(ads1115));
 #endif
-    tsl2561 **css = (tsl2561 **)malloc(9 * sizeof(tsl2561 *));
+    css = (tsl2561 **)malloc(9 * sizeof(tsl2561 *));
     for (int i = 0; i < 9; i++)
         css[i] = (tsl2561 *)malloc(sizeof(tsl2561));
-    lsm9ds1 *mag = (lsm9ds1 *)malloc(sizeof(lsm9ds1));
-    tca9458a *mux = (tca9458a *)malloc(sizeof(tca9458a));
-    // copy bus name to lsm9ds1 struct. This interface will change.
-    snprintf(mag->fname, 40, I2C_BUS);
+    mux = (tca9458a *)malloc(sizeof(tca9458a));
     snprintf(mux->fname, 40, I2C_BUS);
     ncv7708_init(hbridge); // Initialize hbridge
     // Initialize MUX
@@ -1227,6 +1224,8 @@ int main(void)
     // }
     // tca9458a_set(mux, 8); // disables mux
     // Initialize magnetometer
+    mag = (lsm9ds1 *)malloc(sizeof(lsm9ds1));
+    snprintf(mag->fname, 40, "/dev/i2c-1");
     if ((init_stat = lsm9ds1_init(mag, 0x6b, 0x1e)) < 0)
     {
         perror("Magnetometer init failed");
