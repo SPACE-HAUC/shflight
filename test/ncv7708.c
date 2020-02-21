@@ -85,7 +85,14 @@ int ncv7708_init(ncv7708 *dev)
     //xfer[1].rx_buf = (unsigned long) buf2;
     //dev->xfer[1].len = 2; /* Length of Data to read */
     //dev->xfer[1].cs_change = 1; /* Keep CS activated */
-
+    dev->pack->hben1 = 1;
+    dev->pack->hben2 = 1;
+    dev->pack->hben3 = 1;
+    dev->pack->hben4 = 1;
+    dev->pack->hben5 = 1;
+    dev->pack->hben6 = 1;
+    if(ncv7708_xfer(dev) < 0)
+        return -1;
     return 1; // successful
 }
 
