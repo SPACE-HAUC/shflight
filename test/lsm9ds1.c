@@ -19,6 +19,11 @@ int lsm9ds1_init(lsm9ds1 *dev, uint8_t xl_addr, uint8_t mag_addr)
         perror("LSM9DS1: MAG ioctl failed");
         return -1;
     }
+    if (ioctl(dev->accel_file, I2C_SLAVE, mag_addr) < 0)
+    {
+        perror("LSM9DS1: ACCEL ioctl failed");
+        return -1;
+    }
     // Verify mag identity
     uint8_t buf = MAG_WHO_AM_I;
     if (write(dev->mag_file, &buf, 1) < 1)
