@@ -635,7 +635,7 @@ int readSensors(void)
     x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
     y_g_B[mag_index] = mag_measure[1]/6.842;
     z_g_B[mag_index] = mag_measure[2]/6.842;
-    APPLY_FBESSEL(g_B, omega_index);
+    APPLY_FBESSEL(g_B, mag_index); // bessel filter
     // for (int i = 0; i < 3; i++)
     // {
     //     tca9458a_set(mux, i); // activate channel
@@ -675,6 +675,7 @@ int readSensors(void)
     double freq = 1e6 / (DETUMBLE_TIME_STEP * 1.0);
     VECTOR_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
     VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
+    APPLY_FBESSEL(g_Bt, bdot_index); // bessel filter
     // printf("readSensors: m0: %d m1: %d Btx: %f Bty: %f Btz: %f\n", m0, m1, x_g_Bt[bdot_index], y_g_Bt[bdot_index], z_g_Bt[bdot_index]);
     getOmega();
     getSVec();
