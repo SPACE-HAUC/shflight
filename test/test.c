@@ -629,7 +629,7 @@ int readSensors(void)
     pthread_mutex_unlock(&serial_read);
 #else  // HITL
     short mag_measure[3];
-    status = lsm9ds1_read_mag(mag, &mag_measure);
+    status = lsm9ds1_read_mag(mag, mag_measure);
     if (status < 0) // failure
         return status;
     x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
