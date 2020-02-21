@@ -675,7 +675,7 @@ int readSensors(void)
     double freq = 1e6 / (DETUMBLE_TIME_STEP * 1.0);
     VECTOR_OP(g_Bt[bdot_index], g_B[m1], g_B[m0], -);
     VECTOR_MIXED(g_Bt[bdot_index], g_Bt[bdot_index], freq, *);
-    APPLY_FBESSEL(g_Bt, bdot_index); // bessel filter
+    // APPLY_FBESSEL(g_Bt, bdot_index); // bessel filter
     // printf("readSensors: m0: %d m1: %d Btx: %f Bty: %f Btz: %f\n", m0, m1, x_g_Bt[bdot_index], y_g_Bt[bdot_index], z_g_Bt[bdot_index]);
     getOmega();
     getSVec();
