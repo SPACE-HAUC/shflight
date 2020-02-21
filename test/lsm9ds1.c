@@ -122,6 +122,7 @@ int lsm9ds1_reset_mag(lsm9ds1 *dev)
 }
 int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
 {
+    printf("In read_mag %d\n", __LINE__);
     uint8_t buf, reg = MAG_OUT_X_L - 1;
     for (int i = 0; i < 3; i++)
     {
@@ -132,11 +133,13 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
             perror("read_mag failed");
             return -1;
         }
+        printf("In read_mag %d\n", __LINE__);
         if (read(dev->mag_file, &buf, 1) < 1)
         {
             perror("read_mag failed");
             return -1;
         }
+        printf("In read_mag %d\n", __LINE__);
         B[i] |= buf;
         buf = ++reg; // select the next register
         if (write(dev->mag_file, &buf, 1) < 1)
@@ -144,12 +147,14 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
             perror("read_mag failed");
             return -1;
         }
+        printf("In read_mag %d\n", __LINE__);
         if (read(dev->mag_file, &buf, 1) < 1)
         {
             perror("read_mag failed");
             return -1;
         }
         B[i] |= 0xff00 & ((short)buf << 8);
+        printf("In read_mag %d\n", __LINE__);
     }
     return 1;
 }
