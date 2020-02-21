@@ -612,6 +612,7 @@ void getSVec(void)
 int readSensors(void)
 {
     // read magfield, CSS, FSS
+    printf("In readSensors()...\n");
     int status = 1;
     if (mag_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
         B_full = 1;
