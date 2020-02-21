@@ -1013,7 +1013,7 @@ void *acs_detumble(void *id)
             printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #else
             printf("[%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
-#endif // SITL \
+#endif // SITL
     // Update datavis variables [DO NOT TOUCH]
             global_p.data.step = acs_ct;
             global_p.data.mode = g_acs_mode;
