@@ -633,7 +633,7 @@ int readSensors(void)
         return status;
     x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
     y_g_B[mag_index] = mag_measure[1]/6.842;
-    // z_g_B[mag_index] = mag_measure[2]/6.842;
+    z_g_B[mag_index] = mag_measure[2]/6.842;
     // for (int i = 0; i < 3; i++)
     // {
     //     tca9458a_set(mux, i); // activate channel
@@ -659,7 +659,7 @@ int readSensors(void)
 // #define B_RANGE 32767
 //     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
 //     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
-    // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
+    printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (mag_index < 1 && B_full == 0)
         return status;
