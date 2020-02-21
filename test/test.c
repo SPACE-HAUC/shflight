@@ -1203,29 +1203,29 @@ int main(void)
     ncv7708_init(hbridge); // Initialize hbridge
     // Initialize MUX
     int init_stat = 0;
-    if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
-    {
-        perror("Mux init failed");
-        // exit(-1);
-    }
-    // Initialize CSSs
-    for (int i = 0; i < 3; i++)
-    {
-        uint8_t css_addr = TSL2561_ADDR_LOW;
-        tca9458a_set(mux, i);
-        for (int j = 0; j < 3; j++)
-        {
-            if ((init_stat = tsl2561_init(css[3 * i + j], css_addr)) < 0)
-            {
-                perror("CSS init failed");
-                printf("CSS Init failed at channel %d addr 0x%02x\n", i, css_addr);
-                fflush(stdout);
-                // exit(-1);
-            }
-            css_addr += 0x10;
-        }
-    }
-    tca9458a_set(mux, 8); // disables mux
+    // if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
+    // {
+    //     perror("Mux init failed");
+    //     // exit(-1);
+    // }
+    // // Initialize CSSs
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     uint8_t css_addr = TSL2561_ADDR_LOW;
+    //     tca9458a_set(mux, i);
+    //     for (int j = 0; j < 3; j++)
+    //     {
+    //         if ((init_stat = tsl2561_init(css[3 * i + j], css_addr)) < 0)
+    //         {
+    //             perror("CSS init failed");
+    //             printf("CSS Init failed at channel %d addr 0x%02x\n", i, css_addr);
+    //             fflush(stdout);
+    //             // exit(-1);
+    //         }
+    //         css_addr += 0x10;
+    //     }
+    // }
+    // tca9458a_set(mux, 8); // disables mux
     // Initialize magnetometer
     if ((init_stat = lsm9ds1_init(mag, 0x6b, 0x1e)) < 0)
     {
