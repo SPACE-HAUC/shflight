@@ -134,6 +134,7 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
         B[i] = 0; // initialize with 0
         printf("In read_mag %d\n", __LINE__);
         buf = ++reg; // insert the command into buffer
+        printf("Buf: 0x%x\n", buf);
         int wr = write(dev->mag_file, &buf, 1);
         printf("In read_mag %d\n", __LINE__);
         if ( wr < 1)
