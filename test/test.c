@@ -633,23 +633,25 @@ int readSensors(void)
         return status;
     x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
     y_g_B[mag_index] = mag_measure[1]/6.842;
-    z_g_B[mag_index] = mag_measure[2]/6.842;
-    for (int i = 0; i < 3; i++)
-    {
-        tca9458a_set(mux, i); // activate channel
-        for (int j = 0; j < 3; j++)
-        {
-            uint32_t measure;
-            errno = 0;                                 // unset errno
-            tsl2561_measure(css[i * 3 + j], &measure); // make measurement
-            if (errno)
-            {
-                perror("CSS measure");
-                return -1;
-            }
-            g_CSS[i * 3 + j] = tsl2561_get_lux(measure);
-        }
-    }
+    // z_g_B[mag_index] = mag_measure[2]/6.842;
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     tca9458a_set(mux, i); // activate channel
+    //     for (int j = 0; j < 3; j++)
+    //     {
+    //         uint32_t measure;
+    //         errno = 0;                                 // unset errno
+    //         tsl2561_measure(css[i * 3 + j], &measure); // make measurement
+    //         if (errno)
+    //         {
+    //             perror("CSS measure");
+    //             return -1;
+    //         }
+    //         g_CSS[i * 3 + j] = tsl2561_get_lux(measure);
+    //     }
+    // }
+    for ( int i = 0 ; i < 9 ; i++ )
+        g_CSS[i] = 0;
     g_FSS[0] = -M_PI / 2;
     g_FSS[1] = -M_PI / 2;
 #endif // SITL
