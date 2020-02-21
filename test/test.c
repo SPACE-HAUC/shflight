@@ -635,7 +635,7 @@ int readSensors(void)
     x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
     y_g_B[mag_index] = mag_measure[1]/6.842;
     z_g_B[mag_index] = mag_measure[2]/6.842;
-    APPLY_FBESSEL(g_B, mag_index); // bessel filter
+    APPLY_DBESSEL(g_B, mag_index); // bessel filter
     // for (int i = 0; i < 3; i++)
     // {
     //     tca9458a_set(mux, i); // activate channel
