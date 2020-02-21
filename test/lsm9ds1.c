@@ -2,13 +2,13 @@
 int lsm9ds1_init(lsm9ds1 *dev, uint8_t xl_addr, uint8_t mag_addr)
 {
     uint8_t accel_stat = 1;
-    dev->accel_file = open("/dev/i2c-1", O_RDWR);
+    dev->accel_file = open(dev->fname, O_RDWR);
     if (dev->mag_file < 0)
     {
         accel_stat = 0;
         perror("LSM9DS1: Could not open fd for mag");
     }
-    dev->mag_file = open("/dev/i2c-1", O_RDWR);
+    dev->mag_file = open(dev->fname, O_RDWR);
     if (dev->mag_file < 0)
     {
         perror("LSM9DS1: Could not open fd for mag");
