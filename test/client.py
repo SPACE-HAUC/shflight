@@ -51,7 +51,7 @@ class packet_data(c.Structure):
 
 port = 12376
 
-SH_BUFFER_SIZE = 512 # Updated to get 2^9 size for ease of FFT
+SH_BUFFER_SIZE = 512  # Updated to get 2^9 size for ease of FFT
 
 x_B = collections.deque(maxlen=SH_BUFFER_SIZE)
 y_B = collections.deque(maxlen=SH_BUFFER_SIZE)
@@ -103,7 +103,7 @@ for i in range(SH_BUFFER_SIZE):
     y_sang.append(0)
 
 # print(c.sizeof(packet_data))
-fig = plt.figure(figsize=(10,10),constrained_layout=True)
+fig = plt.figure(figsize=(10, 10), constrained_layout=True)
 spec = gridspec.GridSpec(ncols=5, nrows=6, figure=fig)
 ax1 = fig.add_subplot(spec[0, 0:3])
 ax2 = fig.add_subplot(spec[1, 0:3], sharex=ax1)
@@ -202,6 +202,8 @@ a = packet_data()
 acs_ct = 0
 
 acs_mode = ["Detumble", "Sunpoint", "Night", "Ready"]
+
+
 def animate(i):
     # Read packet over network
     global a, acs_ct, w_min, w_max, ang_min, ang_max, vline
@@ -229,7 +231,7 @@ def animate(i):
     c.memmove(c.addressof(a), val, c.sizeof(packet_data))
 
     fig.suptitle("Timestamp: %s, Mode: %s" %
-                 (datetime.datetime.fromtimestamp(timenow()//1e3),acs_mode[a.mode]))
+                 (datetime.datetime.fromtimestamp(timenow()//1e3), acs_mode[a.mode]))
     # Time axis generation
     if i == 0:
         acs_ct = a.step
@@ -271,7 +273,7 @@ def animate(i):
         phi.append(0)
     s_valid = False
     s_dir = 1 if a.z_S > 0 else -1
-    if S_norm > 0 and a.z_S != 0: # valid sun vector
+    if S_norm > 0 and a.z_S != 0:  # valid sun vector
         s_valid = True
         x_sang.append(180/np.pi * np.arctan2(a.x_S, a.z_S))
         y_sang.append(180/np.pi * np.arctan2(a.y_S, a.z_S))
@@ -317,7 +319,8 @@ def animate(i):
     ax5.set_title(("Angles with Magnetic Field (°); ω · B = %.5f°" % (ang)))
 
     # Set title for Sun vector
-    ax6.set_title("Sun vector, status: %d | Z: %d, X: %.3f°, Y: %.3f°"%(s_valid, s_dir, x_sang[SH_BUFFER_SIZE-1], y_sang[SH_BUFFER_SIZE-1]))
+    ax6.set_title("Sun vector, status: %d | Z: %d, X: %.3f°, Y: %.3f°" % (
+        s_valid, s_dir, x_sang[SH_BUFFER_SIZE-1], y_sang[SH_BUFFER_SIZE-1]))
 
     #print(np.real(np.fft.fftshift(np.fft.rfftn(x_B, norm='ortho'))).shape, xdata.shape)
     x_B_fft = np.abs(np.fft.fftshift(np.fft.fft(x_B, norm='ortho')))

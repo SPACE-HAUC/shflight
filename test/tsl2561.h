@@ -207,9 +207,9 @@ void tsl2561_destroy(tsl2561 *dev);
  */
 static inline void write8(int fd, uint8_t val)
 {
-    uint8_t buf = val ;
+    uint8_t buf = val;
     int res = write(fd, &buf, 1);
-    if ( res != 1 )
+    if (res != 1)
         perror(__FUNCTION__);
 }
 /* 
@@ -218,9 +218,10 @@ static inline void write8(int fd, uint8_t val)
 static inline void writecmd8(int fd, uint8_t reg, uint8_t val)
 {
     uint8_t buf[2] = {0x0};
-    buf[0] = reg ; buf[1] = val ;
+    buf[0] = reg;
+    buf[1] = val;
     int res = write(fd, &buf, 2);
-    if ( res != 2 )
+    if (res != 2)
         perror(__FUNCTION__);
 }
 /* 
@@ -229,9 +230,9 @@ static inline void writecmd8(int fd, uint8_t reg, uint8_t val)
 static inline uint8_t read8(int fd, uint8_t reg)
 {
     write8(fd, reg);
-    uint8_t buf = 0x00 ;
+    uint8_t buf = 0x00;
     int res = read(fd, &buf, 1);
-    if ( res != 1 )
+    if (res != 1)
         perror(__FUNCTION__);
     return buf;
 }
@@ -240,11 +241,11 @@ static inline uint8_t read8(int fd, uint8_t reg)
  */
 static inline void write16(int fd, uint16_t val)
 {
-    uint8_t buf[2] ;
-    buf[0] = val >> 8 ;
-    buf[1] = 0x00ff & val ;
+    uint8_t buf[2];
+    buf[0] = val >> 8;
+    buf[1] = 0x00ff & val;
     int res = write(fd, buf, 2);
-    if ( res != 2 )
+    if (res != 2)
         perror(__FUNCTION__);
     return;
 }
@@ -256,9 +257,9 @@ static inline uint16_t read16(int fd, uint8_t cmd)
     uint8_t buf[2] = {0x0};
     write8(fd, cmd);
     int res = read(fd, buf, 2);
-    if ( res != 2 )
+    if (res != 2)
         perror(__FUNCTION__);
-    return buf[0] | ((unsigned short)buf[1]) << 8 ;
+    return buf[0] | ((unsigned short)buf[1]) << 8;
 }
 
 #endif // TSL2561_H

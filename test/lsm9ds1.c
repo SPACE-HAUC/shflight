@@ -45,12 +45,13 @@ int lsm9ds1_init(lsm9ds1 *dev, uint8_t xl_addr, uint8_t mag_addr)
     char obuf[2];
     obuf[0] = LSM9DS1_CTRL_REG1_G;
     obuf[1] = 0x00;
-    write(dev->accel_file, &obuf, 2);
+    accel_stat = write(dev->accel_file, &obuf, 2);
     obuf[0] = LSM9DS1_CTRL_REG5_XL;
-    write(dev->accel_file, &obuf, 2);
+    accel_stat = write(dev->accel_file, &obuf, 2);
     obuf[0] = LSM9DS1_CTRL_REG6_XL;
-    write(dev->accel_file, &obuf, 2);
-
+    accel_stat = write(dev->accel_file, &obuf, 2);
+    if (accel_stat < 2)
+        perror("[LSM9DS1] Error configuring accelerometer + gyro");
     // also configure magnetometer for SPACE HAUC use I2C_SLAVE
     MAG_DATA_RATE drate;
     drate.data_rate = 0b101;
@@ -137,7 +138,7 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
         // printf("Buf: 0x%x\n", buf);
         int wr = write(dev->mag_file, &buf, 1);
         // printf("In read_mag %d\n", __LINE__);
-        if ( wr < 1)
+        if (wr < 1)
         {
             perror("read_mag failed");
             return -1;

@@ -91,7 +91,7 @@ int ncv7708_init(ncv7708 *dev)
     dev->pack->hben4 = 1;
     dev->pack->hben5 = 1;
     dev->pack->hben6 = 1;
-    if(ncv7708_xfer(dev) < 0)
+    if (ncv7708_xfer(dev) < 0)
         return -1;
     return 1; // successful
 }

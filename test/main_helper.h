@@ -32,6 +32,7 @@ inline float q2isqrt(float x)
     return x;
 }
 #else  // MATH_SQRT
+#include <math.h>
 inline float q2isqrt(float x)
 {
     return 1.0 / sqrt(x);

@@ -99,8 +99,6 @@ void set_blocking(int fd, int should_block)
  * Initialize serial comm for SITL test.
  * Input: Pass argc and argv from main; inputs are port and baud
  * Output: Serial file descriptor
- * 
- * TODO: Put the fd in a global for Use
  */
 int setup_serial(void)
 {
@@ -133,7 +131,7 @@ void *sitl_comm(void *id)
     while (!done)
     {
         // unsigned long long s = get_usec();
-        unsigned char inbuf[30], obuf, tmp, val = 0;
+        unsigned char inbuf[30], obuf, tmp;
         int frame_valid = 1, nr = 0;
         // read 10 0xa0 bytes to make sure you got the full frame
         int preamble_count = -10;
@@ -209,11 +207,12 @@ void *sitl_comm(void *id)
     pthread_exit(NULL);
 }
 #else // Set up HITL
-#include "ncv7708.h"
-#include "lsm9ds1.h"
-#include "tsl2561.h"
-#include "ads1115.h"
-#include "tca9458a.h"
+
+#include "ncv7708.h"  // h-bridge
+#include "lsm9ds1.h"  // magnetometer
+#include "tsl2561.h"  // coarse sun sensor
+#include "ads1115.h"  // fine sun sensor - adc
+#include "tca9458a.h" // I2C mux
 
 #define I2C_BUS "/dev/i2c-1" // default for Raspberry Pi, on flight computer use i2c-0
 
@@ -268,8 +267,13 @@ int B_full = 0, Bdot_full = 0, W_full = 0, S_full = 0;                 // requir
 uint8_t g_night = 0;                                                   // night mode?
 uint8_t g_acs_mode = 0;                                                // Detumble by default
 uint8_t g_first_detumble = 1;                                          // first time detumble by default even at night
-#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5                               // 5000 lux is max sun, half of that is our threshold
-unsigned long long acs_ct = 0;                                         // counts the number of ACS steps
+#ifdef SITL
+#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
+#else
+#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
+#endif                                   // SITL
+
+unsigned long long acs_ct = 0; // counts the number of ACS steps
 
 typedef enum
 {
@@ -380,13 +384,13 @@ float ffilterBessel(float arr[], int index)
     }
     return val / coeff_sum;
 }
-// Apply Bessel filter over a buffer
+// Apply Bessel filter over a vector buffer
 #define APPLY_DBESSEL(name, index)                    \
     x_##name[index] = dfilterBessel(x_##name, index); \
     y_##name[index] = dfilterBessel(y_##name, index); \
     z_##name[index] = dfilterBessel(z_##name, index)
 
-// Apply Bessel filter over a buffer
+// Apply Bessel filter over a vector buffer
 #define APPLY_FBESSEL(name, index)                    \
     x_##name[index] = ffilterBessel(x_##name, index); \
     y_##name[index] = ffilterBessel(y_##name, index); \
@@ -425,6 +429,8 @@ void print_bits(unsigned char octet)
         else
             wr = write(1, "0", 1);
         z >>= 1;
+        if (wr != 1)
+            break;
     }
 }
 
@@ -439,26 +445,11 @@ int hbridge_enable(int x, int y, int z)
     // Set up Z
     val |= z > 0 ? 0x01 : (z < 0 ? 0x02 : 0x00);
     val <<= 2;
-    // printf("HBEnable: Z: 0b");
-    // fflush(stdout);
-    // print_bits(val);
-    // printf(" ");
-    // fflush(stdout);
     // Set up Y
     val |= y > 0 ? 0x01 : (y < 0 ? 0x02 : 0x00);
     val <<= 2;
-    // printf("HBEnable: Y: 0b");
-    // fflush(stdout);
-    // print_bits(val);
-    // printf(" ");
-    // fflush(stdout);
     // Set up X
     val |= x > 0 ? 0x01 : (x < 0 ? 0x02 : 0x00);
-    // printf("HBEnable: X: 0b");
-    // fflush(stdout);
-    // print_bits(val);
-    // printf("\n");
-    // fflush(stdout);
     pthread_mutex_lock(&serial_write);
     g_Fire = val;
     pthread_mutex_unlock(&serial_write);
@@ -485,18 +476,9 @@ int HBRIDGE_DISABLE(int i)
 {
     int tmp = 0xff;
     tmp ^= 0x03 << 2 * i;
-    // printf("HBDisable: tmp: 0b");
-    // fflush(stdout);
-    // print_bits(tmp);
-    // fflush(stdout);
     pthread_mutex_lock(&serial_write);
     g_Fire &= tmp;
     pthread_mutex_unlock(&serial_write);
-    // printf("HBDisable: 0b");
-    // fflush(stdout);
-    // print_bits(g_Fire);
-    // printf("\n");
-    // fflush(stdout);
     return tmp;
 }
 #else  // HITL
@@ -538,10 +520,10 @@ void getOmega(void)
     // once we have measurements, we declare that we proceed
     if (omega_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
         W_full = 1;
-    omega_index = (1 + omega_index) % SH_BUFFER_SIZE;
-    int8_t m0, m1;
-    m1 = bdot_index;
-    m0 = (bdot_index - 1) < 0 ? SH_BUFFER_SIZE - bdot_index - 1 : bdot_index - 1;
+    omega_index = (1 + omega_index) % SH_BUFFER_SIZE;                             // calculate new index in the circular buffer
+    int8_t m0, m1;                                                                // temporary addresses
+    m1 = bdot_index;                                                              // current address
+    m0 = (bdot_index - 1) < 0 ? SH_BUFFER_SIZE - bdot_index - 1 : bdot_index - 1; // previous address, wrapped around the circular buffer
     float freq;
     freq = 1e6 / DETUMBLE_TIME_STEP;                     // time units!
     CROSS_PRODUCT(g_W[omega_index], g_Bt[m1], g_Bt[m0]); // apply cross product
@@ -564,20 +546,26 @@ void getSVec(void)
     if (sol_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
         S_full = 1;
     sol_index = (sol_index + 1) % SH_BUFFER_SIZE;
-
+#ifdef SITL
+    // SITL expects radians input
+    float fsx = 180 / M_PI * g_FSS[0];
+    float fsy = 180 / M_PI * g_FSS[1];
+#else
+    // hardware reads degrees
     float fsx = g_FSS[0];
     float fsy = g_FSS[1];
+#endif // SITL
 #ifndef M_PI
 #define M_PI 3.1415
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
     // printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
-    if (fabsf(fsx) <= 50. / 180 * M_PI && fabsf(fsy) <= 50. / 180 * M_PI) // angle inside FOV (FOV -> 60°, half angle 30°)
+    if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
         printf("[FSS VALID]");
-        x_g_S[sol_index] = tan(fsx); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
-        y_g_S[sol_index] = tan(fsy);
+        x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
+        y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
         NORMALIZE(g_S[sol_index], g_S[sol_index]);
         return;
@@ -627,40 +615,47 @@ int readSensors(void)
     g_FSS[1] = ((g_readFS[1] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 1
     // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
     pthread_mutex_unlock(&serial_read);
-#else  // HITL
+#define B_RANGE 32767
+    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
+    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
+#else                                                                      // HITL
     short mag_measure[3];
     status = lsm9ds1_read_mag(mag, mag_measure);
     if (status < 0) // failure
         return status;
-    x_g_B[mag_index] = mag_measure[0]/6.842; // scaled to milliGauss
-    y_g_B[mag_index] = mag_measure[1]/6.842;
-    z_g_B[mag_index] = mag_measure[2]/6.842;
+    x_g_B[mag_index] = mag_measure[0] / 6.842; // scaled to milliGauss
+    y_g_B[mag_index] = mag_measure[1] / 6.842;
+    z_g_B[mag_index] = mag_measure[2] / 6.842;
     APPLY_DBESSEL(g_B, mag_index); // bessel filter
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     tca9458a_set(mux, i); // activate channel
-    //     for (int j = 0; j < 3; j++)
-    //     {
-    //         uint32_t measure;
-    //         errno = 0;                                 // unset errno
-    //         tsl2561_measure(css[i * 3 + j], &measure); // make measurement
-    //         if (errno)
-    //         {
-    //             perror("CSS measure");
-    //             return -1;
-    //         }
-    //         g_CSS[i * 3 + j] = tsl2561_get_lux(measure);
-    //     }
-    // }
-    for ( int i = 0 ; i < 9 ; i++ )
+#ifdef CSS_READY
+    for (int i = 0; i < 3; i++)
+    {
+        tca9458a_set(mux, i); // activate channel
+        for (int j = 0; j < 3; j++)
+        {
+            uint32_t measure;
+            errno = 0;                                 // unset errno
+            tsl2561_measure(css[i * 3 + j], &measure); // make measurement
+            if (errno)
+            {
+                perror("CSS measure");
+                return -1;
+            }
+            g_CSS[i * 3 + j] = tsl2561_get_lux(measure);
+        }
+    }
+#else
+    for (int i = 0; i < 9; i++)
         g_CSS[i] = 0;
+#endif // CSS_READY
+#ifdef FSS_READY
+    // TODO: Read FSS
+#else
     g_FSS[0] = -M_PI / 2;
     g_FSS[1] = -M_PI / 2;
+#endif // FSS_READY
 #endif // SITL
-// convert B to proper units
-// #define B_RANGE 32767
-//     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
-//     VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
+
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
     if (mag_index < 1 && B_full == 0)
@@ -811,12 +806,10 @@ void checkTransition(void)
             }
         }
     }
-    // printf("{NEXT} %d\n", next_mode);
     g_acs_mode = next_mode; // update the global state
-    // printf("{LATER} %d\n", g_acs_mode);
 }
 // This function executes the detumble action
-inline void detumbleAction(void)
+static inline void detumbleAction(void)
 {
     if (omega_index < 0)
     {
@@ -876,13 +869,17 @@ inline void detumbleAction(void)
         usleep(firingTime[2] < 1 ? 1 : firingTime[2]); // sleep until third turnoff
         HBRIDGE_DISABLE(firingOrder[2]);               // third turnoff
         usleep(finalWait < 1 ? 1 : finalWait);         // sleep for the remainder of the cycle
+#ifdef SITL
         HBRIDGE_DISABLE(0);
         HBRIDGE_DISABLE(1);
         HBRIDGE_DISABLE(2);
+#else
+        HBRIDGE_DISABLE(3);
+#endif // SITL
     }
 }
 // This function executes the sunpointing action
-inline void sunpointAction(void)
+static inline void sunpointAction(void)
 {
     // printf("[Sunpoint Action]\n");
     // fflush(stdout);
@@ -958,7 +955,7 @@ inline void sunpointAction(void)
             // printf("[Sunpoint Action] %d %d\n", __LINE__, FiringTime);
         }
         // usleep(FiringTime + SUNPOINT_DUTY_CYCLE); // sleep for the remainder of the time
-        HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety)
+        HBRIDGE_DISABLE(2); // 3 == executes default, turns off ALL hbridges (safety) [HITL ONLY, in sunpoint since only HBRIDGE(2) is working, we are disabling that]
     }
 }
 // measure thread execution time
@@ -969,18 +966,19 @@ void *acs_detumble(void *id)
 {
     while (!done)
     {
-        // wait till there is available data on serial
+        // first run indication
         if (first_run)
         {
             printf("ACS: Waiting for release...\n");
             first_run = 0;
+#ifdef SITL
             // wait till there is available data on serial
-#ifdef SITL            
             pthread_cond_wait(&data_available, &data_check);
 #endif // SITL
         }
         unsigned long long s = get_usec();
-        if (readSensors() < 0)
+        /* TODO: Soft- and hard- errors: All errors do not require a buffer reset, e.g. a CSS read error */
+        if (readSensors() < 0) // error in readSensors
         {
             // Flush all buffers
             FLUSH_BUFFER(g_B);
@@ -1017,7 +1015,8 @@ void *acs_detumble(void *id)
 #else
             printf("[%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", (s - t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #endif // SITL
-    // Update datavis variables [DO NOT TOUCH]
+
+            // Update datavis variables [DO NOT TOUCH]
             global_p.data.step = acs_ct;
             global_p.data.mode = g_acs_mode;
             global_p.data.x_B = x_g_B[mag_index];
@@ -1040,6 +1039,7 @@ void *acs_detumble(void *id)
         t_acs = s;
         checkTransition(); // check if the system should transition from one state to another
         unsigned long long e = get_usec();
+        /* TODO: In case a read takes longer, reduce ACS action time in order to conserve loop time */
         int sleep_time = MEASURE_TIME - e + s;
         sleep_time = sleep_time > 0 ? sleep_time : 0;
         usleep(sleep_time); // sleep for total 20 ms with read
@@ -1065,7 +1065,7 @@ typedef struct sockaddr sk_sockaddr;
 
 void *datavis_thread(void *t)
 {
-    int server_fd, new_socket, valread;
+    int server_fd, new_socket;//, valread;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
@@ -1077,7 +1077,7 @@ void *datavis_thread(void *t)
         //exit(EXIT_FAILURE);
     }
 
-    // Forcefully attaching socket to the port 8080
+    // Forcefully attaching socket to the port PORT
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
                    &opt, sizeof(opt)))
     {
@@ -1101,38 +1101,32 @@ void *datavis_thread(void *t)
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    // Forcefully attaching socket to the port 8080
+    // Forcefully attaching socket to the port PORT
     if (bind(server_fd, (sk_sockaddr *)&address, sizeof(address)) < 0)
     {
         perror("bind failed");
-        //exit(EXIT_FAILURE);
+        // exit(EXIT_FAILURE);
     }
-    if (listen(server_fd, 32) < 0)
+    if (listen(server_fd, 32) < 0) // listen for connections, allow up to 32 connections
     {
         perror("listen");
-        //exit(EXIT_FAILURE);
+        // exit(EXIT_FAILURE);
     }
-    // cerr << "DataVis: Main: Server File: " << server_fd << endl ;
     while (!done)
     {
-        pthread_cond_wait(&datavis_drdy, &datavis_mutex);
-        if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+        pthread_cond_wait(&datavis_drdy, &datavis_mutex);                                         // wait for wakeup from ACS thread
+        if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t *)&addrlen)) < 0) // accept incoming connection
         {
             // perror("accept");
-            // cerr << "DataVis: Accept from socket error!" <<endl ;
         }
-        ssize_t numsent = send(new_socket, &global_p.buf, PACK_SIZE, 0);
-        //cerr << "DataVis: Size of sent data: " << PACK_SIZE << endl ;
-        if (numsent > 0 && numsent != PACK_SIZE)
+        ssize_t numsent = send(new_socket, &global_p.buf, PACK_SIZE, 0); // send data
+        if (numsent > 0 && numsent != PACK_SIZE)                         // if the whole packet was not sent, print error in console
         {
             perror("DataVis: Send: ");
         }
-        //cerr << "DataVis: Data sent" << endl ;
         //valread = read(sock,recv_buf,32);
-        //cerr << "DataVis: " << recv_buf << endl ;
         close(new_socket);
         //sleep(1);
-        // cerr << "DataVis thread: Sent" << endl ;
     }
     close(server_fd);
     pthread_exit(NULL);
@@ -1143,29 +1137,25 @@ void *datavis_thread(void *t)
 
 int bootCount()
 {
+    FILE *fp;
     int _bootCount = 0;                      // assume 0 boot
-    if (access(BOOTCOUNT_FNAME, F_OK) != -1) //file exists
+    if (access(BOOTCOUNT_FNAME, F_OK) != -1) // file exists
     {
-        FILE *fp;
         fp = fopen(BOOTCOUNT_FNAME, "r+");              // open file for reading
         int read_bytes = fscanf(fp, "%d", &_bootCount); // read bootcount
-        if (read_bytes < 0)
-            perror("File not read");
-        fclose(fp);                       // close
-        fp = fopen(BOOTCOUNT_FNAME, "w"); // reopen to overwrite
-        fprintf(fp, "%d", ++_bootCount);  // write var+1
-        fclose(fp);                       // close
-        sync();                           // sync file system
+        if (read_bytes < 0)                             // if no bytes were read
+        {
+            perror("File not read"); // indicate error
+            _bootCount = 0;          // reset boot count
+        }
+        fclose(fp); // close
     }
-    else //file does not exist, create it
-    {
-        FILE *fp;
-        fp = fopen(BOOTCOUNT_FNAME, "w"); // open for writing
-        fprintf(fp, "%d", ++_bootCount);  // write 1
-        fclose(fp);                       // close
-        sync();                           // sync file system
-    }
-    return --_bootCount; // return 0 on first boot, return 1 on second boot etc
+    // Update boot file
+    fp = fopen(BOOTCOUNT_FNAME, "w"); // open for writing
+    fprintf(fp, "%d", ++_bootCount);  // write 1
+    fclose(fp);                       // close
+    sync();                           // sync file system
+    return --_bootCount;              // return 0 on first boot, return 1 on second boot etc
 }
 
 /* End datalogging stuff */
@@ -1201,31 +1191,33 @@ int main(void)
     mux = (tca9458a *)malloc(sizeof(tca9458a));
     snprintf(mux->fname, 40, I2C_BUS);
     ncv7708_init(hbridge); // Initialize hbridge
-    // Initialize MUX
     int init_stat = 0;
-    // if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
-    // {
-    //     perror("Mux init failed");
-    //     // exit(-1);
-    // }
-    // // Initialize CSSs
-    // for (int i = 0; i < 3; i++)
-    // {
-    //     uint8_t css_addr = TSL2561_ADDR_LOW;
-    //     tca9458a_set(mux, i);
-    //     for (int j = 0; j < 3; j++)
-    //     {
-    //         if ((init_stat = tsl2561_init(css[3 * i + j], css_addr)) < 0)
-    //         {
-    //             perror("CSS init failed");
-    //             printf("CSS Init failed at channel %d addr 0x%02x\n", i, css_addr);
-    //             fflush(stdout);
-    //             // exit(-1);
-    //         }
-    //         css_addr += 0x10;
-    //     }
-    // }
-    // tca9458a_set(mux, 8); // disables mux
+#ifdef CSS_READY
+    // Initialize MUX
+    if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
+    {
+        perror("Mux init failed");
+        // exit(-1);
+    }
+    // Initialize CSSs
+    for (int i = 0; i < 3; i++)
+    {
+        uint8_t css_addr = TSL2561_ADDR_LOW;
+        tca9458a_set(mux, i);
+        for (int j = 0; j < 3; j++)
+        {
+            if ((init_stat = tsl2561_init(css[3 * i + j], css_addr)) < 0)
+            {
+                perror("CSS init failed");
+                printf("CSS Init failed at channel %d addr 0x%02x\n", i, css_addr);
+                fflush(stdout);
+                // exit(-1);
+            }
+            css_addr += 0x10;
+        }
+    }
+    tca9458a_set(mux, 8); // disables mux
+#endif                    // CSS_READY
     // Initialize magnetometer
     mag = (lsm9ds1 *)malloc(sizeof(lsm9ds1));
     snprintf(mag->fname, 40, "/dev/i2c-1");
@@ -1265,8 +1257,16 @@ int main(void)
 #endif // FSS_READY
     usleep(1000000);
 #endif // ifndef SITL
-    int rc0, rc1, rc2;
-    pthread_t thread0, thread1, thread2;
+    int rc0,
+#ifdef SITL
+        rc1,
+#endif // SITL
+        rc2;
+    pthread_t thread0,
+#ifdef SITL
+        thread1,
+#endif // SITL
+        thread2;
     pthread_attr_t attr;
     void *status;
     pthread_attr_init(&attr);

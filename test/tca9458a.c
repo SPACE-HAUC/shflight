@@ -5,7 +5,7 @@ int tca9458a_init(tca9458a *dev, uint8_t addr)
     int status = 1;
     // allocate memory for dev
     dev = (tca9458a *)malloc(sizeof(tca9458a));
-    if ( dev == NULL )
+    if (dev == NULL)
     {
         perror("[TCA9458A] Error allocating memory for device");
     }

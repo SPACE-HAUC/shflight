@@ -6,10 +6,6 @@ TSL2561 DEVICE INITIALIZATION
 
 int tsl2561_init(tsl2561 *dev, uint8_t s_address)
 {
-    int32_t dev_id = 0;
-    tsl2561_command m_con;
-    uint8_t write_data = 0;
-
     // Create the file descriptor handle to the device
     dev->fd = open(I2C_BUS, O_RDWR);
     if (dev->fd < 0)
@@ -35,7 +31,7 @@ int tsl2561_init(tsl2561 *dev, uint8_t s_address)
         return -1;
     }
     // Read the device id register
-    if ( read8(dev->fd, 0x0a) < 0 )
+    if (read8(dev->fd, 0x0a) < 0)
     {
         perror("Device ID 0xff");
         return -1;
@@ -53,7 +49,7 @@ int tsl2561_init(tsl2561 *dev, uint8_t s_address)
 void tsl2561_measure(tsl2561 *dev, uint32_t *measure)
 {
     *measure = ((uint32_t)read16(dev->fd, 0xac)) << 16 | read16(dev->fd, 0xae);
-    return ;
+    return;
 }
 
 uint32_t tsl2561_get_lux(uint32_t measure)
@@ -64,7 +60,7 @@ uint32_t tsl2561_get_lux(uint32_t measure)
 
     /* Make sure the sensor isn't saturated! */
     uint16_t clipThreshold = TSL2561_CLIPPING_13MS;
-    uint16_t broadband = measure >> 16 ;
+    uint16_t broadband = measure >> 16;
     uint16_t ir = measure;
     /* Return 65536 lux if the sensor is saturated */
     if ((broadband > clipThreshold) || (ir > clipThreshold))

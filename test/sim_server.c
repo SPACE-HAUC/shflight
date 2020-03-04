@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-volatile sig_atomic_t done = 0 ;
+volatile sig_atomic_t done = 0;
 
 pthread_mutex_t serial_read, serial_write, data_check;
 pthread_cond_t data_available;
@@ -155,7 +155,7 @@ void *sitl_comm(void *id)
         }
         // acquire lock before starting to assign to variables that are going to be read by data_acq thread
         memcpy(datavis_dat, inbuf, 88);
-	printf("Batt: %f\n", (*(float*)(&inbuf[84]))*1e-3/3600);
+        printf("Batt: %f\n", (*(float *)(&inbuf[84])) * 1e-3 / 3600);
         pthread_cond_broadcast(&datavis_drdy);
         // unsigned long long e = get_usec();
         // printf("[%llu ms] Serial read\n", (e-s)/1000);
@@ -171,7 +171,7 @@ void *sitl_comm(void *id)
 #define PORT 12380
 #endif
 
-int firstrun = 1 ;
+int firstrun = 1;
 
 typedef struct sockaddr sk_sockaddr;
 
@@ -227,10 +227,10 @@ void *datavis_thread(void *t)
     // cerr << "DataVis: Main: Server File: " << server_fd << endl ;
     while (!done)
     {
-        if ( firstrun )
+        if (firstrun)
         {
             printf("DataVis: Waiting for release...\n");
-            firstrun = 0 ;
+            firstrun = 0;
         }
         pthread_cond_wait(&datavis_drdy, &datavis_mutex);
         if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
