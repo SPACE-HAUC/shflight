@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import ctypes
 import smbus
 import serial
 import signal
@@ -42,9 +42,12 @@ class lsm9ds1:
         return
 
     def readMag(self):
-        bx = (self.sbus.read_word_data(self.mag_addr, 40)-32768) / 6.842
-        by = (self.sbus.read_word_data(self.mag_addr, 42)-32768) / 6.842
-        bz = (self.sbus.read_word_data(self.mag_addr, 44)-32768) / 6.842
+        bx = self.sbus.read_word_data(self.mag_addr, 40)
+        by = self.sbus.read_word_data(self.mag_addr, 42)
+        bz = self.sbus.read_word_data(self.mag_addr, 44)
+        bx = (ctypes.c_short(bx)).value/6.842
+        by = (ctypes.c_short(by)).value/6.842
+        bz = (ctypes.c_short(bz)).value/6.842
         return (bx, by, bz)
 
     def __del__(self):
