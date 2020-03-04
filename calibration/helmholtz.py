@@ -42,9 +42,9 @@ class lsm9ds1:
         return
 
     def readMag(self):
-        bx = self.sbus.read_word_data(self.mag_addr, 40) / 6.842
-        by = self.sbus.read_word_data(self.mag_addr, 42) / 6.842
-        bz = self.sbus.read_word_data(self.mag_addr, 44) / 6.842
+        bx = (self.sbus.read_word_data(self.mag_addr, 40)-32768) / 6.842
+        by = (self.sbus.read_word_data(self.mag_addr, 42)-32768) / 6.842
+        bz = (self.sbus.read_word_data(self.mag_addr, 44)-32768) / 6.842
         return (bx, by, bz)
 
     def __del__(self):
