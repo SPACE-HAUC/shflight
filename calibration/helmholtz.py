@@ -73,7 +73,7 @@ ofile = open("coil_data.csv", 'w')
 global done
 
 done = 0
-
+signal.signal(signal.SIGINT, sigHandler)
 for chn in range(3):
     # First ensure that all channels are off
     for x in range(3):
@@ -84,7 +84,10 @@ for chn in range(3):
         val &= 0xffff
         bt = val.to_bytes(2, byteorder='little')
         s.write(bt)
+        s.write(bt)
+        s.write(bt)
         s.flush()
+        s.read()
 
     for count in range(0, 4096, 50):
         chn = chn & 0x0003  # 2 bit only!
@@ -92,7 +95,10 @@ for chn in range(3):
         val |= chn << 12  # shift chn by 12 bits
         val &= 0xffff  # make sure it is 16 bits
         s.write(val.to_bytes(2, byteorder='little'))
+        s.write(val.to_bytes(2, byteorder='little'))
+        s.write(val.to_bytes(2, byteorder='little'))
         s.flush()
+        s.read()
         x = 0.0
         y = 0.0
         z = 0.0
@@ -122,7 +128,10 @@ for chn in range(3):
         val &= 0xffff
         bt = val.to_bytes(2, byteorder='little')
         s.write(bt)
+        s.write(bt)
+        s.write(bt)
         s.flush()
+        s.read()
 
 s.close()
 ofile.close()
