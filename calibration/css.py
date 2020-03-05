@@ -137,8 +137,8 @@ if __name__ == '__main__':
     done = 0
     signal.signal(signal.SIGINT, sigHandler)
 
-    if len(sys.argv) < 2:
-        print("Invocation: sudo ./css_calib.py <Serial Device>")
+    if len(sys.argv) < 3:
+        print("Invocation: sudo ./css_calib.py <Serial Device> <Run number (int)>")
         sys.exit(0)
 
     s = smbus.SMBus(1) # RPi default
@@ -150,6 +150,15 @@ if __name__ == '__main__':
     for chn in chns:
         for addr in addrs:
             print("Init from %d->%d: %d"%(chn, addr, tsl2561_init(s, chn, addr)))
+    # Read all sensors 20 times to eliminate initialization problems
+    print("Clearing sensors...")
+    for i in range(20):
+        for chn in chns:
+            for addr in addrs:
+                ch0, ch1 = tsl2561_measure(s, chn, addr)
+                print("%d"%(tsl2561_get_lux(ch0, ch1)), end=" ")
+            time.sleep(0.9)
+        print()
 
     ser = serial.Serial(sys.argv[1], 230400)
 
@@ -157,7 +166,8 @@ if __name__ == '__main__':
 
     calib = []
     count = 0
-
+    sensors = [[0, 0x29], [0, 0x39], [0, 0x49], [1, 0x29], [1, 0x39], [1, 0x49], [2, 0x29], [2, 0x39], [2, 0x49]]
+    print("Starting calib...")
     while not done:
         if val > 0x0fff:
             break
@@ -168,24 +178,37 @@ if __name__ == '__main__':
         for i in range(11):
             ser.write(val.to_bytes(2, byteorder='little'))
         ser.flush()
-        time.sleep(0.1)
-        for chn in chns:
-            for addr in addrs:
+        time.sleep(0.2)
+        measurements = np.zeros(9, dtype=float)
+        for k in range(20):
+            for l in range(9):
+                chn = sensors[l][0]
+                addr = sensors[l][1]
                 ch0, ch1 = tsl2561_measure(s, chn, addr)
                 print("%d"%(tsl2561_get_lux(ch0, ch1)), end=" ")
-                calib[count].append(tsl2561_get_lux(ch0, ch1))
-        print()
+                measurements[l] += tsl2561_get_lux(ch0, ch1)
+            time.sleep(0.5)
+            print()
+        measurements /= 20 # average
+        for l in range(9):
+            calib[count].append(measurements[l])
         val += 10 # increment by 10
         count += 1
-        time.sleep(0.9)
 
 
     # Turn off all sensors
     for chn in chns:
         for addr in addrs:
             tsl2561_destroy(s, chn, addr)
+    # Reset the LEDs
+    for i in range(11):
+        ser.write(int(0).to_bytes(2, byteorder='little'))
+    ser.flush()
+
     ser.close()
+
+    # Reset the MUX
     channel(s, -1)
     print("Turned off all sensors and mux, exiting...")
-    np.savetxt('calib.txt', np.array(calib, dtype=int),fmt='%d',delimiter=',')      
+    np.savetxt('calib%s.txt'%(sys.argv[2]), np.array(calib, dtype=int),fmt='%d',delimiter=',')      
     sys.exit(0)
