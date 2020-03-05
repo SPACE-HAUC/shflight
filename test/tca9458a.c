@@ -3,11 +3,9 @@
 int tca9458a_init(tca9458a *dev, uint8_t addr)
 {
     int status = 1;
-    // allocate memory for dev
-    dev = (tca9458a *)malloc(sizeof(tca9458a));
     if (dev == NULL)
     {
-        perror("[TCA9458A] Error allocating memory for device");
+        perror("[TCA9458A] Device memory not allocated");
     }
     // open bus
     dev->fd = open(dev->fname, O_RDWR);
