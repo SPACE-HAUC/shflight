@@ -52,6 +52,7 @@ DESKTOP.INI
 *.png
 *.dat
 *.txt
+*.csv
 
 # VSCode #
 ##########################
