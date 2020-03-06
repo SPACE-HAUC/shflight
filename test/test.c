@@ -293,9 +293,9 @@ float IMOI[3][3] = {{15.461398105297564, 0, 0},
 
 float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as floating point
 
-inline int factorial(int i)
+inline float factorial(int i)
 {
-    int result = 1;
+    float result = 1;
     i = i + 1;
     while (--i > 0)
         result *= i;
