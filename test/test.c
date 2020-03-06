@@ -271,7 +271,7 @@ uint8_t g_first_detumble = 1;                                          // first 
 #define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
 #else
 #define CSS_MIN_LUX_THRESHOLD 65535 * 0.5 // 65535 lux is max sun, half of that is our threshold (subject to change)
-#endif                                   // SITL
+#endif                                    // SITL
 
 unsigned long long acs_ct = 0; // counts the number of ACS steps
 
@@ -1065,7 +1065,7 @@ typedef struct sockaddr sk_sockaddr;
 
 void *datavis_thread(void *t)
 {
-    int server_fd, new_socket;//, valread;
+    int server_fd, new_socket; //, valread;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
@@ -1315,13 +1315,7 @@ int main(void)
     fflush(datalog);
     fclose(datalog);
 
-    #ifdef CSS_READY
-    // Initialize MUX
-    if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
-    {
-        perror("Mux init failed");
-        // exit(-1);
-    }
+#ifdef CSS_READY
     // Initialize CSSs
     for (int i = 0; i < 3; i++)
     {
