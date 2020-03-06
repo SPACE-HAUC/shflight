@@ -1315,5 +1315,26 @@ int main(void)
     fflush(datalog);
     fclose(datalog);
 
+    #ifdef CSS_READY
+    // Initialize MUX
+    if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
+    {
+        perror("Mux init failed");
+        // exit(-1);
+    }
+    // Initialize CSSs
+    for (int i = 0; i < 3; i++)
+    {
+        uint8_t css_addr = TSL2561_ADDR_LOW;
+        tca9458a_set(mux, i);
+        for (int j = 0; j < 3; j++)
+        {
+            tsl2561_destroy(css[3 * i + j]);
+            css_addr += 0x10;
+        }
+    }
+    tca9458a_set(mux, 8); // disables mux
+#endif                    // CSS_READY
+
     return 0;
 }
