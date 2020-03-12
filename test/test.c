@@ -270,8 +270,8 @@ uint8_t g_first_detumble = 1;                                          // first 
 #ifdef SITL
 #define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
 #else
-#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
-#endif                                   // SITL
+#define CSS_MIN_LUX_THRESHOLD 65535 * 0.5 // 65535 lux is max sun, half of that is our threshold (subject to change)
+#endif                                    // SITL
 
 unsigned long long acs_ct = 0; // counts the number of ACS steps
 
@@ -293,9 +293,9 @@ float IMOI[3][3] = {{15.461398105297564, 0, 0},
 
 float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as floating point
 
-inline int factorial(int i)
+inline float factorial(int i)
 {
-    int result = 1;
+    float result = 1;
     i = i + 1;
     while (--i > 0)
         result *= i;
@@ -651,8 +651,8 @@ int readSensors(void)
 #ifdef FSS_READY
     // TODO: Read FSS
 #else
-    g_FSS[0] = -M_PI / 2;
-    g_FSS[1] = -M_PI / 2;
+    g_FSS[0] = -90;
+    g_FSS[1] = -90;
 #endif // FSS_READY
 #endif // SITL
 
@@ -1065,7 +1065,7 @@ typedef struct sockaddr sk_sockaddr;
 
 void *datavis_thread(void *t)
 {
-    int server_fd, new_socket;//, valread;
+    int server_fd, new_socket; //, valread;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
@@ -1314,6 +1314,21 @@ int main(void)
     fflush(stdout);
     fflush(datalog);
     fclose(datalog);
+
+#ifdef CSS_READY
+    // Initialize CSSs
+    for (int i = 0; i < 3; i++)
+    {
+        uint8_t css_addr = TSL2561_ADDR_LOW;
+        tca9458a_set(mux, i);
+        for (int j = 0; j < 3; j++)
+        {
+            tsl2561_destroy(css[3 * i + j]);
+            css_addr += 0x10;
+        }
+    }
+    tca9458a_set(mux, 8); // disables mux
+#endif                    // CSS_READY
 
     return 0;
 }
