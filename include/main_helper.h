@@ -1,3 +1,6 @@
+#ifndef __MAIN_HELPER_H
+#define __MAIN_HELPER_H
+
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
@@ -17,9 +20,53 @@ int bootCount(void);
  * calculate inverse square root. The bit-level routine yields consistently better
  * performance and 0.00001% maximum error.
  */
-float q2isqrt(float);
+#ifndef MATH_SQRT
+inline float q2isqrt(float x)
+{
+    float xhalf = x * 0.5f;               // calculate 1/2 x before bit-level changes
+    int i = *(int *)&x;                   // convert float to int for bit level operation
+    i = 0x5f375a86 - ((*(int *)&x) >> 1); // bit level manipulation to get initial guess (ref: http://www.lomont.org/papers/2003/InvSqrt.pdf)
+    x = *(float *)&i;                     // convert back to float
+    x = x * (1.5f - xhalf * x * x);       // 1 round of Newton approximation
+    x = x * (1.5f - xhalf * x * x);       // 2 round of Newton approximation
+    x = x * (1.5f - xhalf * x * x);       // 3 round of Newton approximation
+    return x;
+}
+#else // MATH_SQRT
+#include <math.h>
+inline float q2isqrt(float x)
+{
+    return 1.0 / sqrt(x);
+};
+#endif // MATH_SQRT
 
-uint64_t get_usec();
+// returns time elapsed from 1970-1-1, 00:00:00 UTC to now (UTC) in microseconds.
+inline uint64_t get_usec(void)
+{
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    return (uint64_t)ts.tv_sec * 1000000L + ((uint64_t)ts.tv_nsec) / 1000;
+}
+
+// calculate floating point average of a float buffer of size size
+inline float faverage(float arr[], int size)
+{
+    float result = 0;
+    int count = size;
+    while (count--)
+        result += arr[count];
+    return result / size;
+}
+
+// calculate double precision average of a double buffer of size size
+inline double daverage(double arr[], int size)
+{
+    double result = 0;
+    int count = size;
+    while (count--)
+        result += arr[count];
+    return result / size;
+}
 
 // DECLARE_BUFFER(name, type): Declares a buffer with name and type. Prepends x_, y_, z_ to the names (vector buffer!)
 #define DECLARE_BUFFER(name, type) \
@@ -27,7 +74,9 @@ uint64_t get_usec();
 
 // VECTOR_CLEAR(name) : Clears a vector with name
 #define VECTOR_CLEAR(name) \
-    x_##name = 0 ; y_##name = 0 ; z_##name = 0
+    x_##name = 0;          \
+    y_##name = 0;          \
+    z_##name = 0
 
 // Declares a vector with the name and type. A vector is a three-variable entity with x_, y_, z_ prepended to the names
 #define DECLARE_VECTOR(name, type) \
@@ -113,3 +162,21 @@ uint64_t get_usec();
     x_##dest = s1[0][0] * x_##s2 + s1[0][1] * y_##s2 + s1[0][2] * z_##s2; \
     y_##dest = s1[1][0] * x_##s2 + s1[1][1] * y_##s2 + s1[1][2] * z_##s2; \
     z_##dest = s1[2][0] * x_##s2 + s1[2][1] * y_##s2 + s1[2][2] * z_##s2
+
+/* 
+ * Calculates float average of buffer of name src and size size into vector dest.
+ */
+#define FAVERAGE_BUFFER(dest, src, size) \
+    x_##dest = faverage(x_##src, size);  \
+    y_##dest = faverage(y_##src, size);  \
+    z_##dest = faverage(z_##src, size)
+
+/* 
+ * Calculates double precision average of buffer of name src and size size into vector dest.
+ */
+#define DAVERAGE_BUFFER(dest, src, size) \
+    x_##dest = daverage(x_##src, size);  \
+    y_##dest = daverage(y_##src, size);  \
+    z_##dest = daverage(z_##src, size)
+
+#endif // __MAIN_HELPER_H

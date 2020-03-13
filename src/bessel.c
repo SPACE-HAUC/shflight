@@ -1,19 +1,34 @@
-#include "bessel.h"
+#include <bessel.h>
+// calculate factorial of input (available only in the scope of bessel.c)
+static inline float factorial(int i)
+{
+    float result = 1;
+    i = i + 1;
+    while (--i > 0)
+        result *= i;
+    return result;
+}
+
 void calculateBessel(float arr[], int size, int order, float freq_cutoff)
 {
     if (order > 5) // max 5th order
         order = 5;
-    int *coeff = (int *)calloc(order + 1, sizeof(int)); // declare array to hold numeric coeff
+    float *coeff = (float *)calloc(order + 1, sizeof(float)); // declare array to hold numeric coeff
+    if (__glibc_unlikely(coeff == NULL))
+    {
+        perror("[BESSEL] Coeff alloc failed, Bessel coeffs untrusted");
+        return;
+    }
     // evaluate coeff for order
     for (int i = 0; i < order + 1; i++)
     {
-        coeff[i] = factorial(2 * order - i) / ((1 << (order - i)) * factorial(i) * factorial(order - i)); // https://en.wikipedia.org/wiki/Bessel_filter
+        coeff[i] = factorial(2 * order - i) / (((int)(1 << (order - i))) * factorial(i) * factorial(order - i)); // https://en.wikipedia.org/wiki/Bessel_filter
     }
     // evaluate transfer function coeffs
     for (int j = 0; j < size; j++)
     {
         arr[j] = 0;         // initiate value to 0
-        double pow_num = 1; //  (j/w_0)^0 is the start
+        double pow_num = 1; // (j/w_0)^0 is the start
         for (int i = 0; i < order + 1; i++)
         {
             arr[j] += coeff[i] * pow_num; // add the coeff
@@ -21,10 +36,7 @@ void calculateBessel(float arr[], int size, int order, float freq_cutoff)
         }
         arr[j] = coeff[0] / arr[j]; // H(s) = T_n(0)/T_n(s/w_0)
     }
-    if (coeff != NULL)
-        free(coeff);
-    else
-        perror("[BESSEL] Coeff alloc failed, Bessel coeffs untrusted");
+    free(coeff);
     return;
 }
 

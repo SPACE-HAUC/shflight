@@ -3,6 +3,9 @@
 
 #include <main.h>
 
+// thread-local status vector
+__thread int sys_status;
+
 pthread_mutex_t serial_read, serial_write, data_check;
 pthread_cond_t data_available;
 
@@ -12,22 +15,19 @@ pthread_cond_t datavis_drdy;
 volatile sig_atomic_t done = 0;
 volatile int first_run = 1;
 
-#ifdef SITL
+// SITL
 DECLARE_VECTOR(g_readB, unsigned short); // storage to put helmhotz values
 unsigned short g_readFS[2];              // storage to put FS X and Y angles
 unsigned short g_readCS[9];              // storage to put CS led brightnesses
 unsigned char g_Fire;                    // magnetorquer command
-unsigned long long t_comm = 0;
-unsigned long long comm_time;
-#else                                                                  // HITL
-#define I2C_BUS "/dev/i2c-1"                                           // default for Raspberry Pi, on flight computer use i2c-0
 
+// HITL
 lsm9ds1 *mag;     // magnetometer
 ncv7708 *hbridge; // h-bridge
 tca9458a *mux;    // I2C mux
 tsl2561 **css;    // coarse sun sensors
 ads1115 *adc;     // analog to digital converters
-#endif                                                                 // SITL
+                                                              // SITL
 DECLARE_BUFFER(g_W, float);                                            // omega global circular buffer
 DECLARE_BUFFER(g_B, double);                                           // magnetic field global circular buffer
 DECLARE_BUFFER(g_Bt, double);                                          // Bdot global circular buffer1
@@ -51,5 +51,18 @@ float IMOI[3][3] = {{15.461398105297564, 0, 0},
                     {0, 0, 12.623336025344317}};
 
 float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as floating point
+
+unsigned long long g_t_acs;
+
+#ifdef ACS_DATALOG
+FILE *acs_datalog;
+#endif
+
+#ifdef DATAVIS
+data_packet g_datavis_st;
+#endif // DATAVIS
+
+unsigned long long t_comm = 0;
+unsigned long long comm_time;
 
 #endif // __SHFLIGHT_GLOBALS_H
