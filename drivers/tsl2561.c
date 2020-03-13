@@ -25,17 +25,13 @@ int tsl2561_init(tsl2561 *dev, uint8_t s_address)
     writecmd8(dev->fd, 0x80, 0x03);
     usleep(100000);
     // Verify that device is powered
-    if (read8(dev->fd, 0x80) != 0x33)
+    if ((read8(dev->fd, 0x80) & 0x3) != 0x3)
     {
         perror("Device not powered up");
         return -1;
     }
-    // Read the device id register
-    if (read8(dev->fd, 0x0a) < 0)
-    {
-        perror("Device ID 0xff");
-        return -1;
-    }
+    /* DO NOT READ THE DEVICE REGISTER */
+#ifdef CSS_LOW_GAIN
     // Set the timing and gain
     writecmd8(dev->fd, 0x81, 0x00);
     if (read8(dev->fd, 0x81))
@@ -43,8 +39,10 @@ int tsl2561_init(tsl2561 *dev, uint8_t s_address)
         perror("Could not set timing and gain");
         return -1;
     }
+#endif
     return dev->fd; // should be > 0 in this case
 }
+
 
 void tsl2561_measure(tsl2561 *dev, uint32_t *measure)
 {
