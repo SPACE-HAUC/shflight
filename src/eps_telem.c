@@ -1,3 +1,13 @@
+/**
+ * @file eps_telem.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief GomSpace P31u I2C interface function declarations
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include <eps_telem.h>
 
 void *eps_telem(void *id)

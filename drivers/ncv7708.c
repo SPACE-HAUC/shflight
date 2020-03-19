@@ -1,6 +1,22 @@
+/**
+ * @file ncv7708.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief Function definitions for NCV77X8 SPI Driver (Linux)
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "ncv7708.h"
 
 // Initialize the SPI bus to communicate with the NCV7708
+/**
+ * @brief Initialize the SPI bus to communicate with the NCV77X8
+ * 
+ * @param dev NCV77X8 Device Handle
+ * @return Returns 1 on success, 0 on SPI ioctl failures, -1 on device setup failure.
+ */
 int ncv7708_init(ncv7708 *dev)
 {
     int file;
@@ -95,7 +111,14 @@ int ncv7708_init(ncv7708 *dev)
         return -1;
     return 1; // successful
 }
-
+/**
+ * @brief Makes an SPI transaction for a NCV77X8 device
+ * 
+ * @param dev NCV77X8 Device Handle
+ * @param data Pointer to store 16-bit data read over SPI
+ * @param cmd Pointer to 16-bit data sent over SPI
+ * @return 1 on success, -1 on failure
+ */
 int ncv7708_transfer(ncv7708 *dev, uint16_t *data, uint16_t *cmd)
 {
     int status = 0;
@@ -114,12 +137,21 @@ int ncv7708_transfer(ncv7708 *dev, uint16_t *data, uint16_t *cmd)
     *data = ((uint16_t)(inbuf[1])) | (((uint16_t)(inbuf[0])) << 8);
     return status;
 }
-
+/**
+ * @brief Makes an SPI transaction using internal data
+ * 
+ * @param dev NCV77X8 Device Handle
+ * @return 1 on success, -1 on failure
+ */
 int ncv7708_xfer(ncv7708 *dev)
 {
     return ncv7708_transfer(dev, &(dev->pack->data), &(dev->pack->cmd));
 }
-
+/**
+ * @brief Closes SPI bus file descriptor and frees memory allocated for device.
+ * 
+ * @param dev NCV77X8 Device Handle
+ */
 void ncv7708_destroy(ncv7708 *dev)
 {
     close(dev->file);

@@ -39,6 +39,7 @@ clean:
 
 spotless: clean
 	$(RM) -R build
+	$(RM) -R docs
 
 run: build/$(TARGET)
 	sudo build/$(TARGET)
@@ -47,6 +48,9 @@ sim_server: build
 	echo "This program is supposed to run on a Raspberry Pi only to receive data from the H/SITL simulator"
 	$(CC) src/sim_server.c -O2 -o build/sim_server.out -lm -lpthread
 	sudo build/sim_server.out
+
+doc:
+	doxygen .doxyconfig
 
 # cleanobjs:
 # 	find $(CDR) -name "*.o" -type f

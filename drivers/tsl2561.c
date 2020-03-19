@@ -1,9 +1,23 @@
+/**
+ * @file tsl2561.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief TSL2561 I2C driver function definitions
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "tsl2561.h"
-
-/*
-TSL2561 DEVICE INITIALIZATION 
-*/
-
+/**
+ * @brief Init function for the TSL2561 device. Default: I2C_BUS
+ * TODO: Fix init + gain, figure out what goes wrong if ID
+ * register is read
+ * 
+ * @param dev 
+ * @param s_address Address for the device, values: 0x29, 0x39, 0x49
+ * @return 1 on success, -1 on failure
+ */
 int tsl2561_init(tsl2561 *dev, uint8_t s_address)
 {
     // Create the file descriptor handle to the device
@@ -42,14 +56,24 @@ int tsl2561_init(tsl2561 *dev, uint8_t s_address)
 #endif
     return dev->fd; // should be > 0 in this case
 }
-
-
+/**
+ * @brief Read I2C data into the uint32_t measure var.\
+ * Format: (MSB) broadband | ir (LSB)
+ * 
+ * @param dev 
+ * @param measure Pointer to unsigned 32 bit integer where measurement is stored
+ */
 void tsl2561_measure(tsl2561 *dev, uint32_t *measure)
 {
     *measure = ((uint32_t)read16(dev->fd, 0xac)) << 16 | read16(dev->fd, 0xae);
     return;
 }
-
+/**
+ * @brief Calculate lux using value measured using tsl2561_measure()
+ * 
+ * @param measure 
+ * @return Lux value 
+ */
 uint32_t tsl2561_get_lux(uint32_t measure)
 {
     unsigned long chScale;
@@ -191,7 +215,12 @@ uint32_t tsl2561_get_lux(uint32_t measure)
     /* Signal I2C had no errors */
     return lux;
 }
-
+/**
+ * @brief Destroy function for the TSL2561 device. Closes the file descriptor
+ *  and powers down the device
+ * 
+ * @param dev 
+ */
 void tsl2561_destroy(tsl2561 *dev)
 {
     writecmd8(dev->fd, 0x80, 0x00);

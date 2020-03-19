@@ -1,0 +1,11 @@
+<map id="include/main.h" name="include/main.h">
+<area shape="rect" id="node2" href="$acs_8h.html" title="Header file including headers and function prototypes of the Attitude Control System. " alt="" coords="23,155,122,181"/>
+<area shape="rect" id="node3" href="$acs_8c.html" title="Attitude Control System related functions. " alt="" coords="35,229,111,256"/>
+<area shape="rect" id="node4" href="$bessel_8h.html" title="Bessel filter implementation for Attitude Control System. " alt="" coords="587,80,703,107"/>
+<area shape="rect" id="node6" href="$shflight__externs_8h.html" title="Extern declaration of the shflight global variables for all threads. " alt="" coords="98,80,269,107"/>
+<area shape="rect" id="node7" href="$sitl__comm_8h.html" title="Software&#45;In&#45;The&#45;Loop (SITL) serial communication headers and function prototypes. ..." alt="" coords="215,155,354,181"/>
+<area shape="rect" id="node9" href="$main_8c.html" title="main() symbol of the SPACE&#45;HAUC Flight Software. " alt="" coords="386,155,469,181"/>
+<area shape="rect" id="node10" href="$shflight__globals_8h.html" title="Allocates memory for the global variables used in the flight code for inter&#45;thread communication..." alt="" coords="343,80,511,107"/>
+<area shape="rect" id="node5" href="$bessel_8c.html" title="Bessel filter implementation for Attitude Control System. " alt="" coords="598,155,691,181"/>
+<area shape="rect" id="node8" href="$sitl__comm_8c.html" title="Software&#45;In&#45;The&#45;Loop (SITL) serial communication codes. " alt="" coords="227,229,342,256"/>
+</map>

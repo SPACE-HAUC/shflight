@@ -1,3 +1,13 @@
+/**
+ * @file datavis.h
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief DataVis thread to visualize ACS data over TCP (uses client.py)
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #ifndef __DATAVIS_H
 #define __DATAVIS_H
 
@@ -9,25 +19,74 @@
 #endif
 
 typedef struct sockaddr sk_sockaddr;
-
+/**
+ * @brief DataVis structure for storing current ACS data.
+ * 
+ */
 typedef struct
 {
-    uint8_t mode;               // ACS Mode
-    uint64_t step;              // ACS Step
-    DECLARE_VECTOR2(B, float);  // magnetic field
+    /**
+     * @brief Current system state
+     * 
+     */
+    uint8_t mode; // ACS Mode
+    /**
+     * @brief Current ACS step number
+     * 
+     */
+    uint64_t step; // ACS Step
+    /**
+     * @brief Measured magnetic field
+     * 
+     */
+    DECLARE_VECTOR2(B, float); // magnetic field
+    /**
+     * @brief Calculated value of \f$\vec{\dot{B}}\f$
+     * 
+     */
     DECLARE_VECTOR2(Bt, float); // B dot
-    DECLARE_VECTOR2(W, float);  // Omega
-    DECLARE_VECTOR2(S, float);  // Sun vector
+    /**
+     * @brief Calculated value of \f$\vec{\omega}\f$
+     * 
+     */
+    DECLARE_VECTOR2(W, float); // Omega
+    /**
+     * @brief Calculated value of sun vector
+     * 
+     */
+    DECLARE_VECTOR2(S, float); // Sun vector
 } datavis_p;
-
+/**
+ * @brief Size of the datavis_p struct
+ * 
+ */
 #define PACK_SIZE sizeof(datavis_p)
-
+/**
+ * @brief Union of the datavis_p structure and an array of bytes for transport over TCP using send().
+ * 
+ */
 typedef union {
+    /**
+     * @brief Data section of the data_packet where members of datavis_p can be accessed.
+     * 
+     */
     datavis_p data;
+    /**
+     * @brief Byte section of the data_packet for transport using send().
+     * 
+     */
     unsigned char buf[sizeof(datavis_p)];
 } data_packet;
 
-// datavis thread, sets up a server that listens on port PORT
+/**
+ * @brief DataVis thread, sends data in g_datavis_st over TCP.
+ * This thread loops over done, and at each wakeup from the ACS
+ * thread sends the currently available data over TCP to the
+ * listening connection.
+ * 
+ * @param t Pointer to an integer containing the thread ID.
+ * @return NULL.
+ */
 void *datavis_thread(void *t);
 
 #endif // __DATAVIS_H

@@ -1,4 +1,23 @@
+/**
+ * @file lsm9ds1.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief Function definitions for LSM9DS1 Magnetometer I2C driver.
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "lsm9ds1.h"
+/**
+ * @brief Takes the pointer to the device struct, XL address and M address,
+ * returns 1 on success, negative numbers on failure.
+ * 
+ * @param dev Pointer to lsm9ds1
+ * @param xl_addr Accelerometer address on I2C Bus (default 0x6b)
+ * @param mag_addr magnetometer address on I2C Bus (default 0x1e)
+ * @return Returns 1 on success, -1 on failure
+ */
 int lsm9ds1_init(lsm9ds1 *dev, uint8_t xl_addr, uint8_t mag_addr)
 {
     uint8_t accel_stat = 1;
@@ -69,7 +88,15 @@ int lsm9ds1_init(lsm9ds1 *dev, uint8_t xl_addr, uint8_t mag_addr)
 
     return 1 & mag_stat;
 }
-
+/**
+ * @brief Configure the data rate, reset vector and data granularity.
+ * 
+ * @param dev Pointer to lsm9ds1
+ * @param datarate
+ * @param rst 
+ * @param dread 
+ * @return Returns 1 on success, -1 on failure 
+ */
 int lsm9ds1_config_mag(lsm9ds1 *dev, MAG_DATA_RATE datarate, MAG_RESET rst, MAG_DATA_READ dread)
 {
     int stat = 1;
@@ -111,6 +138,12 @@ int lsm9ds1_config_mag(lsm9ds1 *dev, MAG_DATA_RATE datarate, MAG_RESET rst, MAG_
     }
     return stat;
 }
+/**
+ * @brief Reset the magnetometer memory.
+ * 
+ * @param dev Pointer to lsm9ds1
+ * @return Returns 1 on success, -1 on failure 
+ */
 int lsm9ds1_reset_mag(lsm9ds1 *dev)
 {
     uint8_t buf[2];
@@ -126,6 +159,14 @@ int lsm9ds1_reset_mag(lsm9ds1 *dev)
     }
     return 1;
 }
+/**
+ * @brief Store the magnetic field readings in the array of shorts, order: X
+ * Y Z
+ * 
+ * @param dev Pointer to lsm9ds1
+ * @param B Pointer to an array of short of length 3 where magnetometer reading is stored
+ * @return Returns 1 on success, -1 on failure 
+ */
 int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
 {
     // printf("In read_mag %d\n", __LINE__);
@@ -168,7 +209,13 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
     }
     return 1;
 }
-
+/**
+ * @brief Set the mag field offsets using the array, order: X Y Z
+ * 
+ * @param dev Pointer to lsm9ds1
+ * @param B Pointer to an array of short of length 3 where magnetometer offset is stored
+ * @return Returns 1 on success, -1 on failure 
+ */
 int lsm9ds1_offset_mag(lsm9ds1 *dev, short *offset)
 {
     uint8_t buf[2], reg = MAG_OFFSET_X_REG_L_M - 1;
@@ -191,7 +238,11 @@ int lsm9ds1_offset_mag(lsm9ds1 *dev, short *offset)
     }
     return 1;
 }
-
+/**
+ * @brief Closes the file descriptors for the mag and accel and frees the allocated memory.
+ * 
+ * @param dev Pointer to lsm9ds1
+ */
 void lsm9ds1_destroy(lsm9ds1 *dev)
 {
     close(dev->accel_file);

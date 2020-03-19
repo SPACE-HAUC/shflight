@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/SPACE-HAUC/shflight.svg?branch=master)](https://travis-ci.org/SPACE-HAUC/shflight) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=flat)](https://github.com/SPACE-HAUC/shflight/blob/master/LICENSE)
 
-# Test code for SPACE HAUC ACS algorithms
+# SPACE HAUC Flight Code
 ## Last stable tested commit: `release` branch
 ## Current status
 The following major features have been implemented:
@@ -11,6 +11,7 @@ The following major features have been implemented:
 1. ACS devices have been added for HITL (Hardware In The Loop) testing
 1. External data visualization over TCP using a Python frontend
 1. External data visualization for Simulink data over Serial + TCP using Python frontend
+1. Complete Doxygen documentation and travis build checker support.
 
 ## `make` Options:
 
@@ -18,6 +19,7 @@ The following major features have been implemented:
 2. `make sim_server`: Creates the server code that can read Simulink display output over serial port and publish it over TCP for `geode.py` visualization service.
 3. `make clean`: Delete all the object files and the built code.
 4. `make spotless`: Remove every object file, build directory etc.
+1. `make doc`: Create doxygen documentation.
 
 ## Program Options:
 
@@ -52,7 +54,7 @@ The following quirks are present in the code as of now:
 1. Omega measurement does not include the second order correction term that uses the MOI and past measurement. This corrected value of omega should be passed through a Bessel filter.
 1. Investigate if every sensor reading should be filtered using a low pass filter. Discuss the cutoff frequency for such a filter.
 1. Investigate implementation of a Kalman filter instead of a Bessel function.
-1. In HITL, due to the noise Bessel filtering is used on B, dB/dt and ω which leads to a bias on ω·z. This throws off the detumble determination. Find a better filter/criterion.
+1. In HITL, due to the noise Bessel filtering is used on B, dB/dt and $\omega$ which leads to a bias on $\omega \cdot z$. This throws off the detumble determination. Find a better filter/criterion.
 1. Investigate the effect of $\omega_z < 0$ at initialization.
 
 ### ACS Sunpointing Algorithm

@@ -1,3 +1,13 @@
+/**
+ * @file sitl_comm.h
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief Software-In-The-Loop (SITL) serial communication headers and function prototypes
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #ifndef __SITL_COMM_H
 #define __SITL_COMM_H
 #include <main.h>
@@ -5,22 +15,47 @@
 #include <shflight_consts.h>
 #include <shflight_externs.h>
 
-// set speed, parity of the serial interface
+/**
+ * @brief Set speed and parity attributes for the serial device
+ * 
+ * @param fd Serial device file descriptor
+ * @param speed Baud rate, is a constant of the form B#### defined in termios.h
+ * @param parity Odd or even parity for the serial device (1, 0)
+ * @return 0 on success, -1 on error
+ */
 int set_interface_attribs(int fd, int speed, int parity);
 
-// set blocking or non-blocking call on the serial file descriptor
+/**
+ * @brief Set the serial device as blocking or non-blocking
+ * 
+ * @param fd Serial device file descriptor
+ * @param should_block 0 for non-blocking, 1 for blocking mode operation
+ */
 void set_blocking(int fd, int should_block);
 
-/*
- * Initialize serial comm for SITL test.
- * Input: Pass argc and argv from main; inputs are port and baud
- * Output: Serial file descriptor
+/**
+ * @brief Set the up serial device
+ * Opens the serial device /dev/ttyS0 (for RPi only)
+ * 
+ * @return file descriptor to the serial device
  */
 int setup_serial(void);
 
-/*
- * This thread waits to read a dataframe, reads it over serial, writes the dipole action to serial and interprets the
- * dataframe that was read over serial. The values are atomically assigned.
+/**
+ * @brief Serial communication thread.
+ * 
+ * 
+ * Communicates with the environment simulator over serial port.
+ * The serial communication happens at 230400 bps, and this thread
+ * is intended to loop at 200 Hz. The thread reads the packet over
+ * serial (packet format: [0xa0 x 10] [uint8 x 28] [0xb0 x 2]).
+ * The thread synchronizes to the 0xa0 in the beginning and checks
+ * for the 0xb0 at the end at each iteration. The data is read into
+ * global variables, and the magnetorquer
+ * command is read out. All read-writes are atomic.
+ * 
+ * @param id Pointer to an int that specifies thread ID
+ * @return NULL
  */
 void *sitl_comm(void *id);
 #endif

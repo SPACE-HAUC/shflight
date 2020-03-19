@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['tsl2561_5fgain_5f16x',['TSL2561_GAIN_16X',['../tsl2561_8h.html#a8051d9eb664d757f67c0c5ce371cd9d0a0eb86b759f88be07c2d218e4dc2da13d',1,'tsl2561.h']]],
+  ['tsl2561_5fgain_5f1x',['TSL2561_GAIN_1X',['../tsl2561_8h.html#a8051d9eb664d757f67c0c5ce371cd9d0a710ec4a6459d8d6296656db8e7f4fbfe',1,'tsl2561.h']]],
+  ['tsl2561_5fintegrationtime_5f101ms',['TSL2561_INTEGRATIONTIME_101MS',['../tsl2561_8h.html#a541f87fb512c1fd213e23c3a8b23264aac276f46523dbc7ea4a885cdda0826db7',1,'tsl2561.h']]],
+  ['tsl2561_5fintegrationtime_5f13ms',['TSL2561_INTEGRATIONTIME_13MS',['../tsl2561_8h.html#a541f87fb512c1fd213e23c3a8b23264aa2ac9ab3a9e4918833df40bdb2b3b48c3',1,'tsl2561.h']]],
+  ['tsl2561_5fintegrationtime_5f402ms',['TSL2561_INTEGRATIONTIME_402MS',['../tsl2561_8h.html#a541f87fb512c1fd213e23c3a8b23264aab8d5aa8b28f2f4acc78eb41cf6a37777',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fchan0_5fhigh',['TSL2561_REGISTER_CHAN0_HIGH',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a600077a124dc05b77fc1ae716c48b65c',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fchan0_5flow',['TSL2561_REGISTER_CHAN0_LOW',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a05d26b8299db5c62242141d9324b4778',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fchan1_5fhigh',['TSL2561_REGISTER_CHAN1_HIGH',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a2c7c68d5de249239315652f65eca8123',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fchan1_5flow',['TSL2561_REGISTER_CHAN1_LOW',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a308ebd12169466773d391219c8f7f399',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fcontrol',['TSL2561_REGISTER_CONTROL',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a50f71e4c1ac964fa0ffac246629aee40',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fcrc',['TSL2561_REGISTER_CRC',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a5c6faa0735dab9acaa415a008554f61a',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fid',['TSL2561_REGISTER_ID',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a29b3ff1851ca40e5e230e57d576f061f',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5finterrupt',['TSL2561_REGISTER_INTERRUPT',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8af26094abfc9b43bebb72e04f1ef9b449',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fthreshholdh_5fhigh',['TSL2561_REGISTER_THRESHHOLDH_HIGH',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8aabe97411358d62ab44de9e8b697d84dc',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fthreshholdh_5flow',['TSL2561_REGISTER_THRESHHOLDH_LOW',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a8333d864829495d8a150eb5620037881',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fthreshholdl_5fhigh',['TSL2561_REGISTER_THRESHHOLDL_HIGH',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a5edeff25758c4543906cc8ae89857a4a',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5fthreshholdl_5flow',['TSL2561_REGISTER_THRESHHOLDL_LOW',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a7e8181cb57c30506441628c6be3a409a',1,'tsl2561.h']]],
+  ['tsl2561_5fregister_5ftiming',['TSL2561_REGISTER_TIMING',['../tsl2561_8h.html#ac36f475ca5b446f4fde4c9b90bec77c8a3924fa14cb39ddcea2a6a40530e6b9de',1,'tsl2561.h']]]
+];

@@ -1,0 +1,13 @@
+<map id="include/main.h" name="include/main.h">
+<area shape="rect" id="node11" href="$main__helper_8h.html" title="Defines vector macros and other helper functions for the flight software. " alt="" coords="337,304,439,331"/>
+<area shape="rect" id="node17" href="$bessel_8h.html" title="Bessel filter implementation for Attitude Control System. " alt="" coords="194,80,265,107"/>
+<area shape="rect" id="node19" href="$ncv7708_8h.html" title="Function prototypes and data structure for NCV77X8 SPI Driver (Linux) " alt="" coords="565,304,648,331"/>
+<area shape="rect" id="node24" href="$lsm9ds1_8h.html" title="Function prototypes and data structures for LSM9DS1 Magnetometer I2C driver. " alt="" coords="1091,304,1173,331"/>
+<area shape="rect" id="node27" href="$tsl2561_8h.html" title="TSL2561 I2C driver function and struct declarations. " alt="" coords="723,304,797,331"/>
+<area shape="rect" id="node28" href="$ads1115_8h.html" title="ADS1115 I2C Driver function prototypes and data structures. " alt="" coords="821,304,904,331"/>
+<area shape="rect" id="node29" href="$tca9458a_8h.html" title="Function prototypes and struct declarations for TCA9458A I2C driver. " alt="" coords="979,304,1066,331"/>
+<area shape="rect" id="node30" href="$acs_8h.html" title="Header file including headers and function prototypes of the Attitude Control System. " alt="" coords="289,80,343,107"/>
+<area shape="rect" id="node32" href="$datavis_8h.html" title="DataVis thread to visualize ACS data over TCP (uses client.py) " alt="" coords="320,229,395,256"/>
+<area shape="rect" id="node18" href="$shflight__consts_8h.html" title="Describes all constants defined by the preprocessor for the code. " alt="" coords="122,304,243,331"/>
+<area shape="rect" id="node31" href="$shflight__externs_8h.html" title="Extern declaration of the shflight global variables for all threads. " alt="" coords="261,155,387,181"/>
+</map>

@@ -1,20 +1,34 @@
+/**
+ * @file main.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief main() symbol of the SPACE-HAUC Flight Software.
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include <main.h>
 #include <main_helper.h>
 #include <shflight_consts.h>
 #include <shflight_globals.h>
 #include <shflight_externs.h>
-
+/**
+ * @brief Main function executed when shflight.out binary is executed
+ * 
+ * @return int returns 0 on success, -1 on failure, error code on thread init failures
+ */
 int main(void)
 {
-    // handle sigint
+    // SIGINT handler register
     struct sigaction saction;
     saction.sa_handler = &catch_sigint;
     sigaction(SIGINT, &saction, NULL);
 
     /* Set up data logging */
-#ifdef ACS_DATALOG    
-    int bc = bootCount();
-    char fname[40] = {0};
+#ifdef ACS_DATALOG
+    int bc = bootCount(); // Holds bootCount to generate a different log file at every boot
+    char fname[40] = {0}; // Holds file name where log file is saved
     sprintf(fname, "logfile%d.txt", bc);
 
     acs_datalog = fopen(fname, "w");
@@ -30,8 +44,7 @@ int main(void)
     if (sys_status < 0)
     {
         sherror("ACS Init");
-        sys_status = 0;
-        exit(-1);
+        exit(sys_status);
     }
     // set up threads
     int rc[NUM_SYSTEMS];                                         // fork-join return codes
@@ -80,7 +93,12 @@ int main(void)
     acs_destroy();
     return 0;
 }
-
+/**
+ * @brief SIGINT handler, sets the global variable `done` as 1, so that thread loops can break.
+ * Wakes up sitl_comm and datavis threads to ensure they exit.
+ * 
+ * @param sig Receives the signal as input.
+ */
 void catch_sigint(int sig)
 {
     done = 1;
@@ -91,7 +109,11 @@ void catch_sigint(int sig)
     pthread_cond_broadcast(&datavis_drdy);
 #endif // DATAVIS
 }
-
+/**
+ * @brief Prints errors specific to shflight in a fashion similar to perror
+ * 
+ * @param msg Input message to print along with error description
+ */
 void sherror(const char *msg)
 {
     switch (sys_status)

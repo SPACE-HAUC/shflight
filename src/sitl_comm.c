@@ -1,3 +1,13 @@
+/**
+ * @file sitl_comm.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief Software-In-The-Loop (SITL) serial communication codes
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include <sitl_comm.h>
 
 int set_interface_attribs(int fd, int speed, int parity)

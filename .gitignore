@@ -60,3 +60,7 @@ DESKTOP.INI
 .vscode
 *.ini
 *.deb
+
+# Doxygen #
+##########################
+docs/latex/*

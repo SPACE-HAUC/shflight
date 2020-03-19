@@ -1,5 +1,20 @@
+/**
+ * @file bessel.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief Bessel filter implementation for Attitude Control System.
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include <bessel.h>
-// calculate factorial of input (available only in the scope of bessel.c)
+/**
+ * @brief Calculates factorial of the input. This function is inlined, and is available only in the scope of bessel.c.
+ * 
+ * @param i Input
+ * @return float Factorial of input
+ */
 static inline float factorial(int i)
 {
     float result = 1;

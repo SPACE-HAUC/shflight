@@ -1,0 +1,14 @@
+<map id="include/shflight_globals.h" name="include/shflight_globals.h">
+<area shape="rect" id="node2" href="$main_8h.html" title="Includes all headers necessary for the core flight software, including ACS, and defines ACS states (w..." alt="" coords="729,80,791,107"/>
+<area shape="rect" id="node12" href="$main__helper_8h.html" title="Defines vector macros and other helper functions for the flight software. " alt="" coords="337,379,439,405"/>
+<area shape="rect" id="node18" href="$bessel_8h.html" title="Bessel filter implementation for Attitude Control System. " alt="" coords="194,155,265,181"/>
+<area shape="rect" id="node20" href="$ncv7708_8h.html" title="Function prototypes and data structure for NCV77X8 SPI Driver (Linux) " alt="" coords="565,379,648,405"/>
+<area shape="rect" id="node25" href="$lsm9ds1_8h.html" title="Function prototypes and data structures for LSM9DS1 Magnetometer I2C driver. " alt="" coords="1091,379,1173,405"/>
+<area shape="rect" id="node28" href="$tsl2561_8h.html" title="TSL2561 I2C driver function and struct declarations. " alt="" coords="723,379,797,405"/>
+<area shape="rect" id="node29" href="$ads1115_8h.html" title="ADS1115 I2C Driver function prototypes and data structures. " alt="" coords="821,379,904,405"/>
+<area shape="rect" id="node30" href="$tca9458a_8h.html" title="Function prototypes and struct declarations for TCA9458A I2C driver. " alt="" coords="979,379,1066,405"/>
+<area shape="rect" id="node31" href="$acs_8h.html" title="Header file including headers and function prototypes of the Attitude Control System. " alt="" coords="289,155,343,181"/>
+<area shape="rect" id="node33" href="$datavis_8h.html" title="DataVis thread to visualize ACS data over TCP (uses client.py) " alt="" coords="320,304,395,331"/>
+<area shape="rect" id="node19" href="$shflight__consts_8h.html" title="Describes all constants defined by the preprocessor for the code. " alt="" coords="122,379,243,405"/>
+<area shape="rect" id="node32" href="$shflight__externs_8h.html" title="Extern declaration of the shflight global variables for all threads. " alt="" coords="261,229,387,256"/>
+</map>

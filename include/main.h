@@ -1,3 +1,14 @@
+/**
+ * @file main.h
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief Includes all headers necessary for the core flight software, including ACS, and defines
+ * ACS states (which are flight software states), error codes, and relevant error functions.
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #ifndef MAIN_H
 #define MAIN_H
 
@@ -25,7 +36,10 @@
 #include "ads1115.h"  // fine sun sensor - adc
 #include "tca9458a.h" // I2C mux
 
-// enumeration of system states
+/**
+ * @brief Describes ACS (system) states.
+ * 
+ */
 typedef enum
 {
     STATE_ACS_DETUMBLE, // Detumbling
@@ -35,7 +49,10 @@ typedef enum
     STATE_XBAND_READY   // Ready to do X-Band things
 } SH_ACS_MODES;
 
-// system errors
+/**
+ * @brief Describes possible system errors.
+ * 
+ */
 typedef enum
 {
     ERROR_MALLOC = -1,
@@ -57,7 +74,7 @@ void catch_sigint(int);
 #define NUM_SYSTEMS 3
 #else // HITL
 #define DATAVIS
-#define NUM_SYSTEMS 2
+#define NUM_SYSTEMS 2 /// Number of threads available
 #endif
 #endif
 

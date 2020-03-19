@@ -1,9 +1,19 @@
 
+/**
+ * @file ads1115.c
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief ADS1115 I2C Driver function definitions
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "ads1115.h"
 
 int ads1115_init(ads1115 *dev, uint8_t s_address)
 {
-    dev->fd = open(I2C_BUS, O_RDWR);
+    dev->fd = open(dev->fname, O_RDWR);
     if (dev->fd < 0)
     {
         perror("[ERROR] Could not create a file descriptor.");

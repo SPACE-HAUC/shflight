@@ -1,3 +1,13 @@
+/**
+ * @file eps_telem.h
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief GomSpace P31u I2C interface function prototypes and data structures
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #ifndef EPS_TELEM
 #define EPS_TELEM
 #include <stdint.h>

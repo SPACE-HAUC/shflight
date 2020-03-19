@@ -1,11 +1,12 @@
-/*
- *******************************************************************************
- * Title: tsl2561.h
- * Description: Device driver (I2C) for TSL2561 Coarse Sun Sensors
- * Update:
- *          0 - Module created [2020/16/1] [NS]
- * Status - REVIEW REQUIRED
- ******************************************************************************* 
+/**
+ * @file tsl2561.h
+ * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
+ * @brief TSL2561 I2C driver function and struct declarations
+ * @version 0.1
+ * @date 2020-03-19
+ * 
+ * @copyright Copyright (c) 2020
+ * 
  */
 
 #ifndef TSL2561_H
@@ -114,96 +115,80 @@
 #define TSL2561_AGC_TLO_402MS (500)   ///< Min value at Ti 402ms = 500
 
 // Clipping thresholds
-#define TSL2561_CLIPPING_13MS (4900)   ///< # Counts that trigger a change in gain/integration
-#define TSL2561_CLIPPING_101MS (37000) ///< # Counts that trigger a change in gain/integration
-#define TSL2561_CLIPPING_402MS (65000) ///< # Counts that trigger a change in gain/integration
+#define TSL2561_CLIPPING_13MS (4900)   ///< Counts that trigger a change in gain/integration
+#define TSL2561_CLIPPING_101MS (37000) ///< Counts that trigger a change in gain/integration
+#define TSL2561_CLIPPING_402MS (65000) ///< Counts that trigger a change in gain/integration
 
 // Delay for integration times
 #define TSL2561_DELAY_INTTIME_13MS (15)   ///< Wait 15ms for 13ms integration
 #define TSL2561_DELAY_INTTIME_101MS (120) ///< Wait 120ms for 101ms integration
 #define TSL2561_DELAY_INTTIME_402MS (450) ///< Wait 450ms for 402ms integration
 
-/** TSL2561 I2C Registers */
+/**
+ * @brief TSL2561 I2C Registers
+ * 
+ */
 enum
 {
-    TSL2561_REGISTER_CONTROL = 0x00,          // Control/power register
-    TSL2561_REGISTER_TIMING = 0x01,           // Set integration time register
-    TSL2561_REGISTER_THRESHHOLDL_LOW = 0x02,  // Interrupt low threshold low-byte
-    TSL2561_REGISTER_THRESHHOLDL_HIGH = 0x03, // Interrupt low threshold high-byte
-    TSL2561_REGISTER_THRESHHOLDH_LOW = 0x04,  // Interrupt high threshold low-byte
-    TSL2561_REGISTER_THRESHHOLDH_HIGH = 0x05, // Interrupt high threshold high-byte
-    TSL2561_REGISTER_INTERRUPT = 0x06,        // Interrupt settings
-    TSL2561_REGISTER_CRC = 0x08,              // Factory use only
-    TSL2561_REGISTER_ID = 0x0A,               // TSL2561 identification setting
-    TSL2561_REGISTER_CHAN0_LOW = 0x0C,        // Light data channel 0, low byte
-    TSL2561_REGISTER_CHAN0_HIGH = 0x0D,       // Light data channel 0, high byte
-    TSL2561_REGISTER_CHAN1_LOW = 0x0E,        // Light data channel 1, low byte
-    TSL2561_REGISTER_CHAN1_HIGH = 0x0F        // Light data channel 1, high byte
+    TSL2561_REGISTER_CONTROL = 0x00,          ///< Control/power register
+    TSL2561_REGISTER_TIMING = 0x01,           ///< Set integration time register
+    TSL2561_REGISTER_THRESHHOLDL_LOW = 0x02,  ///< Interrupt low threshold low-byte
+    TSL2561_REGISTER_THRESHHOLDL_HIGH = 0x03, ///< Interrupt low threshold high-byte
+    TSL2561_REGISTER_THRESHHOLDH_LOW = 0x04,  ///< Interrupt high threshold low-byte
+    TSL2561_REGISTER_THRESHHOLDH_HIGH = 0x05, ///< Interrupt high threshold high-byte
+    TSL2561_REGISTER_INTERRUPT = 0x06,        ///< Interrupt settings
+    TSL2561_REGISTER_CRC = 0x08,              ///< Factory use only
+    TSL2561_REGISTER_ID = 0x0A,               ///< TSL2561 identification setting
+    TSL2561_REGISTER_CHAN0_LOW = 0x0C,        ///< Light data channel 0, low byte
+    TSL2561_REGISTER_CHAN0_HIGH = 0x0D,       ///< Light data channel 0, high byte
+    TSL2561_REGISTER_CHAN1_LOW = 0x0E,        ///< Light data channel 1, low byte
+    TSL2561_REGISTER_CHAN1_HIGH = 0x0F        ///< Light data channel 1, high byte
 };
 
-/** Three options for how long to integrate readings for */
+/**
+ * @brief Three options for how long to integrate readings for
+ * 
+ */
 typedef enum
 {
-    TSL2561_INTEGRATIONTIME_13MS = 0x00,  // 13.7ms
-    TSL2561_INTEGRATIONTIME_101MS = 0x01, // 101ms
-    TSL2561_INTEGRATIONTIME_402MS = 0x02  // 402ms
+    TSL2561_INTEGRATIONTIME_13MS = 0x00,  ///< 13.7ms
+    TSL2561_INTEGRATIONTIME_101MS = 0x01, ///< 101ms
+    TSL2561_INTEGRATIONTIME_402MS = 0x02  ///< 402ms
 } tsl2561IntegrationTime_t;
 
-/** TSL2561 offers 2 gain settings */
+/**
+ * @brief  TSL2561 offers 2 gain settings
+ * 
+ */
 typedef enum
 {
-    TSL2561_GAIN_1X = 0x00,  // No gain
-    TSL2561_GAIN_16X = 0x10, // 16x gain
+    TSL2561_GAIN_1X = 0x00,  ///< No gain
+    TSL2561_GAIN_16X = 0x10, ///< 16x gain
 } tsl2561Gain_t;
 
 /******************************************************************************/
-#define I2C_BUS "/dev/i2c-1" // I2C bus name
-#define TSL2561_BLOCK_READ 0x0B;
+#define I2C_BUS "/dev/i2c-1"    ///< I2C bus name
+#define TSL2561_BLOCK_READ 0x0B ///< Block read mask
 
-// TSL2561 COMMAND REGISTER - SEND FIRST
-typedef union {
-    struct
-    {
-        uint8_t cmd : 1;
-        uint8_t clear : 1;
-        uint8_t word : 1;
-        uint8_t block : 1;
-        uint8_t address : 4;
-    };
-    uint8_t raw;
-} tsl2561_command;
-
-/* TSL2561 DATA STRUCTURE */
+/**
+ * @brief TSL2561 Device Handle
+ * 
+ */
 typedef struct
 {
-    int fd;
-    char fname[40];
+    int fd;         ///< File descriptor for I2C bus
+    char fname[40]; ///< I2C Device name
 } tsl2561;
 
-/*
- * Init function for the TSL2561 device. Default: I2C_BUS
- */
 int tsl2561_init(tsl2561 *dev, uint8_t s_address);
-/*
- * Read I2C data into the uint32_t measure var.
- * Format: (MSB) broadband | ir (LSB)
- */
 void tsl2561_measure(tsl2561 *dev, uint32_t *measure);
-/*
- * Get lux using the measured value.
- */
 uint32_t tsl2561_get_lux(uint32_t measure);
-/*
- * Destroy function for the TSL2561 device. Closes the file descriptor and powers * down the device
- */
 void tsl2561_destroy(tsl2561 *dev);
-
-/* 
- * Internal functions to read the sensors using the I2C protocol
- */
-
-/* 
- * write 8 bytes to the device represented by the file descriptor.
+/**
+ * @brief write 8 bytes to the device represented by the file descriptor.
+ * 
+ * @param fd 
+ * @param val 
  */
 static inline void write8(int fd, uint8_t val)
 {
@@ -212,8 +197,12 @@ static inline void write8(int fd, uint8_t val)
     if (res != 1)
         perror(__FUNCTION__);
 }
-/* 
- * Write a command to the register on the device represented by fd
+/**
+ * @brief Write a command to the register on the device represented by fd
+ * 
+ * @param fd File descriptor
+ * @param reg Register address
+ * @param val Value to write at register address
  */
 static inline void writecmd8(int fd, uint8_t reg, uint8_t val)
 {
@@ -224,8 +213,12 @@ static inline void writecmd8(int fd, uint8_t reg, uint8_t val)
     if (res != 2)
         perror(__FUNCTION__);
 }
-/* 
- * Read a byte from the specified register on the device represented by fd
+/**
+ * @brief Read a byte from the specified register on the device represented by fd
+ * 
+ * @param fd 
+ * @param reg Register address
+ * @return Byte read over serial 
  */
 static inline uint8_t read8(int fd, uint8_t reg)
 {
@@ -236,8 +229,11 @@ static inline uint8_t read8(int fd, uint8_t reg)
         perror(__FUNCTION__);
     return buf;
 }
-/* 
- * Write 16 bits to the device (very similar to writecmd8())
+/**
+ * @brief Write 16 bits to the device (very similar to writecmd8())
+ * 
+ * @param fd 
+ * @param val 
  */
 static inline void write16(int fd, uint16_t val)
 {
@@ -249,8 +245,12 @@ static inline void write16(int fd, uint16_t val)
         perror(__FUNCTION__);
     return;
 }
-/* 
- * Read 2 bytes in LE format from reg on the device represented by fd 
+/**
+ * @brief Read 2 bytes in LE format from reg on the device represented by fd 
+ * 
+ * @param fd 
+ * @param cmd 
+ * @return uint16_t 
  */
 static inline uint16_t read16(int fd, uint8_t cmd)
 {
