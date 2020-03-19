@@ -17,9 +17,9 @@ addons:
             - lcov
 
 script:
-    - make CFLAGS="-DSITL -ftest-coverage"
-    - make CFLAGS="-ftest-coverage"
-    - make CFLAGS="-DCSS_READY -ftest-coverage"
+    - make CFLAGS="-DSITL -fprofile-arcs -ftest-coverage" LINKOPTIONS="-lgcov"
+    - make CFLAGS="-fprofile-arcs -ftest-coverage" LINKOPTIONS="-lgcov"
+    - make CFLAGS="-DCSS_READY -fprofile-arcs -ftest-coverage" LINKOPTIONS="-lgcov"
     - make spotless
 after_success:
     - cd ${TRAVIS_BUILD_DIR}
