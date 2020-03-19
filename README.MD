@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/SPACE-HAUC/shflight.svg?branch=master)](https://travis-ci.org/SPACE-HAUC/shflight) [![codecov](https://codecov.io/gh/SPACE-HAUC/shflight/branch/master/graph/badge.svg)](https://codecov.io/gh/SPACE-HAUC/shflight) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=flat)](https://github.com/SPACE-HAUC/shflight/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/SPACE-HAUC/shflight.svg?branch=master)](https://travis-ci.org/SPACE-HAUC/shflight) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=flat)](https://github.com/SPACE-HAUC/shflight/blob/master/LICENSE)
 
 # Test code for SPACE HAUC ACS algorithms
 ## Last stable tested commit: `release` branch
