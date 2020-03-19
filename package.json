@@ -1,0 +1,14 @@
+{
+  "name": "shflight-test",
+  "description": "SPACE HAUC Flight Code build test",
+  "author": "Sunip K. Mukherjee",
+  "version": "1.0",
+  "devDependencies": {
+    "make"
+  },
+  "scripts": {
+    "test1": "make CFLAGS=\"-DSITL\"",
+    "test2": "make",
+    "test3": "make CFLAGS=\"-DCSS_READY\""
+  }
+}
