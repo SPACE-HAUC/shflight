@@ -53,6 +53,7 @@ DESKTOP.INI
 *.dat
 *.txt
 *.csv
+**/*.csv
 
 # VSCode #
 ##########################
