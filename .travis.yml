@@ -1,6 +1,9 @@
 sudo: required
 dist: xenial
 
+env:
+    - CODECOV_TOKEN="3978605c-c3c9-423b-b814-172a262c958b"
+
 language: c
 
 compiler:
