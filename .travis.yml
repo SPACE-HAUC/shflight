@@ -17,10 +17,10 @@ addons:
             - lcov
 
 script:
-    - make CFLAGS="-DSITL"
-    - make
-    - make CFLAGS="-DCSS_READY"
-
+    - make CFLAGS="-DSITL -ftest-coverage"
+    - make CFLAGS="-ftest-coverage"
+    - make CFLAGS="-DCSS_READY -ftest-coverage"
+    - make spotless
 after_success:
     - cd ${TRAVIS_BUILD_DIR}
     - lcov --directory . --capture --output-file coverage.info
