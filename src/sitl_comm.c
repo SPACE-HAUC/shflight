@@ -164,5 +164,6 @@ void *sitl_comm(void *id)
         // unsigned long long e = get_usec();
         // printf("[%llu ms] Serial read\n", (e-s)/1000);
     }
+    close(fd); // close the serial device
     pthread_exit(NULL);
 }

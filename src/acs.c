@@ -801,6 +801,7 @@ int acs_init(void)
 
 void acs_destroy(void)
 {
+#ifndef SITL
 #ifdef CSS_READY
     // Destroy CSSs
     for (int i = 0; i < 3; i++)
@@ -821,5 +822,6 @@ void acs_destroy(void)
 #ifdef FSS_READY
     // destroy FSS ADC
     ads1115_destroy(adc);
-#endif
+#endif // FSS_READY
+#endif // SITL
 }
