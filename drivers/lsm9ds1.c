@@ -9,6 +9,15 @@
  * 
  */
 #include "lsm9ds1.h"
+#include <stdlib.h>
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
 /**
  * @brief Takes the pointer to the device struct, XL address and M address,
  * returns 1 on success, negative numbers on failure.

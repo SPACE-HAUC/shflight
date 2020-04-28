@@ -1,4 +1,3 @@
-
 /**
  * @file lsm9ds1.h
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
@@ -9,15 +8,10 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include <stdlib.h>
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
-#include <errno.h>
+#ifndef LSM9DS1_H
+#define LSM9DS1_H
+
 #include <stdint.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/ioctl.h>
 /**
  * @brief Default I2C device address
  * 
@@ -176,3 +170,5 @@ int lsm9ds1_reset_mag(lsm9ds1 *);
 int lsm9ds1_read_mag(lsm9ds1 *, short *);
 int lsm9ds1_offset_mag(lsm9ds1 *, short *);
 void lsm9ds1_destroy(lsm9ds1 *);
+
+#endif // LSM9DS1_H

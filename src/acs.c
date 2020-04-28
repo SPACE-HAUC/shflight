@@ -14,6 +14,20 @@
 #include <acs.h>
 
 /**
+ * @brief This is color indicator for printf statements in ACS, for use in debug only."
+ */
+#define RED "\x1B[31m"
+#define GRN "\x1B[32m"
+#define RESET "\x1B[0m"
+
+#ifdef ACS_PRINT
+/**
+ * @brief This is a preprocessor directive to turn on ACS state information that is sent to STDOUT.
+ */ 
+#define ACS_PRINT
+#endif // ACS_PRINT
+
+/**
  * @brief This function executes the detumble algorithm.
  * 
  * The detumble algorithm calculates the direction and time
@@ -198,14 +212,18 @@ void getSVec(void)
     // printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
     if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
-        printf("[FSS VALID]");
+#ifdef ACS_PRINT
+        printf(GRN "[FSS]" RESET);
+#endif // ACS_PRINT
         x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
         NORMALIZE(g_S[sol_index], g_S[sol_index]);
         return;
     }
-
+#ifdef ACS_PRINT
+    printf(RED "[FSS]" RESET);
+#endif // ACS_PRINT
     // get average -Z luminosity from 4 sensors
     float znavg = 0;
     for (int i = 5; i < 9; i++)
@@ -487,11 +505,13 @@ void *acs_thread(void *id)
         //time_t now ; time(&now);
         if (omega_index >= 0)
         {
+#ifdef ACS_PRINT
 #ifdef SITL
-            printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - g_t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%.3f ms][%llu ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", comm_time / 1000.0, (s - g_t_acs) / 1000, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #else
-            printf("[%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", (s - g_t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%.3f ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", (s - g_t_acs) / 1000.0, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #endif // SITL
+#endif // ACS_PRINT
 #ifdef DATAVIS
             // Update datavis variables [DO NOT TOUCH]
             g_datavis_st.data.step = acs_ct;
@@ -801,6 +821,7 @@ int acs_init(void)
 
 void acs_destroy(void)
 {
+#ifndef SITL // if SITL, no need to disable any devices
 #ifdef CSS_READY
     // Destroy CSSs
     for (int i = 0; i < 3; i++)
@@ -821,5 +842,6 @@ void acs_destroy(void)
 #ifdef FSS_READY
     // destroy FSS ADC
     ads1115_destroy(adc);
-#endif
+#endif // FSS_READY
+#endif // SITL
 }

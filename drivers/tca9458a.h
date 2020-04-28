@@ -10,16 +10,7 @@
  */
 #ifndef TCA9458A_H
 #define TCA9458A_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
-#include <errno.h>
 #include <stdint.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/ioctl.h>
 
 #define MUX_I2C_FIle "/dev/i2c-1" ///< I2C Device for Mux
 /**

@@ -11,19 +11,7 @@
 
 #ifndef ADS1115_H
 #define ADS1115_H
-
 #include <stdint.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
-#include <linux/i2c-dev.h>
-#include <signal.h>
-
 /**
  * @brief Default I2C Address
  * 
