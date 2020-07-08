@@ -22,9 +22,29 @@
 /**
  * @brief This is color indicator for printf statements in ACS, for use in debug only."
  */
+<<<<<<< HEAD
 #define RED "\x1B[31m"
 #define GRN "\x1B[32m"
 #define RST "\x1B[0m"
+=======
+#define BLK "\x1B[30m" // black
+#define RED "\x1B[31m" // red
+#define GRN "\x1B[32m" // green
+#define YLW "\x1B[33m" // yellow
+#define BLU "\x1B[34m" // blue
+#define MGT "\x1B[35m" // magenta
+#define CYN "\x1B[36m" // cyan
+#define LGY "\x1B[37m" // light gray
+#define DGY "\x1B[90m" // dark gray
+#define LRD "\x1B[91m" // light red
+#define LGR "\x1B[92m" // light green
+#define LYW "\x1B[93m" // light yellow
+#define LBU "\x1B[94m" // light blue
+#define LMT "\x1B[95m" // light magenta
+#define LCY "\x1B[96m" // light cyan
+#define WHT "\x1B[97m" // white
+#define RESET "\x1B[0m"
+>>>>>>> 56f32f99cd2bc7c1d59184961d27b0a1ec8d1935
 
 #ifdef ACS_PRINT
 /**
@@ -416,17 +436,25 @@ void getSVec(void)
     if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
 #ifdef ACS_PRINT
+<<<<<<< HEAD
         printf(GRN "[FSS]" RST);
 #endif                                            // ACS_PRINT
+=======
+        printf("[" GRN "FSS" RESET "]");
+#endif // ACS_PRINT
+>>>>>>> 56f32f99cd2bc7c1d59184961d27b0a1ec8d1935
         x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
         NORMALIZE(g_S[sol_index], g_S[sol_index]);
         return;
     }
+<<<<<<< HEAD
 #ifdef ACS_PRINT
     printf(RED "[FSS]" RST);
 #endif // ACS_PRINT
+=======
+>>>>>>> 56f32f99cd2bc7c1d59184961d27b0a1ec8d1935
     // get average -Z luminosity from 4 sensors
     float znavg = 0;
     for (int i = 5; i < 9; i++)
@@ -443,11 +471,17 @@ void getSVec(void)
     {
         g_night = 1;
         VECTOR_CLEAR(g_S[sol_index]); // return 0 solar vector
+#ifdef ACS_PRINT
+        printf("[" RED "FSS" RESET "]");
+#endif // ACS_PRINT
     }
     else
     {
         g_night = 0;
         NORMALIZE(g_S[sol_index], g_S[sol_index]); // return normalized sun vector
+#ifdef ACS_PRINT
+        printf("[" YLW "FSS" RESET "]");
+#endif // ACS_PRINT
     }
     // printf("[sunvec %d] %0.3f %0.3f | %0.3f %0.3f %0.3f\n", sol_index, fsx, fsy, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
     return;
