@@ -22,11 +22,9 @@
 /**
  * @brief This is color indicator for printf statements in ACS, for use in debug only."
  */
-<<<<<<< HEAD
 #define RED "\x1B[31m"
 #define GRN "\x1B[32m"
 #define RST "\x1B[0m"
-=======
 #define BLK "\x1B[30m" // black
 #define RED "\x1B[31m" // red
 #define GRN "\x1B[32m" // green
@@ -43,9 +41,6 @@
 #define LMT "\x1B[95m" // light magenta
 #define LCY "\x1B[96m" // light cyan
 #define WHT "\x1B[97m" // white
-#define RESET "\x1B[0m"
->>>>>>> 56f32f99cd2bc7c1d59184961d27b0a1ec8d1935
-
 #ifdef ACS_PRINT
 /**
  * @brief This is a preprocessor directive to turn on ACS state information that is sent to STDOUT.
@@ -436,13 +431,8 @@ void getSVec(void)
     if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
 #ifdef ACS_PRINT
-<<<<<<< HEAD
-        printf(GRN "[FSS]" RST);
-#endif                                            // ACS_PRINT
-=======
         printf("[" GRN "FSS" RESET "]");
 #endif // ACS_PRINT
->>>>>>> 56f32f99cd2bc7c1d59184961d27b0a1ec8d1935
         x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
@@ -454,12 +444,6 @@ void getSVec(void)
     printf(RED "[FSS]" RST);
 #endif // ACS_PRINT
 =======
->>>>>>> 56f32f99cd2bc7c1d59184961d27b0a1ec8d1935
-    // get average -Z luminosity from 4 sensors
-    float znavg = 0;
-    for (int i = 5; i < 9; i++)
-        znavg += g_CSS[i];
-    znavg *= 0.250f;
 
     x_g_S[sol_index] = g_CSS[0] - g_CSS[1]; // +x - -x
     y_g_S[sol_index] = g_CSS[2] - g_CSS[3]; // +x - -x
