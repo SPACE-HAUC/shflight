@@ -8,7 +8,6 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "ncv7708.h"
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -21,6 +20,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 #include <signal.h>
+#include "ncv7708.h"
 // Initialize the SPI bus to communicate with the NCV7708
 /**
  * @brief Initialize the SPI bus to communicate with the NCV77X8

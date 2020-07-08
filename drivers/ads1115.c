@@ -9,7 +9,6 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "ads1115.h"
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -20,6 +19,7 @@
 #include <linux/types.h>
 #include <linux/i2c-dev.h>
 #include <signal.h>
+#include "ads1115.h"
 
 int ads1115_init(ads1115 *dev, uint8_t s_address)
 {

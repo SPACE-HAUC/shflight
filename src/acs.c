@@ -8,22 +8,24 @@
  * @copyright Copyright (c) 2020
  * 
  */
-
+#include <macros.h>           // Macro definitions and functions specific to SHFlight
 #include <acs.h>              // prototypes for thread-local functions and variables only
 #include <main.h>             // loop control
 #include <bessel.h>           // bessel filter prototypes
 #include <sitl_comm_extern.h> // Variables shared with serial communication thread
+#include <datavis_extern.h>   // variables shared with DataVis thread
 #include <ads1115.h>
 #include <lsm9ds1.h>
 #include <ncv7708.h>
 #include <tsl2561.h>
 #include <tca9458a.h>
+#include <math.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 /**
  * @brief This is color indicator for printf statements in ACS, for use in debug only."
  */
-#define RED "\x1B[31m"
-#define GRN "\x1B[32m"
 #define RST "\x1B[0m"
 #define BLK "\x1B[30m" // black
 #define RED "\x1B[31m" // red
@@ -226,11 +228,6 @@ float IMOI[3][3] = {{15.461398105297564, 0, 0},
                     {0, 15.461398105297564, 0},
                     {0, 0, 12.623336025344317}};
 /**
- * @brief Coefficients for the Bessel filter, calculated using calculateBessel().
- * 
- */
-float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as floating point
-/**
  * @brief Current timestamp after readSensors() in ACS thread, used to keep track of time taken by ACS loop.
  * 
  */
@@ -432,18 +429,22 @@ void getSVec(void)
     {
 #ifdef ACS_PRINT
         printf("[" GRN "FSS" RESET "]");
-#endif // ACS_PRINT
+#endif                                            // ACS_PRINT
         x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
         NORMALIZE(g_S[sol_index], g_S[sol_index]);
         return;
     }
-<<<<<<< HEAD
 #ifdef ACS_PRINT
     printf(RED "[FSS]" RST);
 #endif // ACS_PRINT
-=======
+
+    // get average -Z luminosity from 4 sensors
+    float znavg = 0;
+    for (int i = 5; i < 9; i++)
+        znavg += g_CSS[i];
+    znavg *= 0.250f;
 
     x_g_S[sol_index] = g_CSS[0] - g_CSS[1]; // +x - -x
     y_g_S[sol_index] = g_CSS[2] - g_CSS[3]; // +x - -x
@@ -728,7 +729,7 @@ void *acs_thread(void *id)
         {
 #ifdef ACS_PRINT
 #ifdef SITL
-            printf("[%.3f ms][%llu ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", comm_time / 1000.0, (s - g_t_acs) / 1000, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%.3f ms][%.3f ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", comm_time / 1000.0, (s - g_t_acs) / 1000.0, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #else
             printf("[%.3f ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", (s - g_t_acs) / 1000.0, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #endif // SITL
@@ -945,6 +946,21 @@ void insertionSort(int a1[], int a2[])
 
 int acs_init(void)
 {
+    /* Set up data logging */
+#ifdef ACS_DATALOG
+    int bc = sys_boot_count;
+    char fname[40] = {0}; // Holds file name where log file is saved
+    sprintf(fname, "logfile%d.txt", bc);
+
+    acs_datalog = fopen(fname, "w");
+#endif // ACS_DATALOG
+    /* End setup datalogging */
+
+    // init for bessel coefficients
+    calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
+
+    // initialize target omega
+    z_g_W_target = 1; // 1 rad s^-1
     MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
 
 #ifndef SITL // Prepare devices for HITL

@@ -2,7 +2,7 @@
  * @file sitl_comm.c
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
  * @brief Software-In-The-Loop (SITL) serial communication codes
- * @version 0.1
+ * @version 0.2
  * @date 2020-03-19
  * 
  * @copyright Copyright (c) 2020
@@ -10,6 +10,7 @@
  */
 #include <sitl_comm.h>
 #include <acs_extern.h>
+#include <main.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <pthread.h>
@@ -96,10 +97,10 @@ void set_blocking(int fd, int should_block)
 
 int setup_serial(void)
 {
-    int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_SYNC);
+    int fd = open(SITL_COMM_IFACE, O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0)
     {
-        printf("error %d opening TTY: %s", errno, strerror(errno));
+        printf("error %d opening TTY: %s\n", errno, strerror(errno));
         return -1;
     }
     set_interface_attribs(fd, B230400, 0);
@@ -112,7 +113,7 @@ void *sitl_comm(void *id)
     int fd = setup_serial();
     if (fd < 0)
     {
-        printf("Error getting serial fd\n");
+        printf(__FILE__": Error getting serial fd\n");
         return NULL;
     }
     long long charsleep = 75; // 30 for 2500000; // 75 for 230400
@@ -192,5 +193,6 @@ void *sitl_comm(void *id)
         // unsigned long long e = get_usec();
         // printf("[%llu ms] Serial read\n", (e-s)/1000);
     }
+    close(fd); // close the file descriptor for serial
     pthread_exit(NULL);
 }

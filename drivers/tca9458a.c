@@ -8,7 +8,6 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "tca9458a.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -19,6 +18,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include "tca9458a.h"
 /**
  * @brief Initialize a Mux device, returns 1 on success
  *  TODO: Implement a scan function at init where it checks all 3 CSS are

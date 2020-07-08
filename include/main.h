@@ -11,31 +11,7 @@
  */
 #ifndef MAIN_H
 #define MAIN_H
-
-#include <stdio.h>
-#include <stdint.h>
-#include <math.h>
-#include <pthread.h>
 #include <signal.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <errno.h>
-#include <main_helper.h>
-#include <string.h>
-#include <termios.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
-#include <bessel.h>
-
-#include "ncv7708.h"  // h-bridge
-#include "lsm9ds1.h"  // magnetometer
-#include "tsl2561.h"  // coarse sun sensor
-#include "ads1115.h"  // fine sun sensor - adc
-#include "tca9458a.h" // I2C mux
-
 /**
  * @brief Describes ACS (system) states.
  * 
@@ -63,32 +39,40 @@ typedef enum
     ERROR_FSS_INIT = -6,
     ERROR_FSS_CONFIG = -7
 } SH_ERRORS;
+/**
+ * @brief Thread-local system status variable (similar to errno).
+ * 
+ */
+extern __thread int sys_status;
+// thread local error printing
+void sherror(const char *);
+/**
+ * @brief Control variable for thread loops.
+ * 
+ */
+extern volatile sig_atomic_t done;
+/**
+ * @brief System variable containing the current boot count of the system.
+ * This variable is provided to all modules by main.
+ */ 
+extern int sys_boot_count;
+#ifdef MAIN_PRIVATE
+/**
+ * @brief Name of the file where bootcount is stored on the file system.
+ * 
+ */
+#define BOOTCOUNT_FNAME "bootcount_fname.txt"
+
+/**
+ * @brief Function that returns the current bootcount of the system.
+ * Returns current boot count, and increases by 1 and stores it in nvmem.
+ * Expected to be invoked only by _main()
+ * 
+ * @return int Current boot count (C-style)
+ */
+int bootCount(void);
 
 // interrupt handler for SIGINT
 void catch_sigint(int);
-
-// number of threads in the system
-#ifndef NUM_SYSTEMS
-#ifdef SITL
-#define DATAVIS
-#define NUM_SYSTEMS 3
-#else // HITL
-#define DATAVIS
-#define NUM_SYSTEMS 2 /// Number of threads available
-#endif
-#endif
-
-#include <acs.h>
-
-#ifdef DATAVIS
-#include <datavis.h>
-#endif
-
-#ifdef SITL
-#include <sitl_comm.h>
-#endif
-
-// thread local error printing
-void sherror(const char *);
-
+#endif // MAIN_PRIVATE
 #endif // MAIN_H

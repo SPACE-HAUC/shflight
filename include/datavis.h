@@ -14,7 +14,8 @@
 #ifndef PORT
 #define PORT 12376
 #endif
-
+#include <stdint.h>
+#include <macros.h>
 typedef struct
 {
     /**

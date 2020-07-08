@@ -169,5 +169,19 @@ int readSensors(void);
  * 
  */
 void checkTransition(void);
+#ifndef I2C_BUS
+/**
+ * @brief I2C Bus device file used for ACS sensors
+ * 
+ */
+#define I2C_BUS "/dev/i2c-1" // default for Raspberry Pi, on flight computer use i2c-0
+#endif                       // I2C_BUS
 
+#ifndef SPIDEV_ACS
+/**
+ * @brief SPI device file for H-Bridge (ACS)
+ * 
+ */
+#define SPIDEV_ACS "/dev/spidev0.0" // default SPI bus on RPi
+#endif
 #endif // ACS_H

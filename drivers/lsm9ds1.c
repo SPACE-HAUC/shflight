@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "lsm9ds1.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include "lsm9ds1.h"
 /**
  * @brief Takes the pointer to the device struct, XL address and M address,
  * returns 1 on success, negative numbers on failure.

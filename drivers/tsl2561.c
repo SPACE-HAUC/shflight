@@ -8,7 +8,6 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "tsl2561.h"
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -19,6 +18,7 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/i2c-dev.h>
+#include "tsl2561.h"
 // #include </usr/src/linux-headers-4.4.0-171-generic/include/config/i2c/smbus.h>
 // #include <i2c/smbus.h>
 #include <signal.h>

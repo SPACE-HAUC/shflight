@@ -24,6 +24,8 @@ pthread_mutex_t datavis_mutex;
  */
 pthread_cond_t datavis_drdy;
 
+typedef struct sockaddr sk_sockaddr;
+
 void *datavis_thread(void *t)
 {
     int server_fd, new_socket; //, valread;

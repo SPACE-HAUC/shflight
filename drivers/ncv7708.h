@@ -11,6 +11,7 @@
 #ifndef NCV7708_H
 #define NCV7708_H
 #include <linux/types.h>
+#include <linux/spi/spidev.h>
 /**
  * @brief NCV77X8 Data packet (I/O)
  * 
