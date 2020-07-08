@@ -10,11 +10,6 @@
  */
 #ifndef __SITL_COMM_H
 #define __SITL_COMM_H
-#include <main.h>
-#include <main_helper.h>
-#include <shflight_consts.h>
-#include <shflight_externs.h>
-
 /**
  * @brief Set speed and parity attributes for the serial device
  * 

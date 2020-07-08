@@ -9,6 +9,7 @@
  * 
  */
 #include <bessel.h>
+#include <stdlib.h>
 /**
  * @brief Calculates factorial of the input. This function is inlined, and is available only in the scope of bessel.c.
  * 

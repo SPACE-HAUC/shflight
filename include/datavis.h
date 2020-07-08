@@ -11,18 +11,10 @@
 #ifndef __DATAVIS_H
 #define __DATAVIS_H
 
-#include <main_helper.h>
-#include <shflight_consts.h>
-
 #ifndef PORT
 #define PORT 12376
 #endif
 
-typedef struct sockaddr sk_sockaddr;
-/**
- * @brief DataVis structure for storing current ACS data.
- * 
- */
 typedef struct
 {
     /**

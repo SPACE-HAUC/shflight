@@ -9,6 +9,34 @@
  * 
  */
 #include <sitl_comm.h>
+#include <acs_extern.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <pthread.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <termios.h>
+
+/**
+ * @brief Mutex to ensure atomicity of serial data read into the system.
+ * 
+ */
+pthread_mutex_t serial_read;
+/**
+ * @brief Mutex to ensure atomicity of magnetorquer output for serial communication.
+ * 
+ */
+pthread_mutex_t serial_write;
+/**
+ * @brief SITL communication time.
+ * 
+ */
+unsigned long long t_comm = 0;
+unsigned long long comm_time;
 
 int set_interface_attribs(int fd, int speed, int parity)
 {

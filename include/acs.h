@@ -10,10 +10,66 @@
  */
 #ifndef ACS_H
 #define ACS_H
-
-#include <main.h>
-#include <shflight_consts.h>
-#include <shflight_externs.h>
+#include <acs_extern.h> // will define SH_BUFFER_SIZE
+/**
+ * @brief Dipole moment of the magnetorquer rods
+ * 
+ */
+#define DIPOLE_MOMENT 0.22 // A m^-2
+/**
+ * @brief ACS loop time period
+ * 
+ */
+#define DETUMBLE_TIME_STEP 100000 // 100 ms for full loop
+/**
+ * @brief ACS readSensors() max execute time per cycle
+ * 
+ */
+#define MEASURE_TIME 20000 // 20 ms to measure
+/**
+ * @brief ACS max actuation time per cycle
+ * 
+ */
+#define MAX_DETUMBLE_FIRING_TIME (DETUMBLE_TIME_STEP - MEASURE_TIME) // Max allowed detumble fire time
+/**
+ * @brief Minimum magnetorquer firing time
+ * 
+ */
+#define MIN_DETUMBLE_FIRING_TIME 10000 // 10 ms
+/**
+ * @brief Sunpointing magnetorquer PWM duty cycle
+ * 
+ */
+#define SUNPOINT_DUTY_CYCLE 20000 // 20 msec, in usec
+/**
+ * @brief Course sun sensing mode loop time for ACS
+ * 
+ */
+#define COARSE_TIME_STEP DETUMBLE_TIME_STEP // 100 ms, in usec
+/**
+ * @brief Coarse sun sensor minimum lux threshold for valid measurement
+ * 
+ */
+#ifdef SITL
+#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
+#else
+#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
+#endif                                   // SITL
+/**
+ * @brief Acceptable leeway of the angular speed target
+ * 
+ */
+#define OMEGA_TARGET_LEEWAY z_g_W_target * 0.1 // 10% leeway in the value of omega_z
+/**
+ * @brief Sunpointing angle target (in degrees)
+ * 
+ */
+#define MIN_SOL_ANGLE 4 // minimum solar angle for sunpointing to be a success
+/**
+ * @brief Detumble angle target (in degrees)
+ * 
+ */
+#define MIN_DETUMBLE_ANGLE 4 // minimum angle for detumble to be a success
 
 /**
  * @brief Initializes the devices required to run the attitude control system.
