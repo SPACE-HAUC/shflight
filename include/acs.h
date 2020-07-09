@@ -92,7 +92,7 @@ int acs_init(void);
  * 
  * @return NULL
  */
-void *acs_thread(void *);
+void *acs_thread(void *id);
 
 /**
  * @brief Powers down ACS devices and closes relevant file descriptors.

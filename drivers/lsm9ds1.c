@@ -223,7 +223,7 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
  * @brief Set the mag field offsets using the array, order: X Y Z
  * 
  * @param dev Pointer to lsm9ds1
- * @param B Pointer to an array of short of length 3 where magnetometer offset is stored
+ * @param offset Pointer to an array of shorts of length 3 where magnetometer offset is stored
  * @return Returns 1 on success, -1 on failure 
  */
 int lsm9ds1_offset_mag(lsm9ds1 *dev, short *offset)

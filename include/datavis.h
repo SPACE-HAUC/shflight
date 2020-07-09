@@ -12,10 +12,16 @@
 #define __DATAVIS_H
 
 #ifndef PORT
+/**
+ * @brief TCP port on which DataVis transmission can be accessed.
+ */ 
 #define PORT 12376
 #endif
 #include <stdint.h>
 #include <macros.h>
+/**
+ * @brief Internal data structure of a DataVis packet. 
+ */
 typedef struct
 {
     /**

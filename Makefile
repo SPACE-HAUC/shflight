@@ -52,5 +52,7 @@ sim_server: build
 doc:
 	doxygen .doxyconfig
 
+pdf: doc
+	cd docs/latex && make && mv refman.pdf ../../
 # cleanobjs:
 # 	find $(CDR) -name "*.o" -type f

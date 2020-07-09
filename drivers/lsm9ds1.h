@@ -92,10 +92,21 @@ typedef struct __attribute__((packed))
     * 11: Ultra-high perf
     */
     uint8_t operative_mode : 2;
-    uint8_t temp_comp : 1; ///< Temperature compensation enable. Default value: 0 (0: temperature compensation disabled; 1: temperature compensation enabled)
+    /**
+     * @brief Temperature compensation enable.
+     * 
+     * Default value: 0
+     * 
+     * 0: Temperature compensation disabled
+     * 1: Temperature compensation enabled
+     */ 
+    uint8_t temp_comp : 1;
 } MAG_DATA_RATE;
 
 #define MAG_CTRL_REG2_M 0x21 ///< Magnetometer control register 2 address
+/**
+ * @brief Reset or configure scale of Magnetometer
+ */ 
 typedef struct __attribute__((packed))
 {
     uint8_t reserved : 2;  ///< Reserved, must be 0.
@@ -119,6 +130,9 @@ typedef struct __attribute__((packed))
 #define MAG_CTRL_REG4_DATA 0x0c ///< Magnetometer control register 4: [11][0 0], ultra high Z performance + little endian register data selection
 
 #define MAG_CTRL_REG5_M 0x24 ///< Magnetometer control register 5 address
+/**
+ * @brief Configures data updating method of the magnetometer.
+ */ 
 typedef struct __attribute__((packed))
 {
     uint8_t reserved : 6; ///< Reserved, must be 0.

@@ -116,7 +116,7 @@
  * @brief TSL2561 I2C Registers
  * 
  */
-enum
+typedef enum
 {
     TSL2561_REGISTER_CONTROL = 0x00,          ///< Control/power register
     TSL2561_REGISTER_TIMING = 0x01,           ///< Set integration time register
@@ -131,7 +131,7 @@ enum
     TSL2561_REGISTER_CHAN0_HIGH = 0x0D,       ///< Light data channel 0, high byte
     TSL2561_REGISTER_CHAN1_LOW = 0x0E,        ///< Light data channel 1, low byte
     TSL2561_REGISTER_CHAN1_HIGH = 0x0F        ///< Light data channel 1, high byte
-};
+} TSL2561_REGISTER_SET;
 
 /**
  * @brief Three options for how long to integrate readings for
