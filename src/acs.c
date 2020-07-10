@@ -43,12 +43,6 @@
 #define LMT "\x1B[95m" ///< light magenta
 #define LCY "\x1B[96m" ///< light cyan
 #define WHT "\x1B[97m" ///< white
-#ifdef ACS_PRINT
-/**
- * @brief This is a preprocessor directive to turn on ACS state information that is sent to STDOUT.
- */
-#define ACS_PRINT
-#endif // ACS_PRINT
 
 /* Variable allocation for ACS */
 /**
@@ -442,9 +436,6 @@ void getSVec(void)
         NORMALIZE(g_S[sol_index], g_S[sol_index]);
         return;
     }
-#ifdef ACS_PRINT
-    printf(RED "[FSS]" RST);
-#endif // ACS_PRINT
 
     // get average -Z luminosity from 4 sensors
     float znavg = 0;
@@ -463,7 +454,7 @@ void getSVec(void)
         g_night = 1;
         VECTOR_CLEAR(g_S[sol_index]); // return 0 solar vector
 #ifdef ACS_PRINT
-        printf("[" RED "FSS" RESET "]");
+        printf("[" RED "FSS" RST "]");
 #endif // ACS_PRINT
     }
     else
@@ -471,7 +462,7 @@ void getSVec(void)
         g_night = 0;
         NORMALIZE(g_S[sol_index], g_S[sol_index]); // return normalized sun vector
 #ifdef ACS_PRINT
-        printf("[" YLW "FSS" RESET "]");
+        printf("[" YLW "FSS" RST "]");
 #endif // ACS_PRINT
     }
     // printf("[sunvec %d] %0.3f %0.3f | %0.3f %0.3f %0.3f\n", sol_index, fsx, fsy, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);

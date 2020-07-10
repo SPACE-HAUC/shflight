@@ -316,4 +316,23 @@ inline double daverage(double arr[], int size)
     y_##dest = daverage(y_##src, size);  \
     z_##dest = daverage(z_##src, size)
 
+#ifdef _DOXYGEN_
+/**
+ * @brief Passing this option in CFLAGS enables data logging feature of ACS into a file.
+ */
+#define ACS_DATALOG
+/**
+ * @brief Passing this option in CFLAGS enables printing of ACS data to stdout.
+ */
+#define ACS_PRINT
+/**
+ * @brief Passing this option in CFLAGS compiles the program for software-in-the-loop (SITL) test.
+ */
+#define SITL
+/**
+ * @brief Passing this option in CFLAGS enables the DataVis subsystem that sets up
+ * a server at port PORT for data visualization.
+ */
+#define DATAVIS
+#endif // _DOXYGEN_
 #endif // __SH_MACROS_H
