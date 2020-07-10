@@ -2,16 +2,242 @@
  * @file acs.c
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
  * @brief Attitude Control System related functions
- * @version 0.1
- * @date 2020-03-19
+ * @version 0.2
+ * @date 2020-07-01
  * 
  * @copyright Copyright (c) 2020
  * 
  */
-#include <main.h>
-#include <shflight_externs.h>
-#include <shflight_consts.h>
-#include <acs.h>
+#include <macros.h>           // Macro definitions and functions specific to SHFlight
+#include <acs.h>              // prototypes for thread-local functions and variables only
+#include <main.h>             // loop control
+#include <bessel.h>           // bessel filter prototypes
+#include <sitl_comm_extern.h> // Variables shared with serial communication thread
+#include <datavis_extern.h>   // variables shared with DataVis thread
+#include <ads1115.h>
+#include <lsm9ds1.h>
+#include <ncv7708.h>
+#include <tsl2561.h>
+#include <tca9458a.h>
+#include <math.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+/**
+ * @brief This is color indicator for printf statements in ACS, for use in debug only."
+ */
+#define RST "\x1B[0m"  ///< reset to default
+#define BLK "\x1B[30m" ///< black
+#define RED "\x1B[31m" ///< red
+#define GRN "\x1B[32m" ///< green
+#define YLW "\x1B[33m" ///< yellow
+#define BLU "\x1B[34m" ///< blue
+#define MGT "\x1B[35m" ///< magenta
+#define CYN "\x1B[36m" ///< cyan
+#define LGY "\x1B[37m" ///< light gray
+#define DGY "\x1B[90m" ///< dark gray
+#define LRD "\x1B[91m" ///< light red
+#define LGR "\x1B[92m" ///< light green
+#define LYW "\x1B[93m" ///< light yellow
+#define LBU "\x1B[94m" ///< light blue
+#define LMT "\x1B[95m" ///< light magenta
+#define LCY "\x1B[96m" ///< light cyan
+#define WHT "\x1B[97m" ///< white
+
+/* Variable allocation for ACS */
+/**
+ * @brief Condition variable to synchronize ACS and Serial thread in SITL.
+ * 
+ */
+pthread_cond_t data_available;
+/**
+ * @brief Mutex for locking on data_available.
+ */ 
+pthread_mutex_t data_check;
+
+/**
+ * @brief This variable is unset by the ACS thread at first execution.
+ * 
+ */
+volatile int first_run = 1;
+
+// SITL
+/**
+ * @brief Declares vector to store magnetic field reading from serial.
+ * 
+ */
+DECLARE_VECTOR(g_readB, unsigned short); // storage to put helmhotz values
+/**
+ * @brief Fine sun sensor angles read over serial.
+ * 
+ */
+unsigned short g_readFS[2]; // storage to put FS X and Y angles
+/**
+ * @brief Coarse sun sensor lux values read over serial.
+ * 
+ */
+unsigned short g_readCS[9]; // storage to put CS led brightnesses
+/**
+ * @brief Magnetorquer command, format: 0b00ZZYYXX, 00 indicates not fired, 01 indicates fire in positive dir, 10 indicates fire in negative dir.
+ * 
+ */
+unsigned char g_Fire; // magnetorquer command
+
+// HITL
+/**
+ * @brief Magnetometer device struct.
+ * 
+ */
+lsm9ds1 *mag; // magnetometer
+/**
+ * @brief H-Bridge device struct.
+ * 
+ */
+ncv7708 *hbridge; // h-bridge
+/**
+ * @brief I2C Mux device struct.
+ * 
+ */
+tca9458a *mux; // I2C mux
+/**
+ * @brief Array of coarse sun sensor device struct.
+ * 
+ */
+tsl2561 **css; // coarse sun sensors
+/**
+ * @brief I2C ADC struct for fine sun sensor.
+ * 
+ */
+ads1115 *adc; // analog to digital converters
+              // SITL
+/**
+ * @brief Creates buffer for \f$\vec{\omega}\f$.
+ * 
+ */
+DECLARE_BUFFER(g_W, float); // omega global circular buffer
+/**
+ * @brief Creates buffer for \f$\vec{B}\f$.
+ * 
+ */
+DECLARE_BUFFER(g_B, double); // magnetic field global circular buffer
+/**
+ * @brief Creates buffer for \f$\vec{\dot{B}}\f$.
+ * 
+ */
+DECLARE_BUFFER(g_Bt, double); // Bdot global circular buffer1
+/**
+ * @brief Creates vector for target angular momentum.
+ * 
+ */
+DECLARE_VECTOR(g_L_target, float); // angular momentum target vector
+/**
+ * @brief Creates vector for target angular speed.
+ * 
+ */
+DECLARE_VECTOR(g_W_target, float); // angular velocity target vector
+/**
+ * @brief Creates buffer for sun vector.
+ * 
+ */
+DECLARE_BUFFER(g_S, float); // sun vector
+/**
+ * @brief Storage for current coarse sun sensor lux measurements.
+ * 
+ */
+float g_CSS[9]; // current CSS lux values, in HITL this will be populated by TSL2561 code
+/**
+ * @brief Storage for current fine sun sensor angle measurements.
+ * 
+ */
+float g_FSS[2]; // current FSS angles, in rad; in HITL this will be populated by NANOSSOC A60 driver
+/**
+ * @brief Current index of the \f$\vec{B}\f$ circular buffer.
+ * 
+ */
+int mag_index = -1;
+/**
+ * @brief Current index of the \f$\vec{\omega}\f$ circular buffer.
+ * 
+ */
+int omega_index = -1;
+/**
+ * @brief Current index of the \f$\vec{\dot{B}}\f$ circular buffer.
+ * 
+ */
+int bdot_index = -1;
+/**
+ * @brief Current index of the sun vector circular buffer.
+ * 
+ */
+int sol_index = -1; // circular buffer indices, -1 indicates uninitiated buffer
+/**
+ * @brief Indicates if the \f$\vec{B}\f$ circular buffer is full.
+ * 
+ */
+int B_full = 0;
+/**
+ * @brief Indicates if the \f$\vec{\dot{B}}\f$ circular buffer is full.
+ * 
+ */
+int Bdot_full = 0;
+/**
+ * @brief Indicates if the \f$\vec{\omega}\f$ circular buffer is full.
+ * 
+ */
+int W_full = 0;
+/**
+ * @brief Indicates if the sun vector circular buffer is full.
+ * 
+ */
+int S_full = 0; // required to deal with the circular buffer problem
+/**
+ * @brief This variable is set by checkTransition() if the satellite does not detect the sun.
+ * 
+ */
+uint8_t g_night = 0; // night mode?
+/**
+ * @brief This variable contains the current state of the flight system.
+ * 
+ */
+uint8_t g_acs_mode = 0; // Detumble by default
+/**
+ * @brief This variable is unset when the system is detumbled for the first time after a power cycle.
+ * 
+ */
+uint8_t g_first_detumble = 1; // first time detumble by default even at night
+/**
+ * @brief Counts the number of cycles on the ACS thread.
+ * 
+ */
+unsigned long long acs_ct = 0; // counts the number of ACS steps
+/**
+ * @brief Moment of inertia of the satellite (SI).
+ * 
+ */
+float MOI[3][3] = {{0.06467720404, 0, 0},
+                   {0, 0.06474406267, 0},
+                   {0, 0, 0.07921836177}};
+/**
+ * @brief Inverse of the moment of inertia of the satellite (SI).
+ * 
+ */
+float IMOI[3][3] = {{15.461398105297564, 0, 0},
+                    {0, 15.461398105297564, 0},
+                    {0, 0, 12.623336025344317}};
+/**
+ * @brief Current timestamp after readSensors() in ACS thread, used to keep track of time taken by ACS loop.
+ * 
+ */
+unsigned long long g_t_acs;
+
+#ifdef ACS_DATALOG
+/**
+ * @brief ACS Datalog file pointer.
+ * 
+ */
+FILE *acs_datalog;
+#endif
+/*******************************/
 
 /**
  * @brief This function executes the detumble algorithm.
@@ -24,7 +250,7 @@
  * 0.01 indicates that torquer can be fired, in the direction indicated by
  * the sign of the component. Further, the torque that is generated by
  * the firing decision is estimated for the current value of the magnetic
- * field by calculating \f$\vec{\tau}=\vec{mu}\times\vec{B}\f$, where
+ * field by calculating \f$\vec{\tau}=\vec{\mu}\times\vec{B}\f$, where
  * \f$\vec{mu}\f$ is calculated by multiplying the firing direction vector
  * with the dipole moment of the magnetorquers (0.21 A\f$\cdot\f$m\f$^2\f$).
  * Then for each direction, the firing time is estimated by
@@ -191,6 +417,9 @@ void getSVec(void)
     float fsy = g_FSS[1];
 #endif // SITL
 #ifndef M_PI
+/**
+ * @brief Approximate definition of Pi in case M_PI is not included from math.h
+ */ 
 #define M_PI 3.1415
 #endif
     // check if FSS results are acceptable
@@ -198,7 +427,9 @@ void getSVec(void)
     // printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
     if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
-        printf("[FSS VALID]");
+#ifdef ACS_PRINT
+        printf("[" GRN "FSS" RST "]");
+#endif                                            // ACS_PRINT
         x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
@@ -222,11 +453,17 @@ void getSVec(void)
     {
         g_night = 1;
         VECTOR_CLEAR(g_S[sol_index]); // return 0 solar vector
+#ifdef ACS_PRINT
+        printf("[" RED "FSS" RST "]");
+#endif // ACS_PRINT
     }
     else
     {
         g_night = 0;
         NORMALIZE(g_S[sol_index], g_S[sol_index]); // return normalized sun vector
+#ifdef ACS_PRINT
+        printf("[" YLW "FSS" RST "]");
+#endif // ACS_PRINT
     }
     // printf("[sunvec %d] %0.3f %0.3f | %0.3f %0.3f %0.3f\n", sol_index, fsx, fsy, x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
     return;
@@ -487,11 +724,13 @@ void *acs_thread(void *id)
         //time_t now ; time(&now);
         if (omega_index >= 0)
         {
+#ifdef ACS_PRINT
 #ifdef SITL
-            printf("[%.3f ms][%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", comm_time / 1000.0, (s - g_t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%.3f ms][%.3f ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", comm_time / 1000.0, (s - g_t_acs) / 1000.0, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #else
-            printf("[%llu ms] ACS step: %llu | Wx = %f Wy = %f Wz = %f\n", (s - g_t_acs) / 1000, acs_ct++, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
+            printf("[%.3f ms][%llu][%d] | Wx = %.3e Wy = %.3e Wz = %.3e\n", (s - g_t_acs) / 1000.0, acs_ct++, g_acs_mode, x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index]);
 #endif // SITL
+#endif // ACS_PRINT
 #ifdef DATAVIS
             // Update datavis variables [DO NOT TOUCH]
             g_datavis_st.data.step = acs_ct;
@@ -704,6 +943,21 @@ void insertionSort(int a1[], int a2[])
 
 int acs_init(void)
 {
+    /* Set up data logging */
+#ifdef ACS_DATALOG
+    int bc = sys_boot_count;
+    char fname[40] = {0}; // Holds file name where log file is saved
+    sprintf(fname, "logfile%d.txt", bc);
+
+    acs_datalog = fopen(fname, "w");
+#endif // ACS_DATALOG
+    /* End setup datalogging */
+
+    // init for bessel coefficients
+    calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
+
+    // initialize target omega
+    z_g_W_target = 1; // 1 rad s^-1
     MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
 
 #ifndef SITL // Prepare devices for HITL
@@ -801,7 +1055,7 @@ int acs_init(void)
 
 void acs_destroy(void)
 {
-#ifndef SITL
+#ifndef SITL // if SITL, no need to disable any devices
 #ifdef CSS_READY
     // Destroy CSSs
     for (int i = 0; i < 3; i++)

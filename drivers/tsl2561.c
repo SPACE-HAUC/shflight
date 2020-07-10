@@ -8,7 +8,99 @@
  * @copyright Copyright (c) 2020
  * 
  */
+#include <stdint.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <linux/types.h>
+#include <linux/i2c-dev.h>
 #include "tsl2561.h"
+// #include </usr/src/linux-headers-4.4.0-171-generic/include/config/i2c/smbus.h>
+// #include <i2c/smbus.h>
+#include <signal.h>
+
+/**
+ * @brief write 8 bytes to the device represented by the file descriptor.
+ * 
+ * @param fd 
+ * @param val 
+ */
+static inline void write8(int fd, uint8_t val)
+{
+    uint8_t buf = val;
+    int res = write(fd, &buf, 1);
+    if (res != 1)
+        perror(__FUNCTION__);
+}
+/**
+ * @brief Write a command to the register on the device represented by fd
+ * 
+ * @param fd File descriptor
+ * @param reg Register address
+ * @param val Value to write at register address
+ */
+static inline void writecmd8(int fd, uint8_t reg, uint8_t val)
+{
+    uint8_t buf[2] = {0x0};
+    buf[0] = reg;
+    buf[1] = val;
+    int res = write(fd, &buf, 2);
+    if (res != 2)
+        perror(__FUNCTION__);
+}
+/**
+ * @brief Read a byte from the specified register on the device represented by fd
+ * 
+ * @param fd 
+ * @param reg Register address
+ * @return Byte read over serial 
+ */
+static inline uint8_t read8(int fd, uint8_t reg)
+{
+    write8(fd, reg);
+    uint8_t buf = 0x00;
+    int res = read(fd, &buf, 1);
+    if (res != 1)
+        perror(__FUNCTION__);
+    return buf;
+}
+/**
+ * @brief Write 16 bits to the device (very similar to writecmd8())
+ * 
+ * @param fd 
+ * @param val 
+ */
+static inline void write16(int fd, uint16_t val)
+{
+    uint8_t buf[2];
+    buf[0] = val >> 8;
+    buf[1] = 0x00ff & val;
+    int res = write(fd, buf, 2);
+    if (res != 2)
+        perror(__FUNCTION__);
+    return;
+}
+/**
+ * @brief Read 2 bytes in LE format from reg on the device represented by fd 
+ * 
+ * @param fd 
+ * @param cmd 
+ * @return uint16_t 
+ */
+static inline uint16_t read16(int fd, uint8_t cmd)
+{
+    uint8_t buf[2] = {0x0};
+    write8(fd, cmd);
+    int res = read(fd, buf, 2);
+    if (res != 2)
+        perror(__FUNCTION__);
+    return buf[0] | ((unsigned short)buf[1]) << 8;
+}
+
 /**
  * @brief Init function for the TSL2561 device. Default: I2C_BUS
  * TODO: Fix init + gain, figure out what goes wrong if ID

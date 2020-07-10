@@ -2,13 +2,21 @@
  * @file bessel.c
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
  * @brief Bessel filter implementation for Attitude Control System.
- * @version 0.1
+ * @version 0.2
  * @date 2020-03-19
  * 
  * @copyright Copyright (c) 2020
  * 
  */
 #include <bessel.h>
+#include <stdlib.h>
+
+/**
+ * @brief Coefficients for the Bessel filter, calculated using calculateBessel().
+ * 
+ */
+float bessel_coeff[SH_BUFFER_SIZE]; // coefficients for Bessel filter, declared as floating point
+
 /**
  * @brief Calculates factorial of the input. This function is inlined, and is available only in the scope of bessel.c.
  * 

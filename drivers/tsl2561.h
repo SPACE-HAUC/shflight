@@ -13,18 +13,6 @@
 #define TSL2561_H
 
 #include <stdint.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
-#include <linux/i2c-dev.h>
-// #include </usr/src/linux-headers-4.4.0-171-generic/include/config/i2c/smbus.h>
-// #include <i2c/smbus.h>
-#include <signal.h>
 
 /******************************************************************************/
 #define TSL2561_VISIBLE 2      ///< channel 0 - channel 1
@@ -128,7 +116,7 @@
  * @brief TSL2561 I2C Registers
  * 
  */
-enum
+typedef enum
 {
     TSL2561_REGISTER_CONTROL = 0x00,          ///< Control/power register
     TSL2561_REGISTER_TIMING = 0x01,           ///< Set integration time register
@@ -143,7 +131,7 @@ enum
     TSL2561_REGISTER_CHAN0_HIGH = 0x0D,       ///< Light data channel 0, high byte
     TSL2561_REGISTER_CHAN1_LOW = 0x0E,        ///< Light data channel 1, low byte
     TSL2561_REGISTER_CHAN1_HIGH = 0x0F        ///< Light data channel 1, high byte
-};
+} TSL2561_REGISTER_SET;
 
 /**
  * @brief Three options for how long to integrate readings for
@@ -184,82 +172,4 @@ int tsl2561_init(tsl2561 *dev, uint8_t s_address);
 void tsl2561_measure(tsl2561 *dev, uint32_t *measure);
 uint32_t tsl2561_get_lux(uint32_t measure);
 void tsl2561_destroy(tsl2561 *dev);
-/**
- * @brief write 8 bytes to the device represented by the file descriptor.
- * 
- * @param fd 
- * @param val 
- */
-static inline void write8(int fd, uint8_t val)
-{
-    uint8_t buf = val;
-    int res = write(fd, &buf, 1);
-    if (res != 1)
-        perror(__FUNCTION__);
-}
-/**
- * @brief Write a command to the register on the device represented by fd
- * 
- * @param fd File descriptor
- * @param reg Register address
- * @param val Value to write at register address
- */
-static inline void writecmd8(int fd, uint8_t reg, uint8_t val)
-{
-    uint8_t buf[2] = {0x0};
-    buf[0] = reg;
-    buf[1] = val;
-    int res = write(fd, &buf, 2);
-    if (res != 2)
-        perror(__FUNCTION__);
-}
-/**
- * @brief Read a byte from the specified register on the device represented by fd
- * 
- * @param fd 
- * @param reg Register address
- * @return Byte read over serial 
- */
-static inline uint8_t read8(int fd, uint8_t reg)
-{
-    write8(fd, reg);
-    uint8_t buf = 0x00;
-    int res = read(fd, &buf, 1);
-    if (res != 1)
-        perror(__FUNCTION__);
-    return buf;
-}
-/**
- * @brief Write 16 bits to the device (very similar to writecmd8())
- * 
- * @param fd 
- * @param val 
- */
-static inline void write16(int fd, uint16_t val)
-{
-    uint8_t buf[2];
-    buf[0] = val >> 8;
-    buf[1] = 0x00ff & val;
-    int res = write(fd, buf, 2);
-    if (res != 2)
-        perror(__FUNCTION__);
-    return;
-}
-/**
- * @brief Read 2 bytes in LE format from reg on the device represented by fd 
- * 
- * @param fd 
- * @param cmd 
- * @return uint16_t 
- */
-static inline uint16_t read16(int fd, uint8_t cmd)
-{
-    uint8_t buf[2] = {0x0};
-    write8(fd, cmd);
-    int res = read(fd, buf, 2);
-    if (res != 2)
-        perror(__FUNCTION__);
-    return buf[0] | ((unsigned short)buf[1]) << 8;
-}
-
 #endif // TSL2561_H

@@ -10,17 +10,16 @@
  */
 #ifndef __SHFLIGHT_BESSEL_H
 #define __SHFLIGHT_BESSEL_H
-#include <main.h>
-#include <shflight_consts.h>
+#include <acs_extern.h>
 /**
- * @brief Minimum threshold for Bessel coefficient for filter calculations.
+ * @brief Bessel coefficient minimum value threshold for computation
  * 
  */
 #ifndef BESSEL_MIN_THRESHOLD
 #define BESSEL_MIN_THRESHOLD 0.001 // randomly chosen minimum value for valid coefficient
 #endif
 /**
- * @brief Cut off frequency for the Bessel filter. cutoff frequency 5 == 5*DETUMBLE_TIME_STEP seconds cycle == 2 Hz at 100ms loop speed
+ * @brief Bessel filter cutoff frequency
  * 
  */
 #ifndef BESSEL_FREQ_CUTOFF

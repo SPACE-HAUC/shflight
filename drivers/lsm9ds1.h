@@ -1,4 +1,3 @@
-
 /**
  * @file lsm9ds1.h
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
@@ -9,15 +8,10 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include <stdlib.h>
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
-#include <errno.h>
+#ifndef LSM9DS1_H
+#define LSM9DS1_H
+
 #include <stdint.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/ioctl.h>
 /**
  * @brief Default I2C device address
  * 
@@ -98,10 +92,21 @@ typedef struct __attribute__((packed))
     * 11: Ultra-high perf
     */
     uint8_t operative_mode : 2;
-    uint8_t temp_comp : 1; ///< Temperature compensation enable. Default value: 0 (0: temperature compensation disabled; 1: temperature compensation enabled)
+    /**
+     * @brief Temperature compensation enable.
+     * 
+     * Default value: 0
+     * 
+     * 0: Temperature compensation disabled
+     * 1: Temperature compensation enabled
+     */ 
+    uint8_t temp_comp : 1;
 } MAG_DATA_RATE;
 
 #define MAG_CTRL_REG2_M 0x21 ///< Magnetometer control register 2 address
+/**
+ * @brief Reset or configure scale of Magnetometer
+ */ 
 typedef struct __attribute__((packed))
 {
     uint8_t reserved : 2;  ///< Reserved, must be 0.
@@ -125,6 +130,9 @@ typedef struct __attribute__((packed))
 #define MAG_CTRL_REG4_DATA 0x0c ///< Magnetometer control register 4: [11][0 0], ultra high Z performance + little endian register data selection
 
 #define MAG_CTRL_REG5_M 0x24 ///< Magnetometer control register 5 address
+/**
+ * @brief Configures data updating method of the magnetometer.
+ */ 
 typedef struct __attribute__((packed))
 {
     uint8_t reserved : 6; ///< Reserved, must be 0.
@@ -176,3 +184,5 @@ int lsm9ds1_reset_mag(lsm9ds1 *);
 int lsm9ds1_read_mag(lsm9ds1 *, short *);
 int lsm9ds1_offset_mag(lsm9ds1 *, short *);
 void lsm9ds1_destroy(lsm9ds1 *);
+
+#endif // LSM9DS1_H

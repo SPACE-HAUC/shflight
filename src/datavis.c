@@ -1,5 +1,30 @@
 #include <datavis.h>
-#include <shflight_externs.h>
+#include <string.h>
+#include <termios.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <main.h>
+/**
+ * @brief DataVis data structure.
+ * 
+ */
+data_packet g_datavis_st;
+/**
+ * @brief Mutex to ensure atomicity of DataVis and ACS variable access.
+ * 
+ */
+pthread_mutex_t datavis_mutex;
+/**
+ * @brief Condition variable used by ACS to signal to DataVis that data is ready.
+ * 
+ */
+pthread_cond_t datavis_drdy;
+
+typedef struct sockaddr sk_sockaddr;
 
 void *datavis_thread(void *t)
 {

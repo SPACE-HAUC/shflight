@@ -8,6 +8,16 @@
  * @copyright Copyright (c) 2020
  * 
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
 #include "lsm9ds1.h"
 /**
  * @brief Takes the pointer to the device struct, XL address and M address,
@@ -213,7 +223,7 @@ int lsm9ds1_read_mag(lsm9ds1 *dev, short *B)
  * @brief Set the mag field offsets using the array, order: X Y Z
  * 
  * @param dev Pointer to lsm9ds1
- * @param B Pointer to an array of short of length 3 where magnetometer offset is stored
+ * @param offset Pointer to an array of shorts of length 3 where magnetometer offset is stored
  * @return Returns 1 on success, -1 on failure 
  */
 int lsm9ds1_offset_mag(lsm9ds1 *dev, short *offset)

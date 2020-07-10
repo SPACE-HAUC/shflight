@@ -8,6 +8,16 @@
  * @copyright Copyright (c) 2020
  * 
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
 #include "tca9458a.h"
 /**
  * @brief Initialize a Mux device, returns 1 on success

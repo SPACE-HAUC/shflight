@@ -2,17 +2,26 @@
  * @file main.c
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
  * @brief main() symbol of the SPACE-HAUC Flight Software.
- * @version 0.1
+ * @version 0.2
  * @date 2020-03-19
  * 
  * @copyright Copyright (c) 2020
  * 
  */
+#define MAIN_PRIVATE // enable prototypes in main.h and modules in modules.h
 #include <main.h>
-#include <main_helper.h>
-#include <shflight_consts.h>
-#include <shflight_globals.h>
-#include <shflight_externs.h>
+#include <modules.h>
+#undef MAIN_PRIVATE
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+
+int sys_boot_count = -1;
+volatile sig_atomic_t done = 0;
+__thread int sys_status;
+
 /**
  * @brief Main function executed when shflight.out binary is executed
  * 
@@ -20,56 +29,41 @@
  */
 int main(void)
 {
+    // Boot counter
+    sys_boot_count = bootCount(); // Holds bootCount to generate a different log file at every boot
+    if (sys_boot_count < 0)
+    {
+        fprintf(stderr, "Boot count returned negative, fatal error. Exiting.\n");
+        exit(-1);
+    }
     // SIGINT handler register
     struct sigaction saction;
     saction.sa_handler = &catch_sigint;
     sigaction(SIGINT, &saction, NULL);
-
-    /* Set up data logging */
-#ifdef ACS_DATALOG
-    int bc = bootCount(); // Holds bootCount to generate a different log file at every boot
-    char fname[40] = {0}; // Holds file name where log file is saved
-    sprintf(fname, "logfile%d.txt", bc);
-
-    acs_datalog = fopen(fname, "w");
-#endif // ACS_DATALOG
-    /* End setup datalogging */
-
-    // init for different threads
-    calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
-
-    z_g_W_target = 1; // 1 rad s^-1
-
-    sys_status = acs_init(); // initialize ACS devices
-    if (sys_status < 0)
+    // initialize modules
+    for (int i = 0; i < num_init; i++)
     {
-        sherror("ACS Init");
-        exit(sys_status);
+        int val = module_init[i]();
+        if (val < 0)
+        {
+            sherror("Error in initialization!");
+            exit(-1);
+        }
     }
+    printf("Done init modules\n");
     // set up threads
-    int rc[NUM_SYSTEMS];                                         // fork-join return codes
-    pthread_t thread[NUM_SYSTEMS];                               // thread containers
+    int rc[num_systems];                                         // fork-join return codes
+    pthread_t thread[num_systems];                               // thread containers
     pthread_attr_t attr;                                         // thread attribute
-    int args[NUM_SYSTEMS];                                       // thread arguments (thread id in this case, but can be expanded by passing structs etc)
+    int args[num_systems];                                       // thread arguments (thread id in this case, but can be expanded by passing structs etc)
     void *status;                                                // thread return value
     pthread_attr_init(&attr);                                    // initialize attribute
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); // create threads to be joinable
 
-    // create array of systems
-    void *fn_array[NUM_SYSTEMS];
-
-    // fill the array of systems
-    fn_array[0] = acs_thread;
-#ifdef DATAVIS
-    fn_array[1] = datavis_thread;
-#endif // DATAVIS
-#ifdef SITL
-    fn_array[2] = sitl_comm;
-#endif // SITL
-    for (int i = 0; i < NUM_SYSTEMS; i++)
+    for (int i = 0; i < num_systems; i++)
     {
         args[i] = i; // sending a pointer to i to every thread may end up with duplicate thread ids because of access times
-        rc[i] = pthread_create(&thread[i], &attr, fn_array[i], (void *)(&args[i]));
+        rc[i] = pthread_create(&thread[i], &attr, module_exec[i], (void *)(&args[i]));
         if (rc[i])
         {
             printf("[Main] Error: Unable to create thread %d: Errno %d\n", i, errno);
@@ -79,7 +73,7 @@ int main(void)
 
     pthread_attr_destroy(&attr); // destroy the attribute
 
-    for (int i = 0; i < NUM_SYSTEMS; i++)
+    for (int i = 0; i < num_systems; i++)
     {
         rc[i] = pthread_join(thread[i], &status);
         if (rc[i])
@@ -89,8 +83,11 @@ int main(void)
         }
     }
 
-    // destroy for different threads
-    acs_destroy();
+    // destroy modules
+    for (int i = 0; i < num_destroy; i++)
+    {
+        module_destroy[i]();
+    }
     return 0;
 }
 /**
@@ -102,12 +99,8 @@ int main(void)
 void catch_sigint(int sig)
 {
     done = 1;
-#ifdef SITL
-    pthread_cond_broadcast(&data_available);
-#endif // SITL
-#ifdef DATAVIS
-    pthread_cond_broadcast(&datavis_drdy);
-#endif // DATAVIS
+    for (int i = 0; i < num_wakeups; i++)
+        pthread_cond_broadcast(wakeups[i]);
 }
 /**
  * @brief Prints errors specific to shflight in a fashion similar to perror
@@ -143,6 +136,30 @@ void sherror(const char *msg)
         break;
 
     default:
+        fprintf(stderr, "%s\n", msg);
         break;
     }
+}
+
+int bootCount()
+{
+    FILE *fp;
+    int _bootCount = 0;                      // assume 0 boot
+    if (access(BOOTCOUNT_FNAME, F_OK) != -1) // file exists
+    {
+        fp = fopen(BOOTCOUNT_FNAME, "r+");              // open file for reading
+        int read_bytes = fscanf(fp, "%d", &_bootCount); // read bootcount
+        if (read_bytes < 0)                             // if no bytes were read
+        {
+            perror("File not read"); // indicate error
+            _bootCount = 0;          // reset boot count
+        }
+        fclose(fp); // close
+    }
+    // Update boot file
+    fp = fopen(BOOTCOUNT_FNAME, "w"); // open for writing
+    fprintf(fp, "%d", ++_bootCount);  // write 1
+    fclose(fp);                       // close
+    sync();                           // sync file system
+    return --_bootCount;              // return 0 on first boot, return 1 on second boot etc
 }

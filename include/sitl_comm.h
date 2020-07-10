@@ -2,7 +2,7 @@
  * @file sitl_comm.h
  * @author Sunip K. Mukherjee (sunipkmukherjee@gmail.com)
  * @brief Software-In-The-Loop (SITL) serial communication headers and function prototypes
- * @version 0.1
+ * @version 0.2
  * @date 2020-03-19
  * 
  * @copyright Copyright (c) 2020
@@ -10,11 +10,12 @@
  */
 #ifndef __SITL_COMM_H
 #define __SITL_COMM_H
-#include <main.h>
-#include <main_helper.h>
-#include <shflight_consts.h>
-#include <shflight_externs.h>
-
+/**
+ * @brief File descriptor for SITL comm device
+ */
+#ifndef SITL_COMM_IFACE
+#define SITL_COMM_IFACE "/dev/ttyS0"
+#endif 
 /**
  * @brief Set speed and parity attributes for the serial device
  * 

@@ -11,17 +11,16 @@
 #ifndef __DATAVIS_H
 #define __DATAVIS_H
 
-#include <main_helper.h>
-#include <shflight_consts.h>
-
 #ifndef PORT
+/**
+ * @brief TCP port on which DataVis transmission can be accessed.
+ */ 
 #define PORT 12376
 #endif
-
-typedef struct sockaddr sk_sockaddr;
+#include <stdint.h>
+#include <macros.h>
 /**
- * @brief DataVis structure for storing current ACS data.
- * 
+ * @brief Internal data structure of a DataVis packet. 
  */
 typedef struct
 {

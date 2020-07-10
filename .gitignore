@@ -2,7 +2,7 @@
 build/
 macosx/
 data/
-
+docs/
 # Compiled source #
 ###################
 *.com

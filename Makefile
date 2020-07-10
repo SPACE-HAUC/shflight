@@ -16,7 +16,7 @@ EDCFLAGS:= -Wall -fno-strict-aliasing -std=gnu11 -O2 $(EDCFLAGS)
 EDLDFLAGS:= -lm -lpthread $(EDLDFLAGS)
 
 TARGETOBJS=drivers/ncv7708.o drivers/tsl2561.o drivers/tca9458a.o drivers/ads1115.o drivers/lsm9ds1.o \
-			src/main.o src/sitl_comm.o src/datavis.o src/acs.o src/bessel.o src/main_helper.o
+			src/main.o src/sitl_comm.o src/datavis.o src/acs.o src/bessel.o
 
 TARGET=shflight.out
 
@@ -52,5 +52,7 @@ sim_server: build
 doc:
 	doxygen .doxyconfig
 
+pdf: doc
+	cd docs/latex && make && mv refman.pdf ../../
 # cleanobjs:
 # 	find $(CDR) -name "*.o" -type f
