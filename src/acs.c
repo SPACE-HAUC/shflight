@@ -428,7 +428,7 @@ void getSVec(void)
     if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
 #ifdef ACS_PRINT
-        printf("[" GRN "FSS" RESET "]");
+        printf("[" GRN "FSS" RST "]");
 #endif                                            // ACS_PRINT
         x_g_S[sol_index] = tan(fsx * M_PI / 180); // Consult https://www.cubesatshop.com/wp-content/uploads/2016/06/nanoSSOC-A60-Technical-Specifications.pdf, section 4
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
