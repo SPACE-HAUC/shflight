@@ -20,6 +20,10 @@
 #define _impl_CASSERT_LINE(predicate, line) \
     typedef char _impl_PASTE(assertion_failed, line)[2 * !!(predicate)-1];
 
+#ifndef SPI_BUS
+#define SPI_BUS "/dev/spi1"
+#endif
+
 /**
  * @brief Data type representing an ADAR register.
  * To write to all chips, reset addr and set bit 11 of reg.
@@ -74,7 +78,7 @@ typedef enum
     CH4_TX_PHASE_I,
     CH4_TX_PHASE_Q,
     LD_WRK_REGS = 0x28,
-    CH1_PA_BIAS_ON,
+    CH1_PA_BIAS_ON, ///< Transmit
     CH2_PA_BIAS_ON,
     CH3_PA_BIAS_ON,
     CH4_PA_BIAS_ON,
@@ -101,7 +105,7 @@ typedef enum
     TX_CH3_MEM,
     TX_CH4_MEM,
     REV_ID,
-    CH1_PA_BIAS_OFF,
+    CH1_PA_BIAS_OFF, ///< Receive
     CH2_PA_BIAS_OFF,
     CH3_PA_BIAS_OFF,
     CH4_PA_BIAS_OFF,
@@ -229,7 +233,7 @@ CASSERT(sizeof(ld_wrk_regs) == 1);
 typedef unsigned char chx_pa_bias_on; ///< External bias for external PA X
 CASSERT(sizeof(chx_pa_bias_on) == 1);
 
-typedef unsigned char lna_bias_on; ///< External bias for external LNAs
+typedef unsigned char lna_bias_on; ///< External bias for external LNAs, 0 to -4.8V
 CASSERT(sizeof(lna_bias_on) == 1);
 
 typedef union {
@@ -365,7 +369,7 @@ CASSERT(sizeof(rev_id) == 1);
 typedef unsigned char chx_pa_bias_off; ///< External bias for external PA X
 CASSERT(sizeof(chx_pa_bias_off) == 1);
 
-typedef unsigned char lna_bias_off; ///< External bias for external LNAs
+typedef unsigned char lna_bias_off; ///< External bias for external LNAs, 0 to -4.8V
 CASSERT(sizeof(lna_bias_off) == 1);
 
 typedef union {
@@ -737,6 +741,7 @@ CASSERT(sizeof(trx_beam_pos)==121*sizeof(adar_beam_pos));
 
 typedef struct
 {
+    unsigned char addr:3;
     struct spi_ioc_transfer xfer[1]; ///< SPI Transfer IO buffer
     int file;                        ///< File descriptor for SPI bus
     __u8 mode;                       ///< SPI Mode (Mode 0)
@@ -744,10 +749,12 @@ typedef struct
     __u8 bits;                       ///< Number of bits per transfer (16)
     __u32 speed;                     ///< SPI Bus speed (1 MHz)
     char fname[40];                  ///< SPI device file name
+    int cs_gpio;                     ///< GPIO file descriptor
 } adar1000;
 
-int adar1000_init(adar1000 *dev);
+int adar1000_init(adar1000 *dev, unsigned char addr);
 int adar1000_xfer(adar1000 *dev, void *data, ssize_t len);
+int adar1000_wr_reg(adar1000 *dev, adar_register *reg);
 void adar1000_destroy(adar1000 *dev);
 #endif // ADAR_1000_H
 /*
