@@ -729,7 +729,7 @@ unsigned char adar_phase_to_q[] = {
 /**
  * @brief Collection of 121 beam parameters for storage in ADAR1000 RAM.
  */ 
-typedef union {
+typedef union __attribute__((packed)){
     adar_beam_pos beam[121];
     unsigned char val[121*sizeof(adar_beam_pos)];
 } trx_beam_pos;
@@ -753,6 +753,7 @@ typedef struct
 } adar1000;
 
 int adar1000_init(adar1000 *dev, unsigned char addr);
+int adar1000_load_multiple_chns(adar1000 *devs, float *phases);
 int adar1000_xfer(adar1000 *dev, void *data, ssize_t len);
 int adar1000_wr_reg(adar1000 *dev, adar_register *reg);
 void adar1000_destroy(adar1000 *dev);

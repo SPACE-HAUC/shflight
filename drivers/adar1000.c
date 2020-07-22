@@ -229,12 +229,12 @@ int adar1000_enable_trx(adar1000 *dev, unsigned char trx)
     adar_register reg;
     reg.addr = dev->addr;
     unsigned char buf[3];
-    // Enable SPI instead of internal RAM
-    reg.reg = MEM_CTRL;
-    reg.data = 0x60;
-    invert_arr(buf, reg.bytes);
-    if (adar1000_xfer(dev, buf, 3) < 0)
-        return -1;
+    // // Enable SPI instead of internal RAM
+    // reg.reg = MEM_CTRL;
+    // reg.data = 0x60;
+    // invert_arr(buf, reg.bytes);
+    // if (adar1000_xfer(dev, buf, 3) < 0)
+    //     return -1;
 
     // Select TR input for transmit/receive
     reg.reg = SW_CTRL;
@@ -461,6 +461,46 @@ int adar1000_set_rx_beam(adar1000 *dev, unsigned char chn, float phase)
             return -1;
         break;
     }
+    return 1;
+}
+
+int adar1000_set_ram(adar1000 *dev, unsigned char val)
+{
+    adar_register reg;
+    unsigned char buf[3];
+    reg.addr = dev->addr;
+    reg.reg = MEM_CTRL;
+    reg.data = val > 0 ? 0x0 : 0x60; // if true, load from RAM else load from SPI
+    invert_arr(buf, reg.bytes);
+    if (adar1000_xfer(dev, buf, 3) < 0)
+        return -1;
+    return 1;
+}
+
+int adar1000_set_block_beam(adar1000 *dev, unsigned char trx, trx_beam_pos beam)
+{
+    unsigned short base_addr;
+    switch (trx)
+    {
+        case 1: // tx
+        base_addr = 0x1800;
+        break;
+
+        case 2: // rx
+        base_addr = 0x1000;
+        break;
+
+        default:
+        return -1;
+        break;
+    }
+    base_addr |= (dev->addr) << 13; // shift device address to the top of base address
+    unsigned char buf[2+sizeof(trx_beam_pos)];
+    buf[0] = base_addr >> 8;
+    buf[1] = base_addr;
+    memcpy(&buf[2], beam.val, sizeof(trx_beam_pos));
+    if(adar1000_xfer(dev, buf, 2+sizeof(trx_beam_pos)) < 0)
+        return -1;
     return 1;
 }
 
