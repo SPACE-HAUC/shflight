@@ -102,6 +102,21 @@ static inline void invert_arr(unsigned char dest[], unsigned char src[])
     dest[2] = src[0];
 }
 
+static inline int adar1000_xfer(adar1000 *dev, void *data, ssize_t len)
+{
+    int status = 0;
+    dev->xfer[0].tx_buf = (unsigned long)data;
+    dev->xfer[0].len = 3;
+    status = ioctl(dev->file, SPI_IOC_MESSAGE(1), dev->xfer);
+    if (status < 0)
+    {
+        perror("ADAR1000: SPI_IOC_MESSAGE");
+        return -1;
+    }
+    usleep(100); // sleep 100 us
+    return status;
+}
+
 int adar1000_init(adar1000 *dev, unsigned char addr)
 {
     if (!_adar1000_init(dev))
@@ -305,7 +320,7 @@ int adar1000_set_tx_beam(adar1000 *dev, unsigned char chn, float phase)
     {
     case 0:
         reg.reg = CH1_TX_GAIN;
-        reg.data = 0x16;
+        reg.data = 0xff;
         invert_arr(buf, reg.bytes);
         if (adar1000_xfer(dev, buf, 3) < 0)
             return -1;
@@ -372,6 +387,11 @@ int adar1000_set_tx_beam(adar1000 *dev, unsigned char chn, float phase)
             return -1;
         break;
     }
+    reg.reg = LD_WRK_REGS;
+    reg.data = 0x2;
+    invert_arr(buf, reg.bytes);
+    if (adar1000_xfer(dev, buf, 3) < 0)
+        return -1;
     return 1;
 }
 
@@ -461,6 +481,11 @@ int adar1000_set_rx_beam(adar1000 *dev, unsigned char chn, float phase)
             return -1;
         break;
     }
+    reg.reg = LD_WRK_REGS;
+    reg.data = 0x1;
+    invert_arr(buf, reg.bytes);
+    if (adar1000_xfer(dev, buf, 3) < 0)
+        return -1;
     return 1;
 }
 
@@ -482,46 +507,86 @@ int adar1000_set_block_beam(adar1000 *dev, unsigned char trx, trx_beam_pos beam)
     unsigned short base_addr;
     switch (trx)
     {
-        case 1: // tx
+    case 1: // tx
         base_addr = 0x1800;
         break;
 
-        case 2: // rx
+    case 2: // rx
         base_addr = 0x1000;
         break;
 
-        default:
+    default:
         return -1;
         break;
     }
     base_addr |= (dev->addr) << 13; // shift device address to the top of base address
-    unsigned char buf[2+sizeof(trx_beam_pos)];
+    unsigned char buf[2 + sizeof(trx_beam_pos)];
     buf[0] = base_addr >> 8;
     buf[1] = base_addr;
     memcpy(&buf[2], beam.val, sizeof(trx_beam_pos));
-    if(adar1000_xfer(dev, buf, 2+sizeof(trx_beam_pos)) < 0)
+    if (adar1000_xfer(dev, buf, 2 + sizeof(trx_beam_pos)) < 0)
         return -1;
     return 1;
 }
 
-int adar1000_xfer(adar1000 *dev, void *data, ssize_t len)
-{
-    int status = 0;
-    dev->xfer[0].tx_buf = (unsigned long)data;
-    dev->xfer[0].len = 3;
-    status = ioctl(dev->file, SPI_IOC_MESSAGE(1), dev->xfer);
-    if (status < 0)
-    {
-        perror("ADAR1000: SPI_IOC_MESSAGE");
-        return -1;
-    }
-    usleep(100); // sleep 100 us
-    return status;
-}
-
 #ifdef UNIT_TEST
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+volatile sig_atomic_t done = 0;
+void sig_handler()
+{
+    done = 1;
+}
 int main()
 {
+    struct sigaction sa;
+    sa.sa_handler = &sig_handler;
+    sigaction(SIGINT, &sa, NULL);
+    printf("Starting program...\n");
+    adar1000 *dev = (adar1000 *)malloc(sizeof(adar1000));
+    if (dev == NULL)
+    {
+        perror("malloc failed");
+        return -1;
+    }
+    int status = adar1000_init(dev, 0x0); // address = 0x0
+    if (status <= 0)
+    {
+        perror("init error");
+        return -1;
+    }
+    status = adar1000_set_ram(dev, 0); // load from SPI
+    if (status <= 0)
+    {
+        perror("Load from SPI error");
+        return -1;
+    }
+    status = adar1000_enable_trx(dev, 1); // set up tx
+    if (status <= 0)
+    {
+        perror("set tx error");
+        return -1;
+    }
+
+    while (!done)
+    {
+        printf("Enter channel: ");
+        int chn;
+        scanf(" %d", &chn);
+        float phase;
+        printf("Enter phase: ");
+        scanf(" %f", &phase);
+        printf("You enetered: Channel %d and phase %f\n", chn, phase);
+        status = adar1000_set_tx_beam(dev, chn, phase);
+        if (status <= 0)
+        {
+            perror("error setting phase");
+        }
+        sleep(1);
+    }
+
+    adar1000_destroy(dev);
     return 0;
 }
 #endif // UNIT_TEST

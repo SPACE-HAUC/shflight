@@ -754,7 +754,11 @@ typedef struct
 
 int adar1000_init(adar1000 *dev, unsigned char addr);
 int adar1000_load_multiple_chns(adar1000 *devs, float *phases);
-int adar1000_xfer(adar1000 *dev, void *data, ssize_t len);
+int adar1000_enable_trx(adar1000 *dev, unsigned char trx);
+int adar1000_set_tx_beam(adar1000 *dev, unsigned char chn, float phase);
+int adar1000_set_rx_beam(adar1000 *dev, unsigned char chn, float phase);
+int adar1000_set_ram(adar1000 *dev, unsigned char val);
+int adar1000_set_block_beam(adar1000 *dev, unsigned char trx, trx_beam_pos beam);
 int adar1000_wr_reg(adar1000 *dev, adar_register *reg);
 void adar1000_destroy(adar1000 *dev);
 #endif // ADAR_1000_H
