@@ -198,7 +198,7 @@ void sighandler(int sig)
 }
 
 static float t;
-struct ScrollBuf B[1], Bt[1], W[1], S[1];
+struct ScrollBuf B[1], Bt[1], W[1], S[1], St[1];
 
 pthread_mutex_t rcv_data[1], plot_data[1];
 volatile bool conn_rdy = false;
@@ -228,7 +228,15 @@ void *rcv_thr(void *sock)
                 B->AddPoint(t, data->Bx, data->By, data->Bz);
                 Bt->AddPoint(t, data->Btx, data->Bty, data->Btz);
                 W->AddPoint(t, data->Wx, data->Wy, data->Wz);
-                // S->AddPoint(data->tnow - data->start, data->Sx, data->Sy, data->Sz);
+                S->AddPoint(t, data->Sx, data->Sy, data->Sz);
+                float sz = data->Sz;
+                float sy = data->Sy;
+                float sx = data->Sx;
+                float snorm = (sx * sx + sy * sy + sz * sz);
+                float Sz = snorm > 0 ? (sz > 0 ? 1 : -1) : 0;
+                float Sx = 180 * atan2(sx, sz) / M_PI;
+                float Sy = 180 * atan2(sy, sz) / M_PI;
+                St->AddPoint(t, Sx, Sy, Sz);
                 pthread_mutex_unlock(plot_data);
             }
         }
@@ -332,6 +340,10 @@ int main(int, char **)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        static float hist = 30.0f;
+        static float vsize = 250;
+        static float sunsize = 250;
+
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
             static int port = 12376;
@@ -377,15 +389,32 @@ int main(int, char **)
                 }
             }
 
+            
+            static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_None;
+            ImGui::SliderFloat("History", &hist, 1, 300, "%.1f s");
+
+            if (ImGui::SliderFloat("Vertical Height", &vsize, 100, 300, "%.0f"))
+                vsize = floor(vsize);
+
+            if (ImGui::SliderFloat("Sun Map Height", &sunsize, 100, 500, "%.0f"))
+                sunsize = floor(sunsize);
+
+            if (ImGui::Button("Clear Data"))
+            {
+                counter = 0;
+                B->Erase();
+                Bt->Erase();
+                W->Erase();
+                S->Erase();
+                St->Erase();
+            }
+
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
 
         {
-            ImGui::Begin("ACS Data Window");
-            static float hist = 30.0f;
-            static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_None;
-            ImGui::SliderFloat("History", &hist, 1, 300, "%.1f s");
+            ImGui::Begin("Mag Sensor Data Window");
             if (conn_rdy && (counter > 10))
             {
                 pthread_mutex_lock(plot_data);
@@ -409,7 +438,7 @@ int main(int, char **)
                 W_max = fsgn(W_max) * (fabs(W_max) * 1.05);
                 ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(B_min, B_max, ImGuiCond_Always);
-                if (ImPlot::BeginPlot("Magnetic Field", "Time (s)", "B (mG)", ImVec2(-1, 300)))
+                if (ImPlot::BeginPlot("Magnetic Field", "Time (s)", "B (mG)", ImVec2(-1, vsize)))
                 {
                     ImPlot::PlotLine("X", &(B->data[0].w), &(B->data[0].x), B->data.size(), B->ofst, 4 * sizeof(float));
                     ImPlot::PlotLine("Y", &(B->data[0].w), &(B->data[0].y), B->data.size(), B->ofst, 4 * sizeof(float));
@@ -418,7 +447,7 @@ int main(int, char **)
                 }
                 ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(Bt_min, Bt_max, ImGuiCond_Always);
-                if (ImPlot::BeginPlot("Change in Magnetic Field", "Time (s)", "dB/dt (mG/s)", ImVec2(-1, 300)))
+                if (ImPlot::BeginPlot("Change in Magnetic Field", "Time (s)", "dB/dt (mG/s)", ImVec2(-1, vsize)))
                 {
                     ImPlot::PlotLine("X", &(Bt->data[0].w), &(Bt->data[0].x), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
                     ImPlot::PlotLine("Y", &(Bt->data[0].w), &(Bt->data[0].y), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
@@ -427,11 +456,31 @@ int main(int, char **)
                 }
                 ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(W_min, W_max, ImGuiCond_Always);
-                if (ImPlot::BeginPlot("Angular Velocity", "Time (s)", "w (rad/s)", ImVec2(-1, 300)))
+                if (ImPlot::BeginPlot("Angular Velocity", "Time (s)", "w (rad/s)", ImVec2(-1, vsize)))
                 {
                     ImPlot::PlotLine("X", &(W->data[0].w), &(W->data[0].x), W->data.size(), W->ofst, 4 * sizeof(float));
                     ImPlot::PlotLine("Y", &(W->data[0].w), &(W->data[0].y), W->data.size(), W->ofst, 4 * sizeof(float));
                     ImPlot::PlotLine("Z", &(W->data[0].w), &(W->data[0].z), W->data.size(), W->ofst, 4 * sizeof(float));
+                    ImPlot::EndPlot();
+                }
+                pthread_mutex_unlock(plot_data);
+            }
+            ImGui::End();
+        }
+
+        {
+            ImGui::Begin("Sun Sensor Data Window");
+            if (conn_rdy && (counter > 10))
+            {
+                pthread_mutex_lock(plot_data);
+                ImPlot::SetNextPlotLimitsX(-180, 180, ImGuiCond_Always);
+                ImPlot::SetNextPlotLimitsY(-180, 180, ImGuiCond_Always);
+                char svecbuf[256];
+                float scond = St->data[St->ofst].z;
+                snprintf(svecbuf, sizeof(svecbuf), "Sun Vector %s", scond == 0 ? "Unavailable" : (scond < 0 ? "-Z" : "+Z"));
+                if (ImPlot::BeginPlot(svecbuf, "X", "Y", ImVec2(sunsize, sunsize)))
+                {
+                    ImPlot::PlotLine("##X", &(St->data[0].x), &(St->data[0].y), St->data.size(), St->ofst, 4 * sizeof(float));
                     ImPlot::EndPlot();
                 }
                 pthread_mutex_unlock(plot_data);
