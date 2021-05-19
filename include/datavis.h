@@ -24,6 +24,7 @@
  */
 typedef struct
 {
+    char start[6];
     /**
      * @brief Current system state
      * 
@@ -34,6 +35,16 @@ typedef struct
      * 
      */
     uint64_t step; // ACS Step
+    /**
+     * @brief Current time from UTC (usec)
+     * 
+     */
+    uint64_t tnow; // Time now
+    /**
+     * @brief ACS start time from UTC (usec)
+     * 
+     */
+    uint64_t tstart; // Time start
     /**
      * @brief Measured magnetic field
      * 
@@ -54,6 +65,7 @@ typedef struct
      * 
      */
     DECLARE_VECTOR2(S, float); // Sun vector
+    char end[4];
 } datavis_p;
 /**
  * @brief Size of the datavis_p struct

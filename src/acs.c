@@ -214,26 +214,16 @@ unsigned long long acs_ct = 0; // counts the number of ACS steps
  * @brief Moment of inertia of the satellite (SI).
  * 
  */
-float MOI[3][3] = {{0.0821, 0, 0},
-                   {0, 0.0752, 0},
-                   {0, 0, 0.0874}};
-
-/*
 float MOI[3][3] = {{0.06467720404, 0, 0},
                    {0, 0.06474406267, 0},
                    {0, 0, 0.07921836177}};
-*/
 /**
  * @brief Inverse of the moment of inertia of the satellite (SI).
  * 
  */
-float IMOI[3][3] = {{12.1733, 0, 0},
-                    {0, 13.2933, 0},
-                    {0, 0, 11.4454}};
-/* float IMOI[3][3] = {{15.461398105297564, 0, 0},
+float IMOI[3][3] = {{15.461398105297564, 0, 0},
                     {0, 15.461398105297564, 0},
                     {0, 0, 12.623336025344317}};
-*/
 /**
  * @brief Current timestamp after readSensors() in ACS thread, used to keep track of time taken by ACS loop.
  * 
@@ -612,7 +602,7 @@ void checkTransition(void)
         {
             //  printf("[DETUMBLE]\n");
             //  fflush(stdout);
-            next_mode = STATE_ACS_SUNPOINT; // STATE_ACS_NIGHT;
+            next_mode = STATE_ACS_NIGHT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
@@ -620,7 +610,7 @@ void checkTransition(void)
             if (NORM(avgSun) < 0.8f)
             {
                 // printf("Here!");
-                next_mode = STATE_ACS_SUNPOINT; // STATE_ACS_NIGHT;
+                next_mode = STATE_ACS_NIGHT;
             }
         }
     }
@@ -635,7 +625,7 @@ void checkTransition(void)
         // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
         if (NORM(avgSun) < 0.8f)
         {
-            next_mode = STATE_ACS_SUNPOINT; // STATE_ACS_NIGHT;
+            next_mode = STATE_ACS_NIGHT;
         }
         // if the satellite is detumbled, it is not night and the sun angle is less than 4 deg, declare ACS is ready
         if (fabsf(z_S_ang) < MIN_SOL_ANGLE)
@@ -688,6 +678,10 @@ void checkTransition(void)
 
 void *acs_thread(void *id)
 {
+    uint64_t acs_thread_start = get_usec();
+    pthread_mutex_lock(&datavis_mutex);
+    g_datavis_st.data.tstart = acs_thread_start;
+    pthread_mutex_unlock(&datavis_mutex);
     while (!done)
     {
         // first run indication
@@ -743,6 +737,8 @@ void *acs_thread(void *id)
 #endif // ACS_PRINT
 #ifdef DATAVIS
             // Update datavis variables [DO NOT TOUCH]
+            pthread_mutex_lock(&datavis_mutex);
+            g_datavis_st.data.tnow = s;
             g_datavis_st.data.step = acs_ct;
             g_datavis_st.data.mode = g_acs_mode;
             g_datavis_st.data.x_B = x_g_B[mag_index];
@@ -758,7 +754,7 @@ void *acs_thread(void *id)
             g_datavis_st.data.y_S = y_g_S[sol_index];
             g_datavis_st.data.z_S = z_g_S[sol_index];
             // wake up datavis thread [DO NOT TOUCH]
-            pthread_cond_broadcast(&datavis_drdy);
+            pthread_mutex_unlock(&datavis_mutex);
 #endif
         }
 #ifdef ACS_DATALOG
@@ -990,7 +986,7 @@ int acs_init(void)
     mux = (tca9458a *)malloc(sizeof(tca9458a));
     if (mux == NULL)
         return ERROR_MALLOC;
-    snprintf(mux->fname, 40, I2C_BUS);
+    snprintf((char *)(mux->fname), 40, I2C_BUS);
     int init_stat = 0;
     init_stat = ncv7708_init(hbridge); // Initialize hbridge
     if (init_stat < 0)
