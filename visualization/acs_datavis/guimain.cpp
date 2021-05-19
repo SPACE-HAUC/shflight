@@ -136,7 +136,7 @@ int fsgn(float f)
 float find_max(float *arr, ssize_t len)
 {
     float val = arr[0];
-    while(len--)
+    while (len--)
         if (val < arr[len])
             val = arr[len];
     return val;
@@ -145,7 +145,7 @@ float find_max(float *arr, ssize_t len)
 float find_min(float *arr, ssize_t len)
 {
     float val = arr[0];
-    while(len--)
+    while (len--)
         if (val > arr[len])
             val = arr[len];
     return val;
@@ -179,11 +179,11 @@ typedef struct
      * 
      */
     float Bx, By, Bz;
-    
+
     float Btx, Bty, Btz;
 
     float Wx, Wy, Wz;
-    
+
     float Sx, Sy, Sz;
     char end[4];
 } datavis_p;
@@ -235,7 +235,6 @@ void *rcv_thr(void *sock)
     return NULL;
 }
 
-
 int main(int, char **)
 {
     // setup signal handler
@@ -262,6 +261,7 @@ int main(int, char **)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
@@ -299,7 +299,7 @@ int main(int, char **)
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    ImFont* font = io.Fonts->AddFontFromFileTTF("./imgui/font/Roboto-Medium.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("./imgui/font/Roboto-Medium.ttf", 16.0f);
     if (font == NULL)
         io.Fonts->AddFontDefault();
     //IM_ASSERT(font != NULL);
@@ -378,57 +378,60 @@ int main(int, char **)
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
-        
+
         {
             ImGui::Begin("ACS Data Window");
             static float hist = 30.0f;
             static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_None;
             ImGui::SliderFloat("History", &hist, 1, 300, "%.1f s");
             ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
-            pthread_mutex_lock(plot_data);
-            float b_min[] = {B->MinX(), B->MinY(), B->MinZ()};
-            float B_min = find_min(b_min, 3);
-            float b_max[] = {B->MaxX(), B->MaxY(), B->MaxZ()};
-            float B_max = find_max(b_max, 3);
-            B_min = fsgn(B_min) * (fabs(B_min) * 1.05);
-            B_max = fsgn(B_max) * (fabs(B_max) * 1.05);
-            float bt_min[] = {Bt->MinX(), Bt->MinY(), Bt->MinZ()};
-            float Bt_min = find_min(bt_min, 3);
-            float bt_max[] = {Bt->MaxX(), Bt->MaxY(), Bt->MaxZ()};
-            float Bt_max = find_max(bt_max, 3);
-            Bt_min = fsgn(Bt_min) * (fabs(Bt_min) * 1.05);
-            Bt_max = fsgn(Bt_max) * (fabs(Bt_max) * 1.05);
-            float w_min[] = {W->MinX(), W->MinY(), W->MinZ()};
-            float W_min = find_min(w_min, 3);
-            float w_max[] = {W->MaxX(), W->MaxY(), W->MaxZ()};
-            float W_max = find_max(w_max, 3);
-            W_min = fsgn(W_min) * (fabs(W_min) * 1.05);
-            W_max = fsgn(W_max) * (fabs(W_max) * 1.05);
-            ImPlot::SetNextPlotLimitsY(B_min, B_max, ImGuiCond_Always);
-            if (ImPlot::BeginPlot("Magnetic Field", "Time (s)", "B (mG)", ImVec2(-1, 300)))
+            if (conn_rdy)
             {
-                ImPlot::PlotLine("X", &(B->data[0].w), &(B->data[0].x), B->data.size(), B->ofst, 4 * sizeof(float));
-                ImPlot::PlotLine("Y", &(B->data[0].w), &(B->data[0].y), B->data.size(), B->ofst, 4 * sizeof(float));
-                ImPlot::PlotLine("Z", &(B->data[0].w), &(B->data[0].z), B->data.size(), B->ofst, 4 * sizeof(float));
-                ImPlot::EndPlot();
+                pthread_mutex_lock(plot_data);
+                float b_min[] = {B->MinX(), B->MinY(), B->MinZ()};
+                float B_min = find_min(b_min, 3);
+                float b_max[] = {B->MaxX(), B->MaxY(), B->MaxZ()};
+                float B_max = find_max(b_max, 3);
+                B_min = fsgn(B_min) * (fabs(B_min) * 1.05);
+                B_max = fsgn(B_max) * (fabs(B_max) * 1.05);
+                float bt_min[] = {Bt->MinX(), Bt->MinY(), Bt->MinZ()};
+                float Bt_min = find_min(bt_min, 3);
+                float bt_max[] = {Bt->MaxX(), Bt->MaxY(), Bt->MaxZ()};
+                float Bt_max = find_max(bt_max, 3);
+                Bt_min = fsgn(Bt_min) * (fabs(Bt_min) * 1.05);
+                Bt_max = fsgn(Bt_max) * (fabs(Bt_max) * 1.05);
+                float w_min[] = {W->MinX(), W->MinY(), W->MinZ()};
+                float W_min = find_min(w_min, 3);
+                float w_max[] = {W->MaxX(), W->MaxY(), W->MaxZ()};
+                float W_max = find_max(w_max, 3);
+                W_min = fsgn(W_min) * (fabs(W_min) * 1.05);
+                W_max = fsgn(W_max) * (fabs(W_max) * 1.05);
+                ImPlot::SetNextPlotLimitsY(B_min, B_max, ImGuiCond_Always);
+                if (ImPlot::BeginPlot("Magnetic Field", "Time (s)", "B (mG)", ImVec2(-1, 300)))
+                {
+                    ImPlot::PlotLine("X", &(B->data[0].w), &(B->data[0].x), B->data.size(), B->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Y", &(B->data[0].w), &(B->data[0].y), B->data.size(), B->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Z", &(B->data[0].w), &(B->data[0].z), B->data.size(), B->ofst, 4 * sizeof(float));
+                    ImPlot::EndPlot();
+                }
+                ImPlot::SetNextPlotLimitsY(Bt_min, Bt_max, ImGuiCond_Always);
+                if (ImPlot::BeginPlot("Change in Magnetic Field", "Time (s)", "dB/dt (mG/s)", ImVec2(-1, 300)))
+                {
+                    ImPlot::PlotLine("X", &(Bt->data[0].w), &(Bt->data[0].x), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Y", &(Bt->data[0].w), &(Bt->data[0].y), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Z", &(Bt->data[0].w), &(Bt->data[0].z), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
+                    ImPlot::EndPlot();
+                }
+                ImPlot::SetNextPlotLimitsY(W_min, W_max, ImGuiCond_Always);
+                if (ImPlot::BeginPlot("Angular Velocity", "Time (s)", "w (rad/s)", ImVec2(-1, 300)))
+                {
+                    ImPlot::PlotLine("X", &(W->data[0].w), &(W->data[0].x), W->data.size(), W->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Y", &(W->data[0].w), &(W->data[0].y), W->data.size(), W->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Z", &(W->data[0].w), &(W->data[0].z), W->data.size(), W->ofst, 4 * sizeof(float));
+                    ImPlot::EndPlot();
+                }
+                pthread_mutex_unlock(plot_data);
             }
-            ImPlot::SetNextPlotLimitsY(Bt_min, Bt_max, ImGuiCond_Always);
-            if (ImPlot::BeginPlot("Change in Magnetic Field", "Time (s)", "dB/dt (mG/s)", ImVec2(-1, 300)))
-            {
-                ImPlot::PlotLine("X", &(Bt->data[0].w), &(Bt->data[0].x), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
-                ImPlot::PlotLine("Y", &(Bt->data[0].w), &(Bt->data[0].y), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
-                ImPlot::PlotLine("Z", &(Bt->data[0].w), &(Bt->data[0].z), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
-                ImPlot::EndPlot();
-            }
-            ImPlot::SetNextPlotLimitsY(W_min, W_max, ImGuiCond_Always);
-            if (ImPlot::BeginPlot("Angular Velocity", "Time (s)", "w (rad/s)", ImVec2(-1, 300)))
-            {
-                ImPlot::PlotLine("X", &(W->data[0].w), &(W->data[0].x), W->data.size(), W->ofst, 4 * sizeof(float));
-                ImPlot::PlotLine("Y", &(W->data[0].w), &(W->data[0].y), W->data.size(), W->ofst, 4 * sizeof(float));
-                ImPlot::PlotLine("Z", &(W->data[0].w), &(W->data[0].z), W->data.size(), W->ofst, 4 * sizeof(float));
-                ImPlot::EndPlot();
-            }
-            pthread_mutex_unlock(plot_data);
             ImGui::End();
         }
 
@@ -467,6 +470,7 @@ end:
     // Cleanup
     ImGui_ImplOpenGL2_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);
