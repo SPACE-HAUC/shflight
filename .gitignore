@@ -3,6 +3,10 @@ build/
 macosx/
 data/
 docs/
+
+# ImGui source #
+################
+**/imgui
 # Compiled source #
 ###################
 *.com

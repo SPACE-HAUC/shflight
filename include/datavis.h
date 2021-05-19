@@ -40,6 +40,11 @@ typedef struct
      */
     uint64_t tnow; // Time now
     /**
+     * @brief ACS start time from UTC (usec)
+     * 
+     */
+    uint64_t tstart; // Time start
+    /**
      * @brief Measured magnetic field
      * 
      */

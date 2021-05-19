@@ -678,6 +678,10 @@ void checkTransition(void)
 
 void *acs_thread(void *id)
 {
+    uint64_t acs_thread_start = get_usec();
+    pthread_mutex_lock(&datavis_mutex);
+    g_datavis_st.data.tstart = acs_thread_start;
+    pthread_mutex_unlock(&datavis_mutex);
     while (!done)
     {
         // first run indication

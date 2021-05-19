@@ -155,7 +155,9 @@ typedef enum
 } tsl2561Gain_t;
 
 /******************************************************************************/
+#ifndef I2C_BUS
 #define I2C_BUS "/dev/i2c-1"    ///< I2C bus name
+#endif
 #define TSL2561_BLOCK_READ 0x0B ///< Block read mask
 
 /**
