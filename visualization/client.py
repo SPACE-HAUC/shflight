@@ -32,6 +32,7 @@ def timenow():
 
 class packet_data(c.Structure):
     _fields_ = [
+        ('psize', c.c_uint8),
         ('start', c.c_uint8 * 6),
         ('mode', c.c_uint8),
         ('step', c.c_uint64),
