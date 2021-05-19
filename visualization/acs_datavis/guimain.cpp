@@ -203,6 +203,7 @@ struct ScrollBuf B[1], Bt[1], W[1], S[1];
 pthread_mutex_t rcv_data[1], plot_data[1];
 volatile bool conn_rdy = false;
 static char rcv_buf[1024];
+static long long counter = 0;
 void *rcv_thr(void *sock)
 {
     memset(rcv_buf, 0x0, sizeof(rcv_buf));
@@ -218,6 +219,7 @@ void *rcv_thr(void *sock)
             fprintf(stderr, "%s: Received %d bytes, %s\n", __func__, sz, rcv_buf);
             if (sz == sizeof(datavis_p) && (strncmp(rcv_buf, "FBEGIN", 6) == 0))
             {
+                counter++;
                 pthread_mutex_lock(rcv_data);
                 memcpy(data, rcv_buf, sizeof(datavis_p));
                 pthread_mutex_unlock(rcv_data);
@@ -384,8 +386,7 @@ int main(int, char **)
             static float hist = 30.0f;
             static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_None;
             ImGui::SliderFloat("History", &hist, 1, 300, "%.1f s");
-            ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
-            if (conn_rdy)
+            if (conn_rdy && (counter > 10))
             {
                 pthread_mutex_lock(plot_data);
                 float b_min[] = {B->MinX(), B->MinY(), B->MinZ()};
@@ -406,6 +407,7 @@ int main(int, char **)
                 float W_max = find_max(w_max, 3);
                 W_min = fsgn(W_min) * (fabs(W_min) * 1.05);
                 W_max = fsgn(W_max) * (fabs(W_max) * 1.05);
+                ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(B_min, B_max, ImGuiCond_Always);
                 if (ImPlot::BeginPlot("Magnetic Field", "Time (s)", "B (mG)", ImVec2(-1, 300)))
                 {
@@ -414,6 +416,7 @@ int main(int, char **)
                     ImPlot::PlotLine("Z", &(B->data[0].w), &(B->data[0].z), B->data.size(), B->ofst, 4 * sizeof(float));
                     ImPlot::EndPlot();
                 }
+                ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(Bt_min, Bt_max, ImGuiCond_Always);
                 if (ImPlot::BeginPlot("Change in Magnetic Field", "Time (s)", "dB/dt (mG/s)", ImVec2(-1, 300)))
                 {
@@ -422,6 +425,7 @@ int main(int, char **)
                     ImPlot::PlotLine("Z", &(Bt->data[0].w), &(Bt->data[0].z), Bt->data.size(), Bt->ofst, 4 * sizeof(float));
                     ImPlot::EndPlot();
                 }
+                ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(W_min, W_max, ImGuiCond_Always);
                 if (ImPlot::BeginPlot("Angular Velocity", "Time (s)", "w (rad/s)", ImVec2(-1, 300)))
                 {
