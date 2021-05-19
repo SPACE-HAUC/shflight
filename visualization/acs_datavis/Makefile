@@ -15,8 +15,8 @@ endif
 
 UNAME_S := $(shell uname -s)
 
-EDCFLAGS+= -I include/ -I ./ -Wall -O2 -std=gnu11 -I libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W
-CXXFLAGS:= -I include/ -I ./ -Wall -O2 -fpermissive -std=gnu++11 -I libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W $(CXXFLAGS)
+EDCFLAGS+= -I include/ -I imgui/include/ -I ./ -Wall -O2 -std=gnu11 -I libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W
+CXXFLAGS:= -I include/ -I imgui/include/ -I ./ -Wall -O2 -fpermissive -std=gnu++11 -I libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W $(CXXFLAGS)
 LIBS = 
 
 ifeq ($(UNAME_S), Linux) #LINUX
@@ -37,21 +37,23 @@ ifeq ($(UNAME_S), Darwin) #APPLE
 	CFLAGS = $(CXXFLAGS)
 endif
 
-GUILIB=libimgui_glfw.a # ImGui library with glfw backend
-PLOTLIB=libimplot.a # ImPlot library (backend agnostic)
+LIBS += -lpthread -lm
+
+GUILIB=imgui/libimgui_glfw.a # ImGui library with glfw backend
+PLOTLIB=imgui/libimplot.a # ImPlot library (backend agnostic)
 
 all: $(GUILIB) $(PLOTLIB) client
 	echo Platform: $(ECHO_MESSAGE)
 
 client: $(GUILIB) $(PLOTLIB) # Build the OpenGL2 test program
-	$(CXX) -o $@.out guimain.cpp $(CXXFLAGS) $(GUILIB) \
+	$(CXX) -o $@.out guimain.cpp $(CXXFLAGS) $(GUILIB) $(PLOTLIB) \
 	$(LIBS)
 
 $(GUILIB): # Build the ImGui library
-	make -f Makefile.imgui
+	cd imgui && make -f Makefile.imgui && cd ..
 
 $(PLOTLIB): # Build the ImPlot library
-	make -f Makefile.implot
+	cd imgui && make -f Makefile.implot && cd ..
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
@@ -66,6 +68,6 @@ clean:
 	$(RM) *.out
 
 spotless: clean
-	make -f Makefile.imgui spotless
-	make -f Makefile.implot spotless
+	cd imgui && make -f Makefile.imgui spotless && cd ..
+	cd imgui && make -f Makefile.implot spotless && cd ..
 

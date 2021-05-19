@@ -24,6 +24,7 @@
  */
 typedef struct
 {
+    char start[6];
     /**
      * @brief Current system state
      * 
@@ -64,6 +65,7 @@ typedef struct
      * 
      */
     DECLARE_VECTOR2(S, float); // Sun vector
+    char end[4];
 } datavis_p;
 /**
  * @brief Size of the datavis_p struct

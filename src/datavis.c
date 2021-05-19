@@ -79,11 +79,16 @@ void *datavis_thread(void *t)
         perror("listen");
         pthread_exit(NULL);
     }
+    memcpy(g_datavis_st.data.start, "FBEGIN", 6);
+    memcpy(g_datavis_st.data.end, "FEND", 4);
     while (!done)
     {
+        char buf[PACK_SIZE + sizeof(char)];
         pthread_mutex_lock(&datavis_mutex);                                         // wait for wakeup from ACS thread
-        ssize_t sz = send(new_socket, &g_datavis_st.buf, PACK_SIZE, MSG_NOSIGNAL);
+        memcpy(buf + sizeof(char), g_datavis_st.buf, PACK_SIZE);
         pthread_mutex_unlock(&datavis_mutex); 
+        *(char *)buf = PACK_SIZE;
+        ssize_t sz = send(new_socket, buf, sizeof(buf), MSG_NOSIGNAL);
         if (sz < 0 && !done)
         {
             if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
