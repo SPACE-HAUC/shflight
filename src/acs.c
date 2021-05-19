@@ -214,16 +214,26 @@ unsigned long long acs_ct = 0; // counts the number of ACS steps
  * @brief Moment of inertia of the satellite (SI).
  * 
  */
+float MOI[3][3] = {{0.0821, 0, 0},
+                   {0, 0.0752, 0},
+                   {0, 0, 0.0874}};
+
+/*
 float MOI[3][3] = {{0.06467720404, 0, 0},
                    {0, 0.06474406267, 0},
                    {0, 0, 0.07921836177}};
+*/
 /**
  * @brief Inverse of the moment of inertia of the satellite (SI).
  * 
  */
-float IMOI[3][3] = {{15.461398105297564, 0, 0},
+float IMOI[3][3] = {{12.1733, 0, 0},
+                    {0, 13.2933, 0},
+                    {0, 0, 11.4454}};
+/* float IMOI[3][3] = {{15.461398105297564, 0, 0},
                     {0, 15.461398105297564, 0},
                     {0, 0, 12.623336025344317}};
+*/
 /**
  * @brief Current timestamp after readSensors() in ACS thread, used to keep track of time taken by ACS loop.
  * 
@@ -602,7 +612,7 @@ void checkTransition(void)
         {
             //  printf("[DETUMBLE]\n");
             //  fflush(stdout);
-            next_mode = STATE_ACS_NIGHT;
+            next_mode = STATE_ACS_SUNPOINT; // STATE_ACS_NIGHT;
             g_first_detumble = 0; // when system detumbles for the first time, unsets this variable
         }
         if (!g_first_detumble) // if this var is unset, the system does not do anything at night
@@ -610,7 +620,7 @@ void checkTransition(void)
             if (NORM(avgSun) < 0.8f)
             {
                 // printf("Here!");
-                next_mode = STATE_ACS_NIGHT;
+                next_mode = STATE_ACS_SUNPOINT; // STATE_ACS_NIGHT;
             }
         }
     }
@@ -625,7 +635,7 @@ void checkTransition(void)
         // if it is night, fall back to night mode. Should take SH_BUFFER_SIZE * DETUMBLE_TIME_STEP seconds for the actual state change to occur
         if (NORM(avgSun) < 0.8f)
         {
-            next_mode = STATE_ACS_NIGHT;
+            next_mode = STATE_ACS_SUNPOINT; // STATE_ACS_NIGHT;
         }
         // if the satellite is detumbled, it is not night and the sun angle is less than 4 deg, declare ACS is ready
         if (fabsf(z_S_ang) < MIN_SOL_ANGLE)

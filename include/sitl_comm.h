@@ -14,7 +14,7 @@
  * @brief File descriptor for SITL comm device
  */
 #ifndef SITL_COMM_IFACE
-#define SITL_COMM_IFACE "/dev/ttyS0"
+#define SITL_COMM_IFACE "/dev/ttyPS0"
 #endif 
 /**
  * @brief Set speed and parity attributes for the serial device
