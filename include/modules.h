@@ -63,11 +63,10 @@ const int num_systems = sizeof(module_exec) / sizeof(void *);
  */
 pthread_cond_t *wakeups[] = {
 #ifdef SITL
-    &data_available
+    &data_available,
 #endif // SITL
 #ifdef DATAVIS
-    ,
-    &datavis_drdy
+    &datavis_drdy,
 #endif // DATAVIS
 };
 const int num_wakeups = sizeof(wakeups) / sizeof(pthread_cond_t *);

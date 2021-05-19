@@ -15,6 +15,8 @@ endif
 EDCFLAGS:= -Wall -fno-strict-aliasing -std=gnu11 -O2 $(EDCFLAGS)
 EDLDFLAGS:= -lm -lpthread $(EDLDFLAGS)
 
+EDCFLAGS+= -DDATAVIS -DACS_PRINT
+
 TARGETOBJS=drivers/ncv7708.o drivers/tsl2561.o drivers/tca9458a.o drivers/ads1115.o drivers/lsm9ds1.o \
 			src/main.o src/sitl_comm.o src/datavis.o src/acs.o src/bessel.o
 

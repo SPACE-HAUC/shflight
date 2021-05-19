@@ -733,6 +733,8 @@ void *acs_thread(void *id)
 #endif // ACS_PRINT
 #ifdef DATAVIS
             // Update datavis variables [DO NOT TOUCH]
+            pthread_mutex_lock(&datavis_mutex);
+            g_datavis_st.data.tnow = s;
             g_datavis_st.data.step = acs_ct;
             g_datavis_st.data.mode = g_acs_mode;
             g_datavis_st.data.x_B = x_g_B[mag_index];
@@ -748,7 +750,7 @@ void *acs_thread(void *id)
             g_datavis_st.data.y_S = y_g_S[sol_index];
             g_datavis_st.data.z_S = z_g_S[sol_index];
             // wake up datavis thread [DO NOT TOUCH]
-            pthread_cond_broadcast(&datavis_drdy);
+            pthread_mutex_unlock(&datavis_mutex);
 #endif
         }
 #ifdef ACS_DATALOG
@@ -980,7 +982,7 @@ int acs_init(void)
     mux = (tca9458a *)malloc(sizeof(tca9458a));
     if (mux == NULL)
         return ERROR_MALLOC;
-    snprintf(mux->fname, 40, I2C_BUS);
+    snprintf((char *)(mux->fname), 40, I2C_BUS);
     int init_stat = 0;
     init_stat = ncv7708_init(hbridge); // Initialize hbridge
     if (init_stat < 0)

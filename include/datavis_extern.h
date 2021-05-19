@@ -15,4 +15,5 @@
 extern data_packet g_datavis_st;
 #endif // DATAVIS_IFACE_H
 extern pthread_cond_t datavis_drdy;
+extern pthread_mutex_t datavis_mutex;
 #endif // DATAVIS_EXTERN_H

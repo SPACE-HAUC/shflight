@@ -35,6 +35,11 @@ typedef struct
      */
     uint64_t step; // ACS Step
     /**
+     * @brief Current time from UTC (usec)
+     * 
+     */
+    uint64_t tnow; // Time now
+    /**
      * @brief Measured magnetic field
      * 
      */

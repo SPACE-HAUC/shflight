@@ -3,6 +3,7 @@
 #include <termios.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
@@ -28,7 +29,7 @@ typedef struct sockaddr sk_sockaddr;
 
 void *datavis_thread(void *t)
 {
-    int server_fd, new_socket; //, valread;
+    int server_fd, new_socket = -1;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
@@ -37,60 +38,65 @@ void *datavis_thread(void *t)
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
         perror("socket failed");
-        //exit(EXIT_FAILURE);
+        pthread_exit(NULL);
     }
 
-    // Forcefully attaching socket to the port PORT
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+    // Forcefully attaching socket to the port 8080
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
                    &opt, sizeof(opt)))
     {
-        perror("setsockopt");
-        //exit(EXIT_FAILURE);
+        perror("setsockopt reuseaddr");
+        pthread_exit(NULL);
     }
 
-    struct timeval timeout;
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
-
-    if (setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
-                   sizeof(timeout)) < 0)
-        perror("setsockopt failed\n");
-
-    if (setsockopt(server_fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
-                   sizeof(timeout)) < 0)
-        perror("setsockopt failed\n");
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT,
+                   &opt, sizeof(opt)))
+    {
+        perror("setsockopt reuseport");
+        pthread_exit(NULL);
+    }
+    int flags = fcntl(server_fd, F_GETFL, 0);
+    if (flags == -1)
+    {
+        perror("fcntl");
+        pthread_exit(NULL);
+    }
+    fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    // Forcefully attaching socket to the port PORT
-    if (bind(server_fd, (sk_sockaddr *)&address, sizeof(address)) < 0)
+    // Forcefully attaching socket to the port 8080
+    if (bind(server_fd, (struct sockaddr *)&address,
+             sizeof(address)) < 0)
     {
         perror("bind failed");
-        // exit(EXIT_FAILURE);
+        pthread_exit(NULL);
     }
-    if (listen(server_fd, 32) < 0) // listen for connections, allow up to 32 connections
+    if (listen(server_fd, 3) < 0)
     {
         perror("listen");
-        // exit(EXIT_FAILURE);
+        pthread_exit(NULL);
     }
     while (!done)
     {
-        pthread_cond_wait(&datavis_drdy, &datavis_mutex);                                         // wait for wakeup from ACS thread
-        if ((new_socket = accept(server_fd, (sk_sockaddr *)&address, (socklen_t *)&addrlen)) < 0) // accept incoming connection
+        pthread_mutex_lock(&datavis_mutex);                                         // wait for wakeup from ACS thread
+        ssize_t sz = send(new_socket, &g_datavis_st.buf, PACK_SIZE, MSG_NOSIGNAL);
+        pthread_mutex_unlock(&datavis_mutex); 
+        if (sz < 0 && !done)
         {
-            // perror("accept");
+            if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
+                                     (socklen_t *)&addrlen)) < 0)
+            {
+#ifdef SERVER_DEBUG
+                perror("accept");
+#endif
+            }
         }
-        ssize_t numsent = send(new_socket, &g_datavis_st.buf, PACK_SIZE, 0); // send data
-        if (numsent > 0 && numsent != PACK_SIZE)                         // if the whole packet was not sent, print error in console
-        {
-            perror("DataVis: Send: ");
-        }
-        //valread = read(sock,recv_buf,32);
-        close(new_socket);
-        //sleep(1);
+        usleep(1000000 / 10); // 10 Hz
     }
+    close(new_socket);
     close(server_fd);
     pthread_exit(NULL);
 }
