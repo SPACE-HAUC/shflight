@@ -216,7 +216,6 @@ void *rcv_thr(void *sock)
             int sz = read(*(int *)sock, &msg_sz, 1);
             if (sz > 0)
                 sz = recv(*(int *)sock, rcv_buf, msg_sz, MSG_WAITALL);
-            fprintf(stderr, "%s: Received %d bytes, %s\n", __func__, sz, rcv_buf);
             if (sz == sizeof(datavis_p) && (strncmp(rcv_buf, "FBEGIN", 6) == 0))
             {
                 counter++;
@@ -262,7 +261,7 @@ int main(int, char **)
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;
-    GLFWwindow *window = glfwCreateWindow(1280, 720, "Client Example", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(1280, 800, "ACS DataVis Client", NULL, NULL);
     if (window == NULL)
         return 1;
     glfwMakeContextCurrent(window);
@@ -343,6 +342,7 @@ int main(int, char **)
         static float hist = 30.0f;
         static float vsize = 250;
         static float sunsize = 250;
+        static float sunhist = 30;
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
@@ -396,8 +396,13 @@ int main(int, char **)
             if (ImGui::SliderFloat("Vertical Height", &vsize, 100, 300, "%.0f"))
                 vsize = floor(vsize);
 
-            if (ImGui::SliderFloat("Sun Map Height", &sunsize, 100, 500, "%.0f"))
+            if (ImGui::SliderFloat("Sun Map Size", &sunsize, 100, 500, "%.0f"))
                 sunsize = floor(sunsize);
+
+            if (ImGui::SliderFloat("Sun Vector History", &sunhist, 10, 100, "%.0f s"))
+            {
+                St->max_sz = sunhist * 10;
+            }
 
             if (ImGui::Button("Clear Data"))
             {
@@ -460,7 +465,9 @@ int main(int, char **)
                 {
                     ImPlot::PlotLine("X", &(W->data[0].w), &(W->data[0].x), W->data.size(), W->ofst, 4 * sizeof(float));
                     ImPlot::PlotLine("Y", &(W->data[0].w), &(W->data[0].y), W->data.size(), W->ofst, 4 * sizeof(float));
+                    ImPlot::PushStyleColor(0, ImVec4(1, 1, 1, 1));
                     ImPlot::PlotLine("Z", &(W->data[0].w), &(W->data[0].z), W->data.size(), W->ofst, 4 * sizeof(float));
+                    ImPlot::PopStyleColor();
                     ImPlot::EndPlot();
                 }
                 pthread_mutex_unlock(plot_data);
@@ -475,12 +482,23 @@ int main(int, char **)
                 pthread_mutex_lock(plot_data);
                 ImPlot::SetNextPlotLimitsX(-180, 180, ImGuiCond_Always);
                 ImPlot::SetNextPlotLimitsY(-180, 180, ImGuiCond_Always);
+                int idx = St->ofst;
                 char svecbuf[256];
-                float scond = St->data[St->ofst].z;
+                float scond = St->data[idx].z;
+                int numpts = sunhist * 10; // 0.1 sec update
                 snprintf(svecbuf, sizeof(svecbuf), "Sun Vector %s", scond == 0 ? "Unavailable" : (scond < 0 ? "-Z" : "+Z"));
+                ImVec4 color;
+                if (scond == 0)
+                    color = ImVec4(0, 0, 0, 1);
+                else if (scond > 0)
+                    color = ImVec4(1, 1, 1, 1);
+                else if (scond < 0)
+                    color = ImVec4(1, 1, 0, 1);
                 if (ImPlot::BeginPlot(svecbuf, "X", "Y", ImVec2(sunsize, sunsize)))
                 {
-                    ImPlot::PlotLine("##X", &(St->data[0].x), &(St->data[0].y), St->data.size(), St->ofst, 4 * sizeof(float));
+                    ImPlot::PushStyleColor(0, color);
+                    ImPlot::PlotLine("##X", &(St->data[0].x), &(St->data[0].y), St->max_sz, idx, 4 * sizeof(float));
+                    ImPlot::PopStyleColor();
                     ImPlot::EndPlot();
                 }
                 pthread_mutex_unlock(plot_data);
