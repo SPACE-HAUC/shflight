@@ -1,0 +1,42 @@
+[submodule "drivers/adar1000"]
+	path = drivers/adar1000
+	url = git@github.com:SPACE-HAUC/adar1000.git
+[submodule "drivers/adf4355"]
+	path = drivers/adf4355
+	url = git@github.com:SPACE-HAUC/adf4355.git
+[submodule "drivers/gpiodev"]
+	path = drivers/gpiodev
+	url = git@github.com:SPACE-HAUC/gpiodev.git
+[submodule "drivers/spibus"]
+	path = drivers/spibus
+	url = git@github.com:SPACE-HAUC/spibus.git
+[submodule "drivers/i2cbus"]
+	path = drivers/i2cbus
+	url = git@github.com:SPACE-HAUC/i2cbus.git
+[submodule "drivers/modem"]
+	path = drivers/modem
+	url = git@github.com:SPACE-HAUC/modem.git
+[submodule "drivers/ncv7718"]
+	path = drivers/ncv7718
+	url = git@github.com:SPACE-HAUC/ncv7718.git
+[submodule "drivers/lsm9ds1"]
+	path = drivers/lsm9ds1
+	url = git@github.com:SPACE-HAUC/lsm9ds1.git
+[submodule "drivers/tsl2561"]
+	path = drivers/tsl2561
+	url = git@github.com:SPACE-HAUC/tsl2561.git
+[submodule "drivers/finesunsensor"]
+	path = drivers/finesunsensor
+	url = git@github.com:SPACE-HAUC/finesunsensor.git
+[submodule "drivers/tca9458a"]
+	path = drivers/tca9458a
+	url = git@github.com:SPACE-HAUC/tca9458a.git
+[submodule "drivers/uhf_modem"]
+	path = drivers/uhf_modem
+	url = git@github.com:SPACE-HAUC/uhf_modem.git
+[submodule "drivers/tmp123"]
+	path = drivers/tmp123
+	url = git@github.com:SPACE-HAUC/tmp123.git
+[submodule "drivers/eps_p31u"]
+	path = drivers/eps_p31u
+	url = git@github.com:SPACE-HAUC/eps_p31u.git
