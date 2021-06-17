@@ -18,6 +18,8 @@
 #include <pthread.h>
 #include <signal.h>
 
+#define THIS_MODULE "main"
+
 int sys_boot_count = -1;
 volatile sig_atomic_t done = 0;
 __thread int sys_status;
@@ -29,6 +31,8 @@ __thread int sys_status;
  */
 int main(void)
 {
+    // wait for system to stabilize
+    sleep(60); // wait for another minute
     // Boot counter
     sys_boot_count = bootCount(); // Holds bootCount to generate a different log file at every boot
     if (sys_boot_count < 0)

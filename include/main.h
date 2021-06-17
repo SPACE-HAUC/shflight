@@ -12,6 +12,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include <signal.h>
+#include <macros.h>
 /**
  * @brief Describes ACS (system) states.
  * 
@@ -56,12 +57,23 @@ extern volatile sig_atomic_t done;
  * This variable is provided to all modules by main.
  */ 
 extern int sys_boot_count;
+
+#ifndef SHPRINT_FILE
+#define SHPRINT_FILE stderr
+#endif
+
+#define shprintf(str, ...) \
+{ \
+    fprintf(SHPRINT_FILE, THIS_MODULE "bootct: %d tstamp %llu: %s, %d: " str, sys_boot_count, get_usec(), __func__, __LINE__, ##__VA_ARGS__); \
+    fflush(SHPRINT_FILE); \
+}
+
 #ifdef MAIN_PRIVATE
 /**
  * @brief Name of the file where bootcount is stored on the file system.
  * 
  */
-#define BOOTCOUNT_FNAME "bootcount_fname.txt"
+#define BOOTCOUNT_FNAME "soft_bootcount.txt"
 
 /**
  * @brief Function that returns the current bootcount of the system.

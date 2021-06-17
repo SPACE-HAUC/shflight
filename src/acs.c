@@ -14,14 +14,15 @@
 #include <bessel.h>           // bessel filter prototypes
 #include <sitl_comm_extern.h> // Variables shared with serial communication thread
 #include <datavis_extern.h>   // variables shared with DataVis thread
-#include <ads1115.h>
-#include <lsm9ds1.h>
-#include <ncv7708.h>
-#include <tsl2561.h>
-#include <tca9458a.h>
+#include <finesunsensor/a60sensor.h>
+#include <lsm9ds1/lsm9ds1.h>
+#include <ncv7718/ncv7718.h>
+#include <tsl2561/tsl2561.h>
+#include <tca9458a/tca9458a.h>
 #include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 /**
  * @brief This is color indicator for printf statements in ACS, for use in debug only."
@@ -44,16 +45,9 @@
 #define LCY "\x1B[96m" ///< light cyan
 #define WHT "\x1B[97m" ///< white
 
+#define THIS_MODULE "acs"
+
 /* Variable allocation for ACS */
-/**
- * @brief Condition variable to synchronize ACS and Serial thread in SITL.
- * 
- */
-pthread_cond_t data_available;
-/**
- * @brief Mutex for locking on data_available.
- */ 
-pthread_mutex_t data_check;
 
 /**
  * @brief This variable is unset by the ACS thread at first execution.
@@ -61,55 +55,32 @@ pthread_mutex_t data_check;
  */
 volatile int first_run = 1;
 
-// SITL
-/**
- * @brief Declares vector to store magnetic field reading from serial.
- * 
- */
-DECLARE_VECTOR(g_readB, unsigned short); // storage to put helmhotz values
-/**
- * @brief Fine sun sensor angles read over serial.
- * 
- */
-unsigned short g_readFS[2]; // storage to put FS X and Y angles
-/**
- * @brief Coarse sun sensor lux values read over serial.
- * 
- */
-unsigned short g_readCS[9]; // storage to put CS led brightnesses
-/**
- * @brief Magnetorquer command, format: 0b00ZZYYXX, 00 indicates not fired, 01 indicates fire in positive dir, 10 indicates fire in negative dir.
- * 
- */
-unsigned char g_Fire; // magnetorquer command
-
 // HITL
 /**
  * @brief Magnetometer device struct.
  * 
  */
-lsm9ds1 *mag; // magnetometer
+lsm9ds1 mag[1]; // magnetometer
 /**
  * @brief H-Bridge device struct.
  * 
  */
-ncv7708 *hbridge; // h-bridge
+ncv7718 hbridge[1]; // h-bridge
 /**
  * @brief I2C Mux device struct.
  * 
  */
-tca9458a *mux; // I2C mux
+tca9458a mux[1]; // I2C mux
 /**
  * @brief Array of coarse sun sensor device struct.
  * 
  */
-tsl2561 **css; // coarse sun sensors
+tsl2561 css[7]; // coarse sun sensors
 /**
  * @brief I2C ADC struct for fine sun sensor.
  * 
  */
-ads1115 *adc; // analog to digital converters
-              // SITL
+a60sensor fss[1]; // fine sun sensor
 /**
  * @brief Creates buffer for \f$\vec{\omega}\f$.
  * 
@@ -144,12 +115,22 @@ DECLARE_BUFFER(g_S, float); // sun vector
  * @brief Storage for current coarse sun sensor lux measurements.
  * 
  */
-float g_CSS[9]; // current CSS lux values, in HITL this will be populated by TSL2561 code
+float g_CSS[7]; // current CSS lux values, in HITL this will be populated by TSL2561 code
+/**
+ * @brief Indicate if Mux channel has error
+ * 
+ */
+bool mux_err_channel[3] = {false, false, false};
 /**
  * @brief Storage for current fine sun sensor angle measurements.
  * 
  */
 float g_FSS[2]; // current FSS angles, in rad; in HITL this will be populated by NANOSSOC A60 driver
+/**
+ * @brief Stores the return value of FSS algorithm
+ * 
+ */
+int g_FSS_RET; // return value of FSS
 /**
  * @brief Current index of the \f$\vec{B}\f$ circular buffer.
  * 
@@ -230,6 +211,207 @@ float IMOI[3][3] = {{15.461398105297564, 0, 0},
  */
 unsigned long long g_t_acs;
 
+/**
+ * @brief Dipole moment of the magnetorquer rods
+ * 
+ */
+static float DIPOLE_MOMENT = 0.22; // A m^-2
+/**
+ * @brief ACS loop time period
+ * 
+ */
+static uint32_t DETUMBLE_TIME_STEP = 100000; // 100 ms for full loop
+/**
+ * @brief ACS readSensors() max execute time per cycle
+ * 
+ */
+static uint32_t MEASURE_TIME = 30000; // 30 ms to measure
+/**
+ * @brief ACS max actuation time per cycle
+ * 
+ */
+#define MAX_DETUMBLE_FIRING_TIME (DETUMBLE_TIME_STEP - MEASURE_TIME) // Max allowed detumble fire time
+/**
+ * @brief Minimum magnetorquer firing time
+ * 
+ */
+static uint32_t MIN_DETUMBLE_FIRING_TIME = 10000; // 10 ms
+/**
+ * @brief Sunpointing magnetorquer PWM duty cycle
+ * 
+ */
+static uint32_t SUNPOINT_DUTY_CYCLE = 20000; // 20 msec, in usec
+/**
+ * @brief Course sun sensing mode loop time for ACS
+ * 
+ */
+#define COARSE_TIME_STEP DETUMBLE_TIME_STEP // 100 ms, in usec
+/**
+ * @brief Coarse sun sensor minimum lux threshold for valid measurement
+ * 
+ */
+static float CSS_MIN_LUX_THRESHOLD = 5000 * 0.5; // 5000 lux is max sun, half of that is our threshold (subject to change)
+/**
+ * @brief Leeway factor for value of omega_z in percentage
+ * 
+ */
+static float LEEWAY_FACTOR = 0.1;
+/**
+ * @brief Acceptable leeway of the angular speed target
+ * 
+ */
+#define OMEGA_TARGET_LEEWAY z_g_W_target * LEEWAY_FACTOR // 10% leeway in the value of omega_z
+/**
+ * @brief Sunpointing angle target (in degrees)
+ * 
+ */
+static float MIN_SOL_ANGLE = 20; // minimum solar angle for sunpointing to be a success
+/**
+ * @brief Detumble angle target (in degrees)
+ * 
+ */
+static float MIN_DETUMBLE_ANGLE = 10; // minimum angle for detumble to be a success
+
+int acs_get_moi(float *moi)
+{
+    if (moi == NULL)
+        return -1;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            moi[3 * i + j] = MOI[i][j];
+    return 1;
+}
+
+int acs_set_moi(float *moi)
+{
+    if (moi == NULL)
+        return -1;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            MOI[i][j] = moi[3 * i + j];
+    return 1;
+}
+
+int acs_get_imoi(float *imoi)
+{
+    if (imoi == NULL)
+        return -1;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            imoi[3 * i + j] = IMOI[i][j];
+    return 1;
+}
+
+int acs_set_imoi(float *imoi)
+{
+    if (imoi == NULL)
+        return -1;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            IMOI[i][j] = imoi[3 * i + j];
+    return 1;
+}
+
+float acs_get_dipole(void)
+{
+    return DIPOLE_MOMENT;
+}
+
+float acs_set_dipole(float d)
+{
+    if (d <= 0)
+        d = 0.22;
+    DIPOLE_MOMENT = d;
+    return DIPOLE_MOMENT;
+}
+
+uint32_t acs_get_tstep(void)
+{
+    return DETUMBLE_TIME_STEP;
+}
+
+uint32_t acs_set_tstep(uint8_t t)
+{
+    if (t < 100)
+        t = 100;
+    t = (t / 10) * 10; // in increments of 10 ms
+    DETUMBLE_TIME_STEP = t * 1000; // ms to us
+    return DETUMBLE_TIME_STEP;
+}
+
+uint32_t acs_get_measure_time(void)
+{
+    return MEASURE_TIME;
+}
+
+uint32_t acs_set_measure_time(uint8_t t)
+{
+    if (t < 20)
+        t = 20;
+    else if (t > 50)
+        t = 50;
+    t = (t / 10) * 10;
+    MEASURE_TIME = t * 1000; // ms to us
+    return MEASURE_TIME;
+}
+
+uint8_t acs_get_leeway(void)
+{
+    return 1/LEEWAY_FACTOR;
+}
+
+uint8_t acs_set_leeway(uint8_t leeway)
+{
+    if (leeway < 5)
+        leeway = 5;
+    else if (leeway > 50)
+        leeway = 50;
+    LEEWAY_FACTOR = 1.0 / leeway;
+    return acs_get_leeway();
+}
+
+float acs_get_wtarget(void)
+{
+    return z_g_W_target;
+}
+
+float acs_set_wtarget(float t)
+{
+    int sgn = t < 0 ? -1 : 1;
+    if (fabs(t) < 0.1)
+        t = 0.1 * sgn;
+    else if (fabs(t) > 2)
+        t = 2 * sgn;
+    z_g_W_target = t;
+    return z_g_W_target;
+}
+
+uint8_t acs_get_detumble_ang()
+{
+    return MIN_DETUMBLE_ANGLE;
+}
+
+uint8_t acs_set_detumble_ang(uint8_t ang)
+{
+    if (ang > 45)
+        ang = 20; // conservative
+    MIN_DETUMBLE_ANGLE = ang;
+    return MIN_DETUMBLE_ANGLE;
+}
+
+uint8_t acs_get_sun_angle()
+{
+    return MIN_SOL_ANGLE;
+}
+
+uint8_t acs_set_sun_angle(uint8_t ang)
+{
+    if (ang > 45)
+        ang = 20; // conservative
+    MIN_SOL_ANGLE = ang;
+    return MIN_SOL_ANGLE;
+}
+
 #ifdef ACS_DATALOG
 /**
  * @brief ACS Datalog file pointer.
@@ -275,104 +457,21 @@ static inline void detumbleAction();
  */
 static inline void sunpointAction();
 
-#ifndef SITL
 int hbridge_enable(int x, int y, int z)
 {
-    // Set up X
-    hbridge->pack->hbcnf1 = x > 0 ? 1 : 0;
-    hbridge->pack->hbcnf2 = x < 0 ? 1 : 0;
-    // Set up Y
-    hbridge->pack->hbcnf3 = y > 0 ? 1 : 0;
-    hbridge->pack->hbcnf4 = y < 0 ? 1 : 0;
-    // Set up Z
-    hbridge->pack->hbcnf5 = z > 0 ? 1 : 0;
-    hbridge->pack->hbcnf6 = z < 0 ? 1 : 0;
-    return ncv7708_xfer(hbridge);
+    ncv7718_set_output(hbridge, 0, x);
+    ncv7718_set_output(hbridge, 1, y);
+    ncv7718_set_output(hbridge, 2, z);
+    return ncv7718_exec_output(hbridge);
 }
 
 int HBRIDGE_DISABLE(int num)
 {
-    switch (num)
-    {
-    case 0: // X axis
-        hbridge->pack->hbcnf1 = 0;
-        hbridge->pack->hbcnf2 = 0;
-        break;
-
-    case 1: // Y axis
-        hbridge->pack->hbcnf3 = 0;
-        hbridge->pack->hbcnf4 = 0;
-        break;
-
-    case 2: // Z axis
-        hbridge->pack->hbcnf5 = 0;
-        hbridge->pack->hbcnf6 = 0;
-        break;
-
-    default: // disable all
-        hbridge->pack->hbcnf1 = 0;
-        hbridge->pack->hbcnf2 = 0;
-        hbridge->pack->hbcnf3 = 0;
-        hbridge->pack->hbcnf4 = 0;
-        hbridge->pack->hbcnf5 = 0;
-        hbridge->pack->hbcnf6 = 0;
-        break;
-    }
-    return ncv7708_xfer(hbridge);
+    ncv7718_set_output(hbridge, 0, 0);
+    ncv7718_set_output(hbridge, 1, 0);
+    ncv7718_set_output(hbridge, 2, 0);
+    return ncv7718_exec_output(hbridge);
 }
-#else
-int hbridge_enable(int x, int y, int z)
-{
-    uint8_t val = 0x00;
-    // Set up Z
-    val |= z > 0 ? 0x01 : (z < 0 ? 0x02 : 0x00);
-    val <<= 2;
-    // printf("HBEnable: Z: 0b");
-    // fflush(stdout);
-    // print_bits(val);
-    // printf(" ");
-    // fflush(stdout);
-    // Set up Y
-    val |= y > 0 ? 0x01 : (y < 0 ? 0x02 : 0x00);
-    val <<= 2;
-    // printf("HBEnable: Y: 0b");
-    // fflush(stdout);
-    // print_bits(val);
-    // printf(" ");
-    // fflush(stdout);
-    // Set up X
-    val |= x > 0 ? 0x01 : (x < 0 ? 0x02 : 0x00);
-    // printf("HBEnable: X: 0b");
-    // fflush(stdout);
-    // print_bits(val);
-    // printf("\n");
-    // fflush(stdout);
-    pthread_mutex_lock(&serial_write);
-    g_Fire = val;
-    pthread_mutex_unlock(&serial_write);
-    // printf("HBEnable: %d %d %d: 0x%x\n", x, y, z, g_Fire);
-    return val;
-}
-// disable selected channel on the hbridge
-int HBRIDGE_DISABLE(int i)
-{
-    int tmp = 0xff;
-    tmp ^= 0x03 << 2 * i;
-    // printf("HBDisable: tmp: 0b");
-    // fflush(stdout);
-    // print_bits(tmp);
-    // fflush(stdout);
-    pthread_mutex_lock(&serial_write);
-    g_Fire &= tmp;
-    pthread_mutex_unlock(&serial_write);
-    // printf("HBDisable: 0b");
-    // fflush(stdout);
-    // print_bits(g_Fire);
-    // printf("\n");
-    // fflush(stdout);
-    return tmp;
-}
-#endif // SITL
 
 void getOmega(void)
 {
@@ -407,25 +506,19 @@ void getSVec(void)
     if (sol_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
         S_full = 1;
     sol_index = (sol_index + 1) % SH_BUFFER_SIZE;
-#ifdef SITL
-    // SITL expects radians input
-    float fsx = 180 / M_PI * g_FSS[0];
-    float fsy = 180 / M_PI * g_FSS[1];
-#else
-    // hardware reads degrees
-    float fsx = g_FSS[0];
-    float fsy = g_FSS[1];
-#endif // SITL
+    // hardware reads degrees, and angles are reversed in hardware
+    float fsx = -g_FSS[0];
+    float fsy = -g_FSS[1];
 #ifndef M_PI
 /**
  * @brief Approximate definition of Pi in case M_PI is not included from math.h
- */ 
+ */
 #define M_PI 3.1415
 #endif
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
     // printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
-    if (fabsf(fsx) <= 60 && fabsf(fsy) <= 60) // angle inside FOV (FOV -> 60°, half angle 30°)
+    if (!(g_FSS_RET & E_OUT_FOV)) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
 #ifdef ACS_PRINT
         printf("[" GRN "FSS" RST "]");
@@ -437,11 +530,11 @@ void getSVec(void)
         return;
     }
 
-    // get average -Z luminosity from 4 sensors
+    // get average -Z luminosity from 2 sensors
     float znavg = 0;
-    for (int i = 5; i < 9; i++)
+    for (int i = 5; i < 7; i++)
         znavg += g_CSS[i];
-    znavg *= 0.250f;
+    znavg *= 0.5f;
 
     x_g_S[sol_index] = g_CSS[0] - g_CSS[1]; // +x - -x
     y_g_S[sol_index] = g_CSS[2] - g_CSS[3]; // +x - -x
@@ -477,56 +570,119 @@ int readSensors(void)
     if (mag_index == SH_BUFFER_SIZE - 1) // hit max, buffer full
         B_full = 1;
     mag_index = (mag_index + 1) % SH_BUFFER_SIZE;
-    VECTOR_CLEAR(g_B[mag_index]); // clear the current B
-#ifdef SITL
-    pthread_mutex_lock(&serial_read);
-    VECTOR_OP(g_B[mag_index], g_B[mag_index], g_readB, +); // load B - equivalent reading from sensor
-    for (int i = 0; i < 9; i++)                            // load CSS
-        g_CSS[i] = (g_readCS[i] * 5000.0) / 0x0fff;
-    g_FSS[0] = ((g_readFS[0] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 0
-    g_FSS[1] = ((g_readFS[1] * M_PI) / 65535.0) - (M_PI / 2); // load FSS angle 1
-    // printf("[read]%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n", g_readFS[0], g_readFS[1], g_readCS[0], g_readCS[1], g_readCS[2], g_readCS[3], g_readCS[4], g_readCS[5], g_readCS[6], g_readCS[7], g_readCS[8]);
-    pthread_mutex_unlock(&serial_read);
-#define B_RANGE 32767
-    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], B_RANGE, -);
-    VECTOR_MIXED(g_B[mag_index], g_B[mag_index], 4e-4 * 1e7 / B_RANGE, *); // in milliGauss to have precision
-#else                                                                      // HITL
+    VECTOR_CLEAR(g_B[mag_index]); // clear the current B                                                  /
+    // HITL
     short mag_measure[3];
+    if ((status = i2cbus_lock(fss)))
+    {
+        shprintf("Error %d locking I2C bus for ACS readouts\n", status);
+    }
+    // read magnetic sensor
     status = lsm9ds1_read_mag(mag, mag_measure);
     if (status < 0) // failure
-        return status;
+    {
+        shprintf("Error reading magsensor\n");
+    }
+    // read coarse sun sensors
+    uint32_t mes;
+    // activate mux channel 0
+    if (mux_err_channel[0])
+    {
+        shprintf("Mux channel 0 has device error, skipping\n");
+        goto read_mux_1;
+    }
+    if (tca9458a_set(mux, 0) < 0)
+    {
+        shprintf("Could not set mux channel 0\n");
+        goto read_mux_1;
+    }
+    { // read dev on chn 0
+        bool mux_err = true;
+        if (tsl2561_measure(&(css[0]), &mes) > 0) // all good
+        {
+            g_CSS[0] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        if (tsl2561_measure(&(css[1]), &mes) > 0) // all good
+        {
+            g_CSS[1] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        if (tsl2561_measure(&(css[2]), &mes) > 0) // all good
+        {
+            g_CSS[2] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        mux_err_channel[0] = mux_err;
+    }
+// activate mux channel 1
+read_mux_1:
+    if (mux_err_channel[1])
+    {
+        shprintf("Mux channel 1 has device error, skipping\n");
+        goto read_mux_2;
+    }
+    if (tca9458a_set(mux, 1) < 0)
+    {
+        shprintf("Could not set mux channel 0\n");
+        goto read_mux_2;
+    }
+    { // read dev on chn 0
+        bool mux_err = true;
+        if (tsl2561_measure(&(css[3]), &mes) > 0) // all good
+        {
+            g_CSS[3] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        if (tsl2561_measure(&(css[4]), &mes) > 0) // all good
+        {
+            g_CSS[4] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        if (tsl2561_measure(&(css[5]), &mes) > 0) // all good
+        {
+            g_CSS[5] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        mux_err_channel[1] = mux_err;
+    }
+read_mux_2:
+    if (mux_err_channel[2])
+    {
+        shprintf("Mux channel 2 has device error, skipping\n");
+        goto read_css;
+    }
+    // activate mux channel 0
+    if (tca9458a_set(mux, 2) < 0)
+    {
+        shprintf("Could not set mux channel 0\n");
+    }
+    { // read dev on chn 0
+        bool mux_err = true;
+        if (tsl2561_measure(&(css[6]), &mes) > 0) // all good
+        {
+            g_CSS[6] = tsl2561_get_lux(mes);
+            mux_err = false;
+        }
+        mux_err_channel[2] = mux_err;
+    }
+read_css:
+    if (tca9458a_set(mux, 8) < 8)
+    {
+        shprintf("Error disabling mux\n");
+    }
+    if ((g_FSS_RET = a60sensor_read(fss, &(g_FSS[0]), &(g_FSS[1]))) < 0)
+    {
+        shprintf("Error getting data from fine sun sensor\n");
+    }
+    if ((status = i2cbus_unlock(fss)))
+    {
+        shprintf("Error %d unlocking I2C bus for ACS readouts\n", status);
+    }
     x_g_B[mag_index] = mag_measure[0] / 6.842; // scaled to milliGauss
     y_g_B[mag_index] = mag_measure[1] / 6.842;
     z_g_B[mag_index] = mag_measure[2] / 6.842;
     APPLY_DBESSEL(g_B, mag_index); // bessel filter
-#ifdef CSS_READY
-    for (int i = 0; i < 3; i++)
-    {
-        tca9458a_set(mux, i); // activate channel
-        for (int j = 0; j < 3; j++)
-        {
-            uint32_t measure;
-            errno = 0;                                 // unset errno
-            tsl2561_measure(css[i * 3 + j], &measure); // make measurement
-            if (errno)
-            {
-                perror("CSS measure");
-                return -1;
-            }
-            g_CSS[i * 3 + j] = tsl2561_get_lux(measure);
-        }
-    }
-#else
-    for (int i = 0; i < 9; i++)
-        g_CSS[i] = 0;
-#endif // CSS_READY
-#ifdef FSS_READY
-    // TODO: Read FSS
-#else
-    g_FSS[0] = -90;
-    g_FSS[1] = -90;
-#endif // FSS_READY
-#endif // SITL
 
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
     // put values into g_Bx, g_By and g_Bz at [mag_index] and takes 18 ms to do so (implemented using sleep)
@@ -947,6 +1103,8 @@ void insertionSort(int a1[], int a2[])
     }
 }
 
+#define ACS_I2C_CTX I2CBUS_CTX_0
+
 int acs_init(void)
 {
     /* Set up data logging */
@@ -963,125 +1121,152 @@ int acs_init(void)
     calculateBessel(bessel_coeff, SH_BUFFER_SIZE, 3, BESSEL_FREQ_CUTOFF);
 
     // initialize target omega
-    z_g_W_target = 1; // 1 rad s^-1
+    z_g_W_target = 1;                       // 1 rad s^-1
     MATVECMUL(g_L_target, MOI, g_W_target); // calculate target angular momentum
 
-#ifndef SITL // Prepare devices for HITL
-    hbridge = (ncv7708 *)malloc(sizeof(ncv7708));
-    if (hbridge == NULL)
-        return ERROR_MALLOC;
-    snprintf(hbridge->fname, 40, SPIDEV_ACS);
-#ifdef FSS_READY
-    ads1115 *adc = (ads1115 *)malloc(sizeof(ads1115));
-    if (adc == NULL)
-        return ERROR_MALLOC;
-#endif
-    css = (tsl2561 **)malloc(9 * sizeof(tsl2561 *));
-    for (int i = 0; i < 9; i++)
-    {
-        css[i] = (tsl2561 *)malloc(sizeof(tsl2561));
-        if (css[i] == NULL)
-            return ERROR_MALLOC;
-    }
-    mux = (tca9458a *)malloc(sizeof(tca9458a));
-    if (mux == NULL)
-        return ERROR_MALLOC;
-    snprintf((char *)(mux->fname), 40, I2C_BUS);
     int init_stat = 0;
-    init_stat = ncv7708_init(hbridge); // Initialize hbridge
+    init_stat = ncv7718_init(hbridge, 0, 1, -1); // Initialize hbridge
     if (init_stat < 0)
         return ERROR_HBRIDGE_INIT;
-#ifdef CSS_READY
     // Initialize MUX
-    if ((init_stat = tca9458a_init(mux, 0x70)) < 0)
+    if (tca9458a_init(mux, 0, 0x70, ACS_I2C_CTX) < 0)
     {
-        perror("Mux init failed");
+        shprintf("Could not initialize mux\n");
         return ERROR_MUX_INIT;
     }
-    // Initialize CSSs
-    for (int i = 0; i < 3; i++)
+    // activate mux channel 0
+    if (tca9458a_set(mux, 0) < 0)
     {
-        uint8_t css_addr = TSL2561_ADDR_LOW;
-        tca9458a_set(mux, i);
-        for (int j = 0; j < 3; j++)
-        {
-            if ((init_stat = tsl2561_init(css[3 * i + j], css_addr)) < 0)
-            {
-                perror("CSS init failed");
-                printf("CSS Init failed at channel %d addr 0x%02x\n", i, css_addr);
-                fflush(stdout);
-                return ERROR_CSS_INIT;
-            }
-            css_addr += 0x10;
-        }
+        printf("Could not set mux channel 0\n");
+        goto set_mux_1;
     }
-    tca9458a_set(mux, 8); // disables mux
-#endif                    // CSS_READY
-    // Initialize magnetometer
-    mag = (lsm9ds1 *)malloc(sizeof(lsm9ds1));
-    snprintf(mag->fname, 40, I2C_BUS);
-    if ((init_stat = lsm9ds1_init(mag, 0x6b, 0x1e)) < 0)
     {
-        perror("Magnetometer init failed");
+        bool mux_err = true;
+        // activate dev on channel 0
+        if (tsl2561_init(&(css[0]), 0, 0x29, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x29 chn 0\n");
+        }
+        if (tsl2561_init(&(css[1]), 0, 0x39, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x39 chn 0\n");
+        }
+        if (tsl2561_init(&(css[2]), 0, 0x49, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x49 chn 0\n");
+        }
+        mux_err_channel[0] = mux_err;
+    }
+    set_mux_1:
+    // activate mux channel 1
+    if (tca9458a_set(mux, 1) < 0)
+    {
+        printf("Could not set mux channel 1\n");
+        goto set_mux_2;
+    }
+    {
+        bool mux_err = true;
+        // activate dev on channel 0
+        if (tsl2561_init(&(css[3]), 0, 0x39, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x39 chn 1\n");
+        }
+        if (tsl2561_init(&(css[4]), 0, 0x49, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x49 chn 1\n");
+        }
+        if (tsl2561_init(&(css[5]), 0, 0x29, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x29 chn 1\n");
+        }
+        mux_err_channel[1] = mux_err;
+    }
+    set_mux_2:
+    // activate mux channel 2
+    if (tca9458a_set(mux, 2) < 0)
+    {
+        printf("Could not set mux channel 2\n");
+        goto init_fss;
+    }
+    {
+        bool mux_err = true;
+        // activate dev on channel 0
+        if (tsl2561_init(&(css[6]), 0, 0x39, ACS_I2C_CTX) > 0)
+        {
+            mux_err &= false;
+        }
+        else
+        {
+            shprintf("Could not open 0x39 chn 2\n");
+        }
+        mux_err_channel[2] = mux_err;
+    }
+    init_fss:
+    tca9458a_set(mux, 8); // disables mux
+    if (a60sensor_init(fss, 0, 0x4a, ACS_I2C_CTX) < 0)
+    {
+        shprintf("Could not initialize fine sun sensor\n");
+    }
+    // Initialize magnetometer
+    if ((init_stat = lsm9ds1_init(mag, 0, 0x6b, 0x1e, ACS_I2C_CTX)) < 0)
+    {
+        shprintf("Magnetometer init failed\n");
         return ERROR_MAG_INIT;
     }
-    // Initialize adc
-#ifdef FSS_READY
-    init_stat = ads1115_init(adc, ADS1115_S_ADDR);
-    if (init_stat < 0)
-    {
-        perror("ADC init failed");
-        return ERROR_FSS_INIT;
-    }
-    ads1115_config adc_conf;
-
-    adc_conf.raw = 0x0000;
-
-    adc_conf.os = 0;
-    adc_conf.mux = 0;
-    adc_conf.pga = 1;
-    adc_conf.mode = 0;
-    adc_conf.dr = 5;
-    adc_conf.comp_mode = 0;
-    adc_conf.comp_pol = 0;
-    adc_conf.comp_lat = 0;
-    adc_conf.comp_que = 3;
-
-    init_stat = ads1115_configure(adc, adc_conf);
-    if (init_stat < 0)
-    {
-        perror("ADC config failed");
-        return ERROR_FSS_CONFIG;
-    }
-#endif               // FSS_READY
-    usleep(1000000); // sleep 1 second
-#endif               // ifndef SITL
+    sleep(1); // sleep 1 second
     return 1;
 }
 
 void acs_destroy(void)
 {
-#ifndef SITL // if SITL, no need to disable any devices
-#ifdef CSS_READY
-    // Destroy CSSs
-    for (int i = 0; i < 3; i++)
+    // FSS
+    a60sendor_destroy(fss);
+    // CSS
+    if (!mux_err_channel[2])
     {
-        uint8_t css_addr = TSL2561_ADDR_LOW;
-        tca9458a_set(mux, i);
-        for (int j = 0; j < 3; j++)
-        {
-            tsl2561_destroy(css[3 * i + j]);
-            css_addr += 0x10;
-        }
+        tca9458a_set(mux, 2);
+        tsl2561_destroy(&(css[7]));
     }
-    tca9458a_set(mux, 8); // disables mux
-#endif                    // CSS_READY
+    if (!mux_err_channel[1])
+    {
+        tca9458a_set(mux, 1);
+        tsl2561_destroy(&(css[6]));
+        tsl2561_destroy(&(css[5]));
+        tsl2561_destroy(&(css[4]));
+    }
+    if (!mux_err_channel[0])
+    {
+        tca9458a_set(mux, 0);
+        tsl2561_destroy(&(css[3]));
+        tsl2561_destroy(&(css[2]));
+        tsl2561_destroy(&(css[1]));
+    }
+    tca9458a_set(mux, 8); // disable mux
     tca9458a_destroy(mux);
     lsm9ds1_destroy(mag);
-    ncv7708_destroy(hbridge);
-#ifdef FSS_READY
-    // destroy FSS ADC
-    ads1115_destroy(adc);
-#endif // FSS_READY
-#endif // SITL
+    ncv7718_destroy(hbridge);
 }

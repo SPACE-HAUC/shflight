@@ -18,8 +18,9 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "datalogger_extern.h"
 
-#define MODULE_NAME "eps"
+#define THIS_MODULE "eps"
 
 /* Variable allocation for EPS */
 
@@ -285,7 +286,7 @@ int eps_get_min_hk(sh_hk_t *hk)
     eps_hk_t hk_t[1];
     if (eps_get_hk(hk_t) < 0)
         return -1;
-    convert_hk_to_sh(hk_t, hk); 
+    convert_hk_to_sh(hk_t, hk);
     return 1;
 }
 
@@ -306,6 +307,11 @@ int eps_set_loop_timer(int t)
 
 eps_hk_t eps_system_hk;
 sh_hk_t sh_system_hk;
+uint16_t eps_vbatt;
+uint16_t eps_mvboost;
+uint16_t eps_cursun;
+uint16_t eps_cursys;
+uint8_t eps_battmode;
 
 // Initializes the EPS and ping-tests it.
 int eps_init()
@@ -327,12 +333,37 @@ int eps_init()
     {
         return -2;
     }
-
+    if (sys_boot_count < 2) // first boot, another go at thermal knife to make life easier
+    {
+        if (eps_p31u_ks_set(eps, 1000 * 30) < 0)
+        {
+            shprintf("Could not run thermal knife at boot %d\n", sys_boot_count);
+        }
+    }
+    // at this point, get config
+    eps_config_t conf[1];
+    if (eps_p31u_get_conf(eps, conf) < 0)
+    {
+        shprintf("Could not get config file\n");
+        return -3;
+    }
+    conf->output_initial_off_delay[0] = 0; 
+    conf->output_initial_on_delay[0] = 0; // at this point, OBC should not have off delay
+    conf->output_initial_on_delay[3] = 0; // at this point, UHF should not have on delay
+    conf->output_initial_on_delay[7] = 0; // at this point, thermal knife should not turn on
+    conf->output_initial_off_delay[7] = 0; // at this point, thermal knife should not turn on
+    if (eps_p31u_set_conf(eps, conf) < 0)
+    {
+        shprintf("Could not set config file\n");
+        return -4;
+    }
     return 1;
 }
 
 void *eps_thread(void *tid)
 {
+    DLGR_REGISTER(eps_system_hk, sizeof(eps_hk_t));
+    DLGR_REGISTER(sh_system_hk, sizeof(sh_hk_t));
     while (!done)
     {
         // Reset the watch-dog timer.
@@ -342,10 +373,17 @@ void *eps_thread(void *tid)
         {
             eprintf("Error getting EPS housekeeping data");
         }
+        convert_hk_to_sh(&eps_system_hk, &sh_system_hk);
         // Log housekeeping data.
-        dlgr_LogData(MODULE_NAME, sizeof(eps_hk_t), &eps_system_hk);
-        dlgr_LogData(MODULE_NAME, sizeof(sh_hk_t), &sh_system_hk);
-
+        DLGR_WRITE(eps_system_hk);
+        DLGR_WRITE(sh_system_hk);
+        eps_vbatt = eps_system_hk.vbatt;
+        for (int i = 0, eps_mvboost = 0; i < 3; i++)
+            if (eps_mvboost < eps_system_hk.vboost[i])
+                eps_mvboost = eps_system_hk.vboost[i];
+        eps_cursun = eps_system_hk.cursun;
+        eps_cursys = eps_system_hk.cursys;
+        eps_battmode = eps_system_hk.battmode;
         sleep(EPS_LOOP_TIMER);
     }
     pthread_exit(NULL);

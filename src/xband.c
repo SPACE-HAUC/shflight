@@ -16,7 +16,7 @@
 #include "modem/include/txmodem.h" // TX modem
 #include "modem/include/rxmodem.h" // RX modem
 #include "modem/include/libiio.h"  // PHY controls
-#include <eps.h>                   // EPS controls
+#include <eps_extern.h>            // EPS controls
 
 #include <stdint.h>
 #include <pthread.h>
@@ -26,6 +26,12 @@
 #include <macros.h>
 #include <string.h>
 #include <math.h>
+#include <main.h>
+#define XBAND_INTERNAL
+#include <xband.h>
+#undef XBAND_INTERNAL
+
+#define THIS_MODULE "xband"
 
 static adar1000 adar[1];
 static adf4355 adf[1];
@@ -36,13 +42,13 @@ static adradio_t phy[1];
 static tmp123 tsensor[7];
 
 volatile bool xb_sys_rdy = false; // this variable indicates whether the XB system is activated
-extern volatile sig_atomic_t done;
-float TR_MAX_TEMP = 70;   // 70 C by default
-float TR_MIN_TEMP = 60;   // 60 C to de-establish thermal shutdown
-int adar_mode = -1;       // uninitialized
-int adar_last_mode = -1;  // uninitialized
-bool tr_shutdown = false; // do not assume it is shut down
-uint16_t MAX_TURNOFF_CTR = 600; // 600 seconds
+float TR_MAX_TEMP = 70;           // 70 C by default
+float TR_MIN_TEMP = 60;           // 60 C to re-enable after thermal shutdown
+int adar_mode = -1;               // uninitialized
+int adar_last_mode = -1;          // uninitialized
+bool tr_shutdown = false;         // do not assume it is shut down
+int16_t MAX_TURNOFF_CTR = 600;   // 600 seconds
+uint8_t XBAND_LOOP_TIME = 5;      // loop every 5 seconds
 
 /******* PIN ASSIGNMENTS *********/
 #define ADAR_SPI_BUS 1
@@ -185,21 +191,11 @@ enum ensm_mode adradio_read_ensm_mode(adradio_t *dev)
         return TDD;
     return -1;
 }
-/**
- * @brief 
- * 
- * @param LO LO in MHz
- * @param bw BW in MHz
- * @param samp Sampling rate in kHz
- * @param phy_gain PHY gain (negative of the supplied number is applied)
- * @param ftr_name Filter name (string)
- * @param phase 16-length array for phase table
- * @param adar_gain Gain for channels
- * @return int 1 on success, negative on failure
- */
+
 int xband_set_tx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char *ftr_name, float *phase, uint8_t adar_gain) // set up for TX
 {
-    // may be read batt level?
+    if (eps_battmode < 3)
+        return -10;
     // step 1: Turn on power
     int status = eps_lup_set(PWR_MAIN, 1);
     usleep(1000 * 100);
@@ -330,7 +326,7 @@ int xband_set_tx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char
     {
         adradio_set_tx_bw(phy, bw * 1e6);
         if (samp > 2e3)
-            adradio_set_samp(phy, samp * 1e3); 
+            adradio_set_samp(phy, samp * 1e3);
         else
             adradio_set_samp(phy, 5e6);
     }
@@ -340,7 +336,8 @@ int xband_set_tx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char
 
 int xband_set_rx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char *ftr_name, float *phase, uint8_t adar_gain) // set up for TX
 {
-    // may be read batt level?
+    if (eps_battmode < 3)
+        return -10;
     // step 1: Turn on power
     int status = eps_lup_set(PWR_MAIN, 1);
     usleep(1000 * 100);
@@ -464,7 +461,7 @@ int xband_set_rx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char
     {
         adradio_set_rx_bw(phy, bw * 1e6);
         if (samp > 2e3)
-            adradio_set_samp(phy, samp * 1e3); 
+            adradio_set_samp(phy, samp * 1e3);
         else
             adradio_set_samp(phy, 5e6);
     }
@@ -504,15 +501,11 @@ int xband_disable(void)
     eps_lup_set(PWR_MAIN, 0);
     return 0;
 }
-/**
- * @brief XBand thread, takes care of thermal and time shutdown
- * 
- * @param in Unused
- * @return void* 
- */
+
 void *xband_thread(void *in)
 {
-    float tmpC[7]; short ctr = 0;
+    float tmpC[7];
+    short ctr = 0;
     (void *)in;
     while (!done)
     {
@@ -554,23 +547,21 @@ void *xband_thread(void *in)
                 }
             }
         }
-        if ((--ctr) == 0)
+        ctr -= XBAND_LOOP_TIME;
+        if (ctr < XBAND_LOOP_TIME)
             xband_disable();
-        sleep(1); // do that every second
+        sleep(XBAND_LOOP_TIME); // do that every second
     }
     return NULL;
 }
 
-/**
- * @brief 
- * 
- * @param data 
- * @param len 
- * @param mtu 
- * @return int 
- */
 int xband_do_tx(uint8_t *data, ssize_t len, int mtu)
 {
+    if (eps_battmode < 3)
+    {
+        xband_disable();
+        return -10;
+    }
     // check if system in TX mode
     if (!xb_sys_rdy)
     {
@@ -596,7 +587,9 @@ int xband_do_tx(uint8_t *data, ssize_t len, int mtu)
     usleep(500000); // wait another half second
     gpioWrite(TGL_5V, GPIO_LOW);
     if (retval < 0)
-    retval = -retval;
+        retval = -retval;
+    else
+        return 1;
     return -(0x200 | retval);
 }
 
@@ -613,4 +606,64 @@ void xband_destroy(void)
     for (int i = 0; i < 7; i++)
         tmp123_destroy(&tsensor[i]);
     adf4355_destroy(adf);
+}
+
+int8_t xband_set_max_on(int8_t t)
+{
+    if (t < 1)
+        t = 1;
+    if (t > 20)
+        t = 20;
+    MAX_TURNOFF_CTR = t * 60;
+    return MAX_TURNOFF_CTR / 60;
+}
+
+int8_t xband_get_max_on(void)
+{
+    return MAX_TURNOFF_CTR / 60;
+}
+
+int8_t xband_set_tmp_shutdown(int8_t tmp)
+{
+    if (tmp < 50)
+        tmp = 50;
+    if (tmp > 95)
+        tmp = 95;
+    TR_MAX_TEMP = tmp;
+    return (int8_t)TR_MAX_TEMP;
+}
+
+int8_t xband_get_tmp_shutdown(void)
+{
+    return (int8_t)TR_MAX_TEMP;
+}
+
+int8_t xband_set_tmp_op(int8_t tmp)
+{
+    if (tmp > TR_MAX_TEMP)
+        tmp = TR_MAX_TEMP - 10;
+    if (tmp > 95)
+        tmp = 75;
+    TR_MIN_TEMP = tmp;
+    return (int8_t)TR_MIN_TEMP;
+}
+
+int8_t xband_get_tmp_op(void)
+{
+    return (int8_t)TR_MIN_TEMP;
+}
+
+uint8_t xband_get_loop_time(void)
+{
+    return XBAND_LOOP_TIME;
+}
+
+uint8_t xband_set_loop_time(uint8_t t)
+{
+    if (t > (MAX_TURNOFF_CTR / 5))
+        t = MAX_TURNOFF_CTR / 5; // we require at least five measurements during the max time the system is on
+    if (t < 1) // at least every second
+        t = 1;
+    XBAND_LOOP_TIME = t;
+    return XBAND_LOOP_TIME;
 }

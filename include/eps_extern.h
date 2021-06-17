@@ -22,15 +22,30 @@ extern __thread pthread_mutex_t eps_cmd_wait_m[1];
 #endif
 
 /**
- * @brief eps_hk_t global struct
+ * @brief Current battery voltage
  * 
  */
-extern eps_hk_t eps_system_hk;
+extern uint16_t eps_vbatt;
 /**
- * @brief sh_hk_t global struct
+ * @brief Current max boost voltage on solar panel
  * 
  */
-extern sh_hk_t sh_system_hk;
+extern uint16_t eps_mvboost;
+/**
+ * @brief Current solar input current
+ * 
+ */
+extern uint16_t eps_cursun;
+/**
+ * @brief Current power consumption
+ * 
+ */
+extern uint16_t eps_cursys;
+/**
+ * @brief Current battery mode
+ * 
+ */
+extern uint8_t eps_battmode;
 
 /**
  * @brief Pack important EPS info into 36 bytes
@@ -55,6 +70,17 @@ typedef struct __attribute__((packed))
     uint8_t bootcause;             //!< Cause of last EPS reset
     uint8_t battnpptmode;          //!< 0x Mode for battery [0 = initial, 1 = undervoltage, 2 = safemode, 3 = nominal, 4=full] | Mode of PPT tracker [1=MPPT, 2=FIXED]
 } sh_hk_t;
+
+/**
+ * @brief eps_hk_t global struct
+ * 
+ */
+extern eps_hk_t eps_system_hk;
+/**
+ * @brief sh_hk_t global struct
+ * 
+ */
+extern sh_hk_t sh_system_hk;
 
 /**
  * @brief Convert eps_hk_t struct data to sh_hk_t data

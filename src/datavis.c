@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include <main.h>
+
+#define THIS_MODULE "datavis"
 /**
  * @brief DataVis data structure.
  * 

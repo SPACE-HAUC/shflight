@@ -12,64 +12,124 @@
 #define ACS_H
 #include <acs_extern.h> // will define SH_BUFFER_SIZE
 /**
- * @brief Dipole moment of the magnetorquer rods
+ * @brief 
  * 
+ * @param moi 
+ * @return int 
  */
-#define DIPOLE_MOMENT 0.22 // A m^-2
+int acs_get_moi(float *moi);
 /**
- * @brief ACS loop time period
+ * @brief 
  * 
+ * @param moi 
+ * @return int 
  */
-#define DETUMBLE_TIME_STEP 100000 // 100 ms for full loop
+int acs_set_moi(float *moi);
 /**
- * @brief ACS readSensors() max execute time per cycle
+ * @brief 
  * 
+ * @param imoi 
+ * @return int 
  */
-#define MEASURE_TIME 20000 // 20 ms to measure
+int acs_get_imoi(float *imoi);
 /**
- * @brief ACS max actuation time per cycle
+ * @brief 
  * 
+ * @param imoi 
+ * @return int 
  */
-#define MAX_DETUMBLE_FIRING_TIME (DETUMBLE_TIME_STEP - MEASURE_TIME) // Max allowed detumble fire time
+int acs_set_imoi(float *imoi);
 /**
- * @brief Minimum magnetorquer firing time
+ * @brief 
  * 
+ * @return float 
  */
-#define MIN_DETUMBLE_FIRING_TIME 10000 // 10 ms
+float acs_get_dipole(void);
 /**
- * @brief Sunpointing magnetorquer PWM duty cycle
+ * @brief set dipole moment
  * 
+ * @param d dipole moment in Am-2
+ * @return float 
  */
-#define SUNPOINT_DUTY_CYCLE 20000 // 20 msec, in usec
+float acs_set_dipole(float d);
 /**
- * @brief Course sun sensing mode loop time for ACS
+ * @brief Get ACS timestep
  * 
+ * @return uint32_t timestep in us
  */
-#define COARSE_TIME_STEP DETUMBLE_TIME_STEP // 100 ms, in usec
+uint32_t acs_get_tstep(void);
 /**
- * @brief Coarse sun sensor minimum lux threshold for valid measurement
+ * @brief Set ACS timestep
  * 
+ * @param t time in ms
+ * @return uint32_t time in us
  */
-#ifdef SITL
-#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
-#else
-#define CSS_MIN_LUX_THRESHOLD 5000 * 0.5 // 5000 lux is max sun, half of that is our threshold (subject to change)
-#endif                                   // SITL
+uint32_t acs_set_tstep(uint8_t t);
 /**
- * @brief Acceptable leeway of the angular speed target
+ * @brief Measure time in us
  * 
+ * @return uint32_t 
  */
-#define OMEGA_TARGET_LEEWAY z_g_W_target * 0.1 // 10% leeway in the value of omega_z
+uint32_t acs_get_measure_time(void);
 /**
- * @brief Sunpointing angle target (in degrees)
+ * @brief Set measurement time 
  * 
+ * @param t time in ms
+ * @return uint32_t time set in us
  */
-#define MIN_SOL_ANGLE 4 // minimum solar angle for sunpointing to be a success
+uint32_t acs_set_measure_time(uint8_t t);
 /**
- * @brief Detumble angle target (in degrees)
+ * @brief Get detumble angular speed accuracy in percentage
  * 
+ * @return uint8_t number between 1-100
  */
-#define MIN_DETUMBLE_ANGLE 4 // minimum angle for detumble to be a success
+uint8_t acs_get_leeway(void);
+/**
+ * @brief Set detumble angular speed accuracy in percentage
+ * 
+ * @param leeway number between 1-100
+ * @return uint8_t set leeway
+ */
+uint8_t acs_set_leeway(uint8_t leeway);
+/**
+ * @brief Get omega_z target
+ * 
+ * @return float angular speed in rad/s
+ */
+float acs_get_wtarget(void);
+/**
+ * @brief Set omega_z target (rad/s)
+ * 
+ * @param t omega_z target in rad/s
+ * @return float set omega_z target
+ */
+float acs_set_wtarget(float t);
+/**
+ * @brief Get detumble accuracy
+ * 
+ * @return uint8_t angle in degrees
+ */
+uint8_t acs_get_detumble_ang();
+/**
+ * @brief Set detumble accuracy
+ * 
+ * @param ang angle in degrees
+ * @return uint8_t set angle in degrees
+ */
+uint8_t acs_set_detumble_ang(uint8_t ang);
+/**
+ * @brief Get solar pointing accuracy
+ * 
+ * @return uint8_t angle in degrees
+ */
+uint8_t acs_get_sun_angle();
+/**
+ * @brief Set solar pointing accuracy
+ * 
+ * @param ang angle in degrees
+ * @return uint8_t set angle in degrees
+ */
+uint8_t acs_set_sun_angle(uint8_t ang);
 
 /**
  * @brief Initializes the devices required to run the attitude control system.
@@ -169,19 +229,4 @@ int readSensors(void);
  * 
  */
 void checkTransition(void);
-#ifndef I2C_BUS
-/**
- * @brief I2C Bus device file used for ACS sensors
- * 
- */
-#define I2C_BUS "/dev/i2c-0" // default for Raspberry Pi, on flight computer use i2c-0
-#endif                       // I2C_BUS
-
-#ifndef SPIDEV_ACS
-/**
- * @brief SPI device file for H-Bridge (ACS)
- * 
- */
-#define SPIDEV_ACS "/dev/spidev0.1" // default SPI bus on Flight computer
-#endif
 #endif // ACS_H
