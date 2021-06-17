@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <datalogger_extern.h>
 
 /**
  * @brief This is color indicator for printf statements in ACS, for use in debug only."
@@ -260,7 +261,7 @@ static float LEEWAY_FACTOR = 0.1;
  * @brief Acceptable leeway of the angular speed target
  * 
  */
-#define OMEGA_TARGET_LEEWAY z_g_W_target * LEEWAY_FACTOR // 10% leeway in the value of omega_z
+#define OMEGA_TARGET_LEEWAY z_g_W_target *LEEWAY_FACTOR // 10% leeway in the value of omega_z
 /**
  * @brief Sunpointing angle target (in degrees)
  * 
@@ -334,7 +335,7 @@ uint32_t acs_set_tstep(uint8_t t)
 {
     if (t < 100)
         t = 100;
-    t = (t / 10) * 10; // in increments of 10 ms
+    t = (t / 10) * 10;             // in increments of 10 ms
     DETUMBLE_TIME_STEP = t * 1000; // ms to us
     return DETUMBLE_TIME_STEP;
 }
@@ -357,7 +358,7 @@ uint32_t acs_set_measure_time(uint8_t t)
 
 uint8_t acs_get_leeway(void)
 {
-    return 1/LEEWAY_FACTOR;
+    return 1 / LEEWAY_FACTOR;
 }
 
 uint8_t acs_set_leeway(uint8_t leeway)
@@ -562,6 +563,14 @@ void getSVec(void)
     return;
 }
 
+DECLARE_VECTOR(mag_mes, float);
+
+uint32_t css_0, css_1, css_2, css_3, css_4, css_5, css_6, css_7;
+
+float fss_0, fss_1;
+
+bool mux_err_0 = false, mux_err_1 = false, mux_err_2 = false;
+
 int readSensors(void)
 {
     // read magfield, CSS, FSS
@@ -600,20 +609,20 @@ int readSensors(void)
         bool mux_err = true;
         if (tsl2561_measure(&(css[0]), &mes) > 0) // all good
         {
-            g_CSS[0] = tsl2561_get_lux(mes);
+            g_CSS[0] = css_0 = tsl2561_get_lux(mes);
             mux_err = false;
         }
         if (tsl2561_measure(&(css[1]), &mes) > 0) // all good
         {
-            g_CSS[1] = tsl2561_get_lux(mes);
+            g_CSS[1] = css_1 = tsl2561_get_lux(mes);
             mux_err = false;
         }
         if (tsl2561_measure(&(css[2]), &mes) > 0) // all good
         {
-            g_CSS[2] = tsl2561_get_lux(mes);
+            g_CSS[2] = css_2 = tsl2561_get_lux(mes);
             mux_err = false;
         }
-        mux_err_channel[0] = mux_err;
+        mux_err_channel[0] = mux_err_0 = mux_err;
     }
 // activate mux channel 1
 read_mux_1:
@@ -631,20 +640,20 @@ read_mux_1:
         bool mux_err = true;
         if (tsl2561_measure(&(css[3]), &mes) > 0) // all good
         {
-            g_CSS[3] = tsl2561_get_lux(mes);
+            g_CSS[3] = css_3 = tsl2561_get_lux(mes);
             mux_err = false;
         }
         if (tsl2561_measure(&(css[4]), &mes) > 0) // all good
         {
-            g_CSS[4] = tsl2561_get_lux(mes);
+            g_CSS[4] = css_4 = tsl2561_get_lux(mes);
             mux_err = false;
         }
         if (tsl2561_measure(&(css[5]), &mes) > 0) // all good
         {
-            g_CSS[5] = tsl2561_get_lux(mes);
+            g_CSS[5] = css_5 = tsl2561_get_lux(mes);
             mux_err = false;
         }
-        mux_err_channel[1] = mux_err;
+        mux_err_channel[1] = mux_err_1 = mux_err;
     }
 read_mux_2:
     if (mux_err_channel[2])
@@ -661,10 +670,10 @@ read_mux_2:
         bool mux_err = true;
         if (tsl2561_measure(&(css[6]), &mes) > 0) // all good
         {
-            g_CSS[6] = tsl2561_get_lux(mes);
+            g_CSS[6] = css_6 = tsl2561_get_lux(mes);
             mux_err = false;
         }
-        mux_err_channel[2] = mux_err;
+        mux_err_channel[2] = mux_err_2 = mux_err;
     }
 read_css:
     if (tca9458a_set(mux, 8) < 8)
@@ -679,9 +688,14 @@ read_css:
     {
         shprintf("Error %d unlocking I2C bus for ACS readouts\n", status);
     }
-    x_g_B[mag_index] = mag_measure[0] / 6.842; // scaled to milliGauss
-    y_g_B[mag_index] = mag_measure[1] / 6.842;
-    z_g_B[mag_index] = mag_measure[2] / 6.842;
+    x_mag_mes = mag_measure[0] / 6.842;
+    y_mag_mes = mag_measure[1] / 6.842;
+    z_mag_mes = mag_measure[2] / 6.842;
+    x_g_B[mag_index] = x_mag_mes; // scaled to milliGauss
+    y_g_B[mag_index] = y_mag_mes;
+    z_g_B[mag_index] = z_mag_mes;
+    fss_0 = g_FSS[0];
+    fss_1 = g_FSS[1];
     APPLY_DBESSEL(g_B, mag_index); // bessel filter
 
     // printf("readSensors: Bx: %f By: %f Bz: %f\n", x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index]);
@@ -703,6 +717,22 @@ read_css:
     // printf("readSensors: m0: %d m1: %d Btx: %f Bty: %f Btz: %f\n", m0, m1, x_g_Bt[bdot_index], y_g_Bt[bdot_index], z_g_Bt[bdot_index]);
     getOmega();
     getSVec();
+    // log data
+#ifdef ACS_FILE_DATALOG
+    DLGR_WRITE(x_mag_mes);
+    DLGR_WRITE(y_mag_mes);
+    DLGR_WRITE(z_mag_mes);
+    DLGR_WRITE(css_0);
+    DLGR_WRITE(css_1);
+    DLGR_WRITE(css_2);
+    DLGR_WRITE(css_3);
+    DLGR_WRITE(css_4);
+    DLGR_WRITE(css_5);
+    DLGR_WRITE(css_6);
+    DLGR_WRITE(g_FSS_RET);
+    DLGR_WRITE(fss_0);
+    DLGR_WRITE(fss_1);
+#endif
     // check if any of the values are NaN. If so, return -1
     // the NaN may stem from Bdot = 0, which may stem from the fact that during sunpointing
     // B may align itself with Z/ω
@@ -1115,6 +1145,21 @@ int acs_init(void)
 
     acs_datalog = fopen(fname, "w");
 #endif // ACS_DATALOG
+#ifdef ACS_FILE_DATALOG
+    DLGR_REGISTER_SINGLE(x_mag_mes);
+    DLGR_REGISTER_SINGLE(y_mag_mes);
+    DLGR_REGISTER_SINGLE(z_mag_mes);
+    DLGR_REGISTER_SINGLE(css_0);
+    DLGR_REGISTER_SINGLE(css_1);
+    DLGR_REGISTER_SINGLE(css_2);
+    DLGR_REGISTER_SINGLE(css_3);
+    DLGR_REGISTER_SINGLE(css_4);
+    DLGR_REGISTER_SINGLE(css_5);
+    DLGR_REGISTER_SINGLE(css_6);
+    DLGR_REGISTER_SINGLE(g_FSS_RET);
+    DLGR_REGISTER_SINGLE(fss_0);
+    DLGR_REGISTER_SINGLE(fss_1);
+#endif
     /* End setup datalogging */
 
     // init for bessel coefficients
@@ -1169,7 +1214,7 @@ int acs_init(void)
         }
         mux_err_channel[0] = mux_err;
     }
-    set_mux_1:
+set_mux_1:
     // activate mux channel 1
     if (tca9458a_set(mux, 1) < 0)
     {
@@ -1205,7 +1250,7 @@ int acs_init(void)
         }
         mux_err_channel[1] = mux_err;
     }
-    set_mux_2:
+set_mux_2:
     // activate mux channel 2
     if (tca9458a_set(mux, 2) < 0)
     {
@@ -1225,7 +1270,7 @@ int acs_init(void)
         }
         mux_err_channel[2] = mux_err;
     }
-    init_fss:
+init_fss:
     tca9458a_set(mux, 8); // disables mux
     if (a60sensor_init(fss, 0, 0x4a, ACS_I2C_CTX) < 0)
     {

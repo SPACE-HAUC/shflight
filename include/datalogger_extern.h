@@ -14,10 +14,15 @@
 #include <datalogger.h>
 // Note: varname should be formatted as modname_varname. dlgr_register(const char* var_name, void* var_data, int var_size);
 /**
- * @brief 
+ * @brief Register a variable named varname (could be a pointer) of size varsize
  * 
  */
 #define DLGR_REGISTER(varname, varsize) dlgr_register(THIS_MODULE "_" #varname, varsize)
+/**
+ * @brief Register variable varname, which is NOT an array or a pointer
+ * 
+ */
+#define DLGR_REGISTER_SINGLE(varname) DLGR_REGISTER(varname, sizeof(varname))
 
 // #varname = "passed_varname", passed_varname_DATASIZE_LOGNUM == file to save log to 
 /**
