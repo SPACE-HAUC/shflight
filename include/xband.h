@@ -10,7 +10,7 @@
  */
 #ifndef XBAND_H
 #define XBAND_H
-#ifdef XBAND_INTERNAL || _XBAND_IFACE_H
+#ifdef XBAND_INTERNAL
 int xband_init(void);
 /**
  * @brief XBand thread, takes care of thermal and time shutdown
@@ -21,7 +21,18 @@ int xband_init(void);
 void *xband_thread(void *in);
 void xband_destroy(void);
 #endif
-#ifdef XBAND_INTERNAL || _XBAND_EXTERN_H
+#ifdef _XBAND_IFACE_H
+int xband_init(void);
+/**
+ * @brief XBand thread, takes care of thermal and time shutdown
+ * 
+ * @param in Unused
+ * @return void* 
+ */
+void *xband_thread(void *in);
+void xband_destroy(void);
+#endif
+#ifdef _XBAND_EXTERN_H
 /**
  * @brief 
  * 

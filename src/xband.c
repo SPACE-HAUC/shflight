@@ -28,6 +28,7 @@
 #include <math.h>
 #include <main.h>
 #define XBAND_INTERNAL
+#define _XBAND_EXTERN_H
 #include <xband.h>
 #undef XBAND_INTERNAL
 
