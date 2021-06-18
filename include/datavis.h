@@ -25,6 +25,11 @@
 typedef struct
 {
     char start[6];
+    uint16_t eps_vbatt;
+    uint16_t eps_mvboost;
+    uint16_t eps_cursun;
+    uint16_t eps_cursys;
+    uint8_t eps_battmode;
     /**
      * @brief Current system state
      * 

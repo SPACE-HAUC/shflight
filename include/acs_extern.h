@@ -22,13 +22,13 @@
 #ifndef ACS_H
 #include <macros.h>
 #include <stdbool.h>
-DECLARE_VECTOR(mag_mes, extern float);
+DECLARE_VECTOR2(mag_mes, extern float);
 
 extern uint32_t css_0, css_1, css_2, css_3, css_4, css_5, css_6, css_7;
 
 extern float fss_0, fss_1;
 
-extern bool mux_err_0 = false, mux_err_1 = false, mux_err_2 = false;
+extern bool mux_err_0, mux_err_1, mux_err_2;
 #endif
 
 /**

@@ -9,6 +9,37 @@
  * 
  */
 
+/******* PIN ASSIGNMENTS *********/
+#define ADAR_SPI_BUS 1
+#define ADAR_SPI_CS 1      // Pin 24 for ADAR Chip Select
+#define ADAR_CS_INTERNAL 1 // CS is internal for test program
+
+#define ADF_SPI_BUS 1
+#define ADF_SPI_CS 2 // Pin 26 NO CONNECT
+#define ADF_CS_INTERNAL 0
+#define ADF_CS_GPIO 7 // Pin 27 for ADF Chip Select
+
+#define PWR_TGL 4
+#define TGL_5V 5
+#define PLL_LOCK 16
+#define TR_BF 1
+#define TR_UDC 6
+#define TX_LD 2
+#define RX_LD 3
+// #define PA_ON 37
+
+#define TMP_0 8
+#define TMP_1 9
+#define TMP_2 10
+#define TMP_3 11
+#define TMP_4 12
+#define TMP_5 13
+#define TMP_6 14
+
+#define PWR_MAIN EPS_LUP_3V2
+#define PWR_UDC EPS_LUP_5V2
+/********************************/
+
 #include "adar1000/adar1000.h"     // ADAR1000 front end
 #include "adf4355/adf4355.h"       // ADF4355 front end
 #include "tmp123/tmp123.h"         // XBAND temp sensors
@@ -50,37 +81,6 @@ int adar_last_mode = -1;          // uninitialized
 bool tr_shutdown = false;         // do not assume it is shut down
 int16_t MAX_TURNOFF_CTR = 600;   // 600 seconds
 uint8_t XBAND_LOOP_TIME = 5;      // loop every 5 seconds
-
-/******* PIN ASSIGNMENTS *********/
-#define ADAR_SPI_BUS 1
-#define ADAR_SPI_CS 1      // Pin 24 for ADAR Chip Select
-#define ADAR_CS_INTERNAL 1 // CS is internal for test program
-
-#define ADF_SPI_BUS 1
-#define ADF_SPI_CS 2 // Pin 26 NO CONNECT
-#define ADF_CS_INTERNAL 0
-#define ADF_CS_GPIO 7 // Pin 27 for ADF Chip Select
-
-#define PWR_TGL 4
-#define TGL_5V 5
-#define PLL_LOCK 16
-#define TR_BF 1
-#define TR_UDC 6
-#define TX_LD 2
-#define RX_LD 3
-// #define PA_ON 37
-
-#define TMP_0 8
-#define TMP_1 9
-#define TMP_2 10
-#define TMP_3 11
-#define TMP_4 12
-#define TMP_5 13
-#define TMP_6 14
-
-#define PWR_MAIN EPS_LUP_3V2
-#define PWR_UDC EPS_LUP_5V2
-/********************************/
 
 int xband_init(void)
 {
@@ -473,7 +473,7 @@ int xband_set_rx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char
 int xband_disable(void)
 {
     if (xb_sys_rdy == false)
-        return;
+        return 0;
     xb_sys_rdy = false;
     // set phy to sleep
     for (int i = 10; (i > 0) && (adradio_read_ensm_mode(phy) != SLEEP); i--)

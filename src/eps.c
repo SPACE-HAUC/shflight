@@ -19,6 +19,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "datalogger_extern.h"
+#ifdef DATAVIS
+#include <datavis_extern.h>
+#endif
 
 #define THIS_MODULE "eps"
 
@@ -384,6 +387,15 @@ void *eps_thread(void *tid)
         eps_cursun = eps_system_hk.cursun;
         eps_cursys = eps_system_hk.cursys;
         eps_battmode = eps_system_hk.battmode;
+#ifdef DATAVIS
+        pthread_mutex_lock(&(datavis_mutex));
+        g_datavis_st.data.eps_vbatt = eps_vbatt;
+        g_datavis_st.data.eps_mvboost = eps_mvboost;
+        g_datavis_st.data.eps_cursun = eps_cursun;
+        g_datavis_st.data.eps_cursys = eps_cursys;
+        g_datavis_st.data.eps_battmode = eps_battmode;
+        pthread_mutex_unlock(&(datavis_mutex));
+#endif
         sleep(EPS_LOOP_TIMER);
     }
     pthread_exit(NULL);

@@ -17,6 +17,7 @@
 #include <datavis_iface.h>
 #include <eps_iface.h>
 #include <xband_iface.h>
+#include <cmd_parser_iface.h>
 typedef int (*init_func)(void);     // typedef to create array of init functions
 typedef void (*destroy_func)(void); // typedef to create array of destroy functions
 
@@ -24,6 +25,7 @@ typedef void (*destroy_func)(void); // typedef to create array of destroy functi
  * @brief Registers init functions of a given module
  */
 init_func module_init[] = {
+    &prsr_init,
     &eps_init,
     &acs_init,
     &xband_init};
@@ -38,7 +40,8 @@ const int num_init = sizeof(module_init) / sizeof(init_func);
 destroy_func module_destroy[] = {
     &xband_destroy,
     &acs_destroy,
-    &eps_destroy
+    &eps_destroy,
+    &prsr_destroy
     };
 /**
  * @brief Number of modules with an associated destroy function
@@ -50,7 +53,8 @@ const int num_destroy = sizeof(module_destroy) / sizeof(destroy_func);
  */
 void *module_exec[] = {
     eps_thread,
-    acs_thread
+    acs_thread,
+    prsr_thread
 #ifdef DATAVIS
     ,
     datavis_thread
