@@ -204,6 +204,7 @@ void sighandler(int sig)
 
 static float t;
 struct ScrollBuf B[1], Bt[1], W[1], S[1], St[1];
+struct ScrollBuf Powsys[1], Powsun[1];
 
 pthread_mutex_t rcv_data[1], plot_data[1];
 volatile bool conn_rdy = false;
@@ -241,6 +242,12 @@ void *rcv_thr(void *sock)
                 float Sx = 180 * atan2(sx, sz) / M_PI;
                 float Sy = 180 * atan2(sy, sz) / M_PI;
                 St->AddPoint(t, Sx, Sy, Sz);
+                float vbatt = data->eps_vbatt * 0.001;
+                float mvboost = data->eps_mvboost * 0.001;
+                float cursun = data->eps_cursun * 0.001;
+                float cursys = data->eps_cursys;
+                Powsys->AddPoint(t, vbatt * cursys, vbatt, cursys);
+                Powsun->AddPoint(t, mvboost * cursun, mvboost, cursun);
                 pthread_mutex_unlock(plot_data);
             }
         }
@@ -248,6 +255,15 @@ void *rcv_thr(void *sock)
     }
     return NULL;
 }
+
+char *EPS_BATTMODE[] =
+{
+    "Initial",
+    "Undervoltage",
+    "Safe Mode",
+    "Nominal",
+    "Full"
+};
 
 int main(int, char **)
 {
@@ -420,6 +436,50 @@ int main(int, char **)
             }
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::End();
+        }
+
+        {
+            ImGui::Begin("EPS Data Window");
+            if (conn_rdy && (counter > 10))
+            {
+                pthread_mutex_lock(plot_data);
+                float powsys_min[] = {Powsys->MinX(), Powsys->MinY(), Powsys->MinZ()};
+                float powsys_max[] = {Powsys->MaxX(), Powsys->MaxY(), Powsys->MaxZ()};
+                float sys_min = find_min(powsys_min, 3);
+                float sys_max = find_max(powsys_max, 3);
+                sys_min = fsgn(sys_min) * (fabs(sys_min) * 1.05);
+                sys_max = fsgn(sys_max) * (fabs(sys_max) * 1.05);
+
+                float powsun_min[] = {Powsun->MinX(), Powsun->MinY(), Powsun->MinZ()};
+                float powsun_max[] = {Powsun->MaxX(), Powsun->MaxY(), Powsun->MaxZ()};
+                float sun_min = find_min(powsun_min, 3);
+                float sun_max = find_max(powsun_max, 3);
+                sun_min = fsgn(sun_min) * (fabs(sun_min) * 1.05);
+                sun_max = fsgn(sun_max) * (fabs(sun_max) * 1.05);
+
+                uint8_t batt_mode = data->eps_battmode;
+                ImGui::Text("Battery Mode: %s", EPS_BATTMODE[batt_mode]);
+                ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
+                ImPlot::SetNextPlotLimitsY(sys_min, sys_max, ImGuiCond_Always);
+                if (ImPlot::BeginPlot("Power consumption", "Time (s)", "Power Stat", ImVec2(-1, vsize)))
+                {
+                    ImPlot::PlotLine("Power (mW)", &(Powsys->data[0].w), &(Powsys->data[0].x), Powsys->data.size(), Powsys->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Voltage (mV)", &(Powsys->data[0].w), &(Powsys->data[0].y), Powsys->data.size(), Powsys->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Current (mA)", &(Powsys->data[0].w), &(Powsys->data[0].z), Powsys->data.size(), B->ofst, 4 * sizeof(float));
+                    ImPlot::EndPlot();
+                }
+                ImPlot::SetNextPlotLimitsX(t - hist, t, ImGuiCond_Always);
+                ImPlot::SetNextPlotLimitsY(sun_min, sun_max, ImGuiCond_Always);
+                if (ImPlot::BeginPlot("Power consumption", "Time (s)", "Power Stat", ImVec2(-1, vsize)))
+                {
+                    ImPlot::PlotLine("Power (mW)", &(Powsun->data[0].w), &(Powsun->data[0].x), Powsun->data.size(), Powsun->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Voltage (mV)", &(Powsun->data[0].w), &(Powsun->data[0].y), Powsun->data.size(), Powsun->ofst, 4 * sizeof(float));
+                    ImPlot::PlotLine("Current (mA)", &(Powsun->data[0].w), &(Powsun->data[0].z), Powsun->data.size(), B->ofst, 4 * sizeof(float));
+                    ImPlot::EndPlot();
+                }
+                pthread_mutex_unlock(plot_data);
+            }
             ImGui::End();
         }
 
