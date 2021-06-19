@@ -326,11 +326,11 @@ int eps_init()
     }
 
     // Initializes the EPS component while checking if successful.
-    if (eps_p31u_init(eps, 1, 0x1b) <= 0)
+    if (eps_p31u_init(eps, 0, 0x1b) <= 0)
     {
         return -1;
     }
-
+    shprintf("EPS initializing\n");
     // If we can't successfully ping the EPS then something has gone wrong.
     if (eps_p31u_ping(eps) < 0)
     {
@@ -350,10 +350,11 @@ int eps_init()
         shprintf("Could not get config file\n");
         return -3;
     }
-    conf->output_initial_off_delay[0] = 0; 
-    conf->output_initial_on_delay[0] = 0; // at this point, OBC should not have off delay
-    conf->output_initial_on_delay[3] = 0; // at this point, UHF should not have on delay
-    conf->output_initial_on_delay[7] = 0; // at this point, thermal knife should not turn on
+    conf->output_initial_off_delay[0] = 0; // at this point, OBC should not have off delay
+    conf->output_initial_on_delay[0] = 30; // at this point, OBC has short on delay
+    conf->output_initial_off_delay[3] = 0; // at this point, UHF should not have off delay
+    conf->output_initial_on_delay[3] = 10; // at this point, UHF has short on delay
+    conf->output_initial_on_delay[7] = 0;  // at this point, thermal knife should not turn on
     conf->output_initial_off_delay[7] = 0; // at this point, thermal knife should not turn on
     if (eps_p31u_set_conf(eps, conf) < 0)
     {
@@ -365,8 +366,10 @@ int eps_init()
 
 void *eps_thread(void *tid)
 {
+#ifdef DLGR_EPS
     DLGR_REGISTER(eps_system_hk, sizeof(eps_hk_t));
     DLGR_REGISTER(sh_system_hk, sizeof(sh_hk_t));
+#endif
     while (!done)
     {
         // Reset the watch-dog timer.
@@ -378,8 +381,10 @@ void *eps_thread(void *tid)
         }
         convert_hk_to_sh(&eps_system_hk, &sh_system_hk);
         // Log housekeeping data.
+#ifdef DLGR_EPS
         DLGR_WRITE(eps_system_hk);
         DLGR_WRITE(sh_system_hk);
+#endif
         eps_vbatt = eps_system_hk.vbatt;
         for (int i = 0, eps_mvboost = 0; i < 3; i++)
             if (eps_mvboost < eps_system_hk.vboost[i])

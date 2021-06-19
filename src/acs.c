@@ -582,10 +582,10 @@ int readSensors(void)
     VECTOR_CLEAR(g_B[mag_index]); // clear the current B                                                  /
     // HITL
     short mag_measure[3];
-    if ((status = i2cbus_lock(fss)))
-    {
-        shprintf("Error %d locking I2C bus for ACS readouts\n", status);
-    }
+    // if ((status = i2cbus_lock(fss)))
+    // {
+    //     shprintf("Error %d locking I2C bus for ACS readouts\n", status);
+    // }
     // read magnetic sensor
     status = lsm9ds1_read_mag(mag, mag_measure);
     if (status < 0) // failure
@@ -676,7 +676,7 @@ read_mux_2:
         mux_err_channel[2] = mux_err_2 = mux_err;
     }
 read_css:
-    if (tca9458a_set(mux, 8) < 8)
+    if (tca9458a_set(mux, 8) != 1)
     {
         shprintf("Error disabling mux\n");
     }
@@ -684,10 +684,10 @@ read_css:
     {
         shprintf("Error getting data from fine sun sensor\n");
     }
-    if ((status = i2cbus_unlock(fss)))
-    {
-        shprintf("Error %d unlocking I2C bus for ACS readouts\n", status);
-    }
+    // if ((status = i2cbus_unlock(fss)))
+    // {
+    //     shprintf("Error %d unlocking I2C bus for ACS readouts\n", status);
+    // }
     x_mag_mes = mag_measure[0] / 6.842;
     y_mag_mes = mag_measure[1] / 6.842;
     z_mag_mes = mag_measure[2] / 6.842;
@@ -875,10 +875,6 @@ void *acs_thread(void *id)
         {
             printf("ACS: Waiting for release...\n");
             first_run = 0;
-#ifdef SITL
-            // wait till there is available data on serial
-            pthread_cond_wait(&data_available, &data_check);
-#endif // SITL
         }
         unsigned long long s = get_usec();
         /* TODO: Soft- and hard- errors: All errors do not require a buffer reset, e.g. a CSS read error */
@@ -1133,7 +1129,7 @@ void insertionSort(int a1[], int a2[])
     }
 }
 
-#define ACS_I2C_CTX I2CBUS_CTX_0
+#define ACS_I2C_CTX -1
 
 int acs_init(void)
 {
@@ -1282,6 +1278,7 @@ init_fss:
         shprintf("Magnetometer init failed\n");
         return ERROR_MAG_INIT;
     }
+    shprintf("ACS init\n");
     sleep(1); // sleep 1 second
     return 1;
 }
