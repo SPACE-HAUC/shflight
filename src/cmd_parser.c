@@ -14,7 +14,9 @@
 #include "xband_extern.h"
 #include "datalogger_extern.h"
 #include "uhf_modem/uhf_modem.h"
+#define MAIN_PRIVATE
 #include "main.h"
+#undef MAIN_PRIVATE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,7 +33,19 @@ enum MODULE_ID
     EPS_ID = 0x2,
     XBAND_ID = 0x3,
     SW_UPD_ID = 0xf,
+    ACS_UPD_ID = 0xe,
+    SYS_VER_MAGIC = 0xd,
+    SYS_RESTART_PROG = 0xff,
+    SYS_REBOOT = 0xfe
 };
+
+#define SYS_RESTART_FUNC_MAGIC 0x3c
+
+uint64_t SYS_RESTART_FUNC_VAL = 0x2fa45d2002d54af2;
+
+#define SYS_REBOOT_FUNC_MAGIC 0x9d
+
+uint64_t SYS_REBOOT_FUNC_VAL = 0x36a45d2002d54af0;
 
 enum SW_UPD_FUNC_ID
 {
@@ -151,6 +165,44 @@ int prsr_write_reply(uhf_modem_t uhf_dev, cmd_output_t *out)
     return uhf_write(uhf_dev, (char *)out, sizeof(cmd_output_t));
 }
 
+ssize_t replace_file(const char *dest, const char *src)
+{
+    if (access(src, F_OK))
+    {
+        shprintf("Could not access file %s\n", src);
+        return -1;
+    }
+    int df, sf;
+    df = open(dest, O_CREAT | O_WRONLY | O_TRUNC, 0755); // open destination
+    if (df < 0)
+    {
+        shprintf("Could not open destination FID\n");
+        return df;
+    }
+    sf = open(src, O_RDONLY); // open source
+    if (sf < 0)
+    {
+        shprintf("Could not open source FID");
+        return sf;
+    }
+    char buf[8192];
+    ssize_t rd_bytes = 0, wr_bytes = 0;
+    ssize_t rd_buf = 0;
+    while ((rd_buf = read(sf, buf, sizeof(buf))) > 0)
+    {
+        rd_bytes += rd_buf; // update read size
+        ssize_t wr_buf = 0;
+        do
+        {
+            wr_buf += write(df, buf + wr_buf, rd_buf - wr_buf); // write to file and update write size
+        } while (wr_buf < rd_buf);                              // continue while
+        wr_bytes += wr_buf;
+    }
+    shprintf("Read %d bytes, wrote %d bytes\n", rd_bytes, wr_bytes);
+    sync();
+    return (rd_bytes - wr_bytes); // 0 on success, non-zero on error
+}
+
 void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *output)
 {
     memset(output->data, 0x0, 46);
@@ -159,6 +211,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
     output->mod = input->mod;
     output->cmd = input->cmd;
     output->data_size = 0;
+    output->retval = -50;
     if (module_id == SW_UPD_ID)
     {
         if (function_id == SW_UPD_FUNC_MAGIC)
@@ -166,13 +219,92 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
             uint64_t sw_upd_magic = *((uint64_t *)input->data);
             if (sw_upd_magic == SW_UPD_VALID_MAGIC)
             {
-                output->retval = sw_sh_receive_file(uhf_fd, false);
+                bool rcv = false;
+                output->retval = sw_sh_receive_file(uhf_fd, &rcv);
+            }
+            if (output->retval == 1) // update binary
+            {
+                // check if it is our binary
+                if (!access("flight_upd_bin", F_OK))
+                {
+                    while (access("/var/tmp/fsan.running", F_OK))
+                    {
+                        sleep(1);
+                    }
+                    // lock fsan.running
+                    int fd = open("/var/tmp/fsan.running", O_CREAT | O_RDWR, 0666);
+                    while (write(fd, "1", 1) < 1);
+                    close(fd);
+                    sync(); // sync FS
+                    // Update binary
+                    char bin_name[256];
+                    int tot_updated = 0;
+                    for (int i = 1; i < 10; i++)
+                    {
+                        int ctr = 10, upd_ret = 0;
+                        snprintf(bin_name, sizeof(bin_name), "%s%d", sys_bin_name, i);
+                        while ((upd_ret = replace_file(bin_name, "flight_upd_bin")) && (--ctr))
+                        {
+                            shprintf("Error updating binary %s\n", bin_name);
+                        }
+                        if (!upd_ret)
+                            tot_updated++;
+                    }
+                    if (tot_updated > 5)
+                    {
+                        if (replace_file(sys_bin_name, "flight_upd_bin"))
+                        {
+                            shprintf("Error updating main binary %s\n", bin_name);
+                        }
+                    }
+                    // unlock fsan.running
+                    unlink("/var/tmp/fsan.running");
+                    // unlink the update file
+                    unlink("flight_upd_bin");
+                    sync();
+                }
             }
         }
         else
         {
             output->retval = -50;
         }
+    }
+    else if (module_id == SYS_VER_MAGIC)
+    {
+        output->retval = vermagic;
+    }
+    else if (module_id == SYS_RESTART_PROG)
+    {
+        if (function_id == SYS_RESTART_FUNC_MAGIC)
+        {
+            uint64_t val = *((uint64_t *)(input->data));
+            if (val == SYS_RESTART_FUNC_VAL)
+            {
+                catch_sigint(SIGCONT);
+            }
+        }
+    }
+    else if (module_id == SYS_REBOOT)
+    {
+        if (function_id == SYS_REBOOT_FUNC_MAGIC)
+        {
+            uint64_t val = *((uint64_t *)(input->data));
+            if (val == SYS_REBOOT_FUNC_VAL)
+            {
+                execl("/bin/shutdown", "-r", "now", (char *) 0);
+            }
+        }
+    }
+    else if (module_id == ACS_UPD_ID)
+    {
+        acs_upd.vbatt = eps_vbatt;
+        acs_upd.vboost = eps_mvboost;
+        acs_upd.cursun = eps_cursun;
+        acs_upd.cursys = eps_cursys;
+        output->retval = 1;
+        output->data_size = sizeof(acs_uhf_packet);
+        memcpy(output->data, &acs_upd, output->data_size);
     }
     else if (module_id == ACS_ID)
     {
@@ -300,7 +432,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
 
         case ACS_GET_WTARGET:
         {
-            *((float *) &output->retval) = acs_get_wtarget();
+            *((float *)&output->retval) = acs_get_wtarget();
             break; // ACS_GET_WTARGET
         }
 
@@ -312,13 +444,13 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                 break;
             }
             float *inval = (float *)input->data;
-            *((float *) &output->retval) = acs_set_wtarget(*inval);
+            *((float *)&output->retval) = acs_set_wtarget(*inval);
             break; // ACS_SET_WTARGET
         }
 
         case ACS_GET_DETUMBLE_ANG:
         {
-            *((uint8_t *) &output->retval) = acs_get_detumble_ang();
+            *((uint8_t *)&output->retval) = acs_get_detumble_ang();
             break; // ACS_GET_DETUMBLE_ANG
         }
 
@@ -330,13 +462,13 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                 break;
             }
             uint8_t inval = input->data[0];
-            *((uint8_t *) &output->retval) = acs_set_detumble_ang(inval);
+            *((uint8_t *)&output->retval) = acs_set_detumble_ang(inval);
             break; // ACS_SET_DETUMBLE_ANG
         }
 
         case ACS_GET_SUN_ANGLE:
         {
-            *((uint8_t *) &output->retval) = acs_get_sun_angle();
+            *((uint8_t *)&output->retval) = acs_get_sun_angle();
             break; // ACS_GET_SUN_ANGLE
         }
 
@@ -348,7 +480,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                 break;
             }
             uint8_t inval = input->data[0];
-            *((uint8_t *) &output->retval) = acs_set_sun_angle(inval);
+            *((uint8_t *)&output->retval) = acs_set_sun_angle(inval);
             break; // ACS_SET_SUN_ANGLE
         }
 
@@ -594,6 +726,10 @@ int prsr_init(void)
 
 void *prsr_thread(void *tid)
 {
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+
+    printf("[parser] Main binary name: %s\n", sys_bin_name);
+
     int retval = 0;
 
     cmd_input_t input[1];

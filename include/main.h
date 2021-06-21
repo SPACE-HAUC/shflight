@@ -57,6 +57,16 @@ extern volatile sig_atomic_t done;
  * This variable is provided to all modules by main.
  */ 
 extern int sys_boot_count;
+/**
+ * @brief Full path of the system binary 
+ * 
+ */
+extern char *sys_bin_name;
+/**
+ * @brief Version magic for binary
+ * 
+ */ 
+extern volatile uint32_t vermagic;
 
 #ifndef SHPRINT_FILE
 #define SHPRINT_FILE stderr

@@ -22,7 +22,7 @@
 #include "sw_update_packdef.h"
 
 // If not commented out, this activates the debug modes for _sh. This enables command line argument intake.
-#define DEBUG_MODE_ACTIVE_SH
+// #define DEBUG_MODE_ACTIVE_SH
 
 #define MAX_WRITE_ATTEMPTS 64
 #define MAX_READ_ATTEMPTS 64

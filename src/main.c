@@ -15,25 +15,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <signal.h>
+#include <string.h>
 
 #define THIS_MODULE "main"
 
 int sys_boot_count = -1;
 volatile sig_atomic_t done = 0;
+pthread_mutex_t done_mutex[1] = {PTHREAD_MUTEX_INITIALIZER};
+pthread_cond_t done_cond[1];
 __thread int sys_status;
+
+char *sys_bin_name;
+
+volatile uint32_t vermagic = 0x2044;
+
+void destroy_modules();
 
 /**
  * @brief Main function executed when shflight.out binary is executed
  * 
  * @return int returns 0 on success, -1 on failure, error code on thread init failures
  */
-int main(void)
+int main(int argc, char *argv[])
 {
     // wait for system to stabilize
-    sleep(60); // wait for another minute
+    // sleep(60); // wait for another minute
     // Boot counter
+    printf("[Main]: Binary name %s\n", argv[0]);
+    sys_bin_name = malloc(strlen(argv[0]) + 1);
+    memcpy(sys_bin_name, argv[0], strlen(argv[0]) + 1);
     sys_boot_count = bootCount(); // Holds bootCount to generate a different log file at every boot
     if (sys_boot_count < 0)
     {
@@ -55,6 +68,7 @@ int main(void)
         }
     }
     printf("Done init modules\n");
+    atexit(destroy_modules);
     // set up threads
     int rc[num_systems];                                         // fork-join return codes
     pthread_t thread[num_systems];                               // thread containers
@@ -63,7 +77,6 @@ int main(void)
     void *status;                                                // thread return value
     pthread_attr_init(&attr);                                    // initialize attribute
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); // create threads to be joinable
-
     for (int i = 0; i < num_systems; i++)
     {
         args[i] = i; // sending a pointer to i to every thread may end up with duplicate thread ids because of access times
@@ -74,24 +87,22 @@ int main(void)
             exit(-1);
         }
     }
-
     pthread_attr_destroy(&attr); // destroy the attribute
+
+    pthread_cond_wait(done_cond, done_mutex);
 
     for (int i = 0; i < num_systems; i++)
     {
-        rc[i] = pthread_join(thread[i], &status);
+        printf("Cancelling thread %d\n", i);
+        fflush(stdout);
+        rc[i] = pthread_cancel(thread[i]);
         if (rc[i])
         {
-            printf("[Main] Error: Unable to join thread %d: Errno %d\n", i, errno);
-            exit(-1);
+            printf("[Main] Error: Unable to join thread %d, retcode: %d, : Errno %d\n", i, rc[i], errno);
+            exit(0);
         }
     }
 
-    // destroy modules
-    for (int i = 0; i < num_destroy; i++)
-    {
-        module_destroy[i]();
-    }
     return 0;
 }
 /**
@@ -105,7 +116,21 @@ void catch_sigint(int sig)
     done = 1;
     for (int i = 0; i < num_wakeups; i++)
         pthread_cond_broadcast(wakeups[i]);
+    sleep(1);
+    pthread_cond_signal(done_cond);
 }
+
+void destroy_modules()
+{
+    // // destroy modules
+    // for (int i = 0; i < num_destroy; i++)
+    // {
+    //     printf("[Main] Running module_destroy for %d\n", i);
+    //     module_destroy[i]();
+    //     printf("[Main] Run module_destroy for %d\n", i);
+    // }
+}
+
 /**
  * @brief Prints errors specific to shflight in a fashion similar to perror
  * 

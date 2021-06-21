@@ -196,16 +196,16 @@ unsigned long long acs_ct = 0; // counts the number of ACS steps
  * @brief Moment of inertia of the satellite (SI).
  * 
  */
-float MOI[3][3] = {{0.06467720404, 0, 0},
-                   {0, 0.06474406267, 0},
-                   {0, 0, 0.07921836177}};
+float MOI[3][3] = {{0.0821, 0, 0},
+                   {0, 0.0752, 0},
+                   {0, 0, 0.0874}};
 /**
  * @brief Inverse of the moment of inertia of the satellite (SI).
  * 
  */
-float IMOI[3][3] = {{15.461398105297564, 0, 0},
-                    {0, 15.461398105297564, 0},
-                    {0, 0, 12.623336025344317}};
+float IMOI[3][3] = {{12.1733, 0, 0},
+                    {0, 13.2941, 0},
+                    {0, 0, 11.4661}};
 /**
  * @brief Current timestamp after readSensors() in ACS thread, used to keep track of time taken by ACS loop.
  * 
@@ -251,7 +251,7 @@ static uint32_t SUNPOINT_DUTY_CYCLE = 20000; // 20 msec, in usec
  * @brief Coarse sun sensor minimum lux threshold for valid measurement
  * 
  */
-static float CSS_MIN_LUX_THRESHOLD = 5000 * 0.5; // 5000 lux is max sun, half of that is our threshold (subject to change)
+static float CSS_MIN_LUX_THRESHOLD = 40000 * 0.5; // 5000 lux is max sun, half of that is our threshold (subject to change)
 /**
  * @brief Leeway factor for value of omega_z in percentage
  * 
@@ -519,7 +519,7 @@ void getSVec(void)
     // check if FSS results are acceptable
     // if they are, use that to calculate the sun vector
     // printf("[FSS] %.3f %.3f\n", fsx * 180. / M_PI, fsy * 180. / M_PI);
-    if (!(g_FSS_RET & E_OUT_FOV)) // angle inside FOV (FOV -> 60°, half angle 30°)
+    if (!(g_FSS_RET & (E_INDEX_MIN | E_INDEX_MAX | E_ANGLEX | E_ANGLEY | E_DIV_ZERO))) // angle inside FOV (FOV -> 60°, half angle 30°)
     {
 #ifdef ACS_PRINT
         printf("[" GRN "FSS" RST "]");
@@ -528,6 +528,7 @@ void getSVec(void)
         y_g_S[sol_index] = tan(fsy * M_PI / 180);
         z_g_S[sol_index] = 1;
         NORMALIZE(g_S[sol_index], g_S[sol_index]);
+        g_night = 0;
         return;
     }
 
@@ -609,17 +610,17 @@ int readSensors(void)
         bool mux_err = true;
         if (tsl2561_measure(&(css[0]), &mes) > 0) // all good
         {
-            g_CSS[0] = css_0 = tsl2561_get_lux(mes);
+            g_CSS[0] = css_0 = mes & 0xffff;
             mux_err = false;
         }
         if (tsl2561_measure(&(css[1]), &mes) > 0) // all good
         {
-            g_CSS[1] = css_1 = tsl2561_get_lux(mes);
+            g_CSS[1] = css_1 = mes & 0xffff;
             mux_err = false;
         }
         if (tsl2561_measure(&(css[2]), &mes) > 0) // all good
         {
-            g_CSS[2] = css_2 = tsl2561_get_lux(mes);
+            g_CSS[2] = css_2 = mes & 0xffff;
             mux_err = false;
         }
         mux_err_channel[0] = mux_err_0 = mux_err;
@@ -640,17 +641,17 @@ read_mux_1:
         bool mux_err = true;
         if (tsl2561_measure(&(css[3]), &mes) > 0) // all good
         {
-            g_CSS[3] = css_3 = tsl2561_get_lux(mes);
+            g_CSS[3] = css_3 = mes & 0xffff;
             mux_err = false;
         }
         if (tsl2561_measure(&(css[4]), &mes) > 0) // all good
         {
-            g_CSS[4] = css_4 = tsl2561_get_lux(mes);
+            g_CSS[4] = css_4 = mes & 0xffff;
             mux_err = false;
         }
         if (tsl2561_measure(&(css[5]), &mes) > 0) // all good
         {
-            g_CSS[5] = css_5 = tsl2561_get_lux(mes);
+            g_CSS[5] = css_5 = mes & 0xffff;
             mux_err = false;
         }
         mux_err_channel[1] = mux_err_1 = mux_err;
@@ -670,7 +671,12 @@ read_mux_2:
         bool mux_err = true;
         if (tsl2561_measure(&(css[6]), &mes) > 0) // all good
         {
-            g_CSS[6] = css_6 = tsl2561_get_lux(mes);
+            g_CSS[6] = css_6 = mes & 0xffff;
+            mux_err = false;
+        }
+        else if (tsl2561_measure(&(css[6]), &mes) > 0) // all good
+        {
+            g_CSS[6] = css_6 = mes & 0xffff;
             mux_err = false;
         }
         mux_err_channel[2] = mux_err_2 = mux_err;
@@ -862,12 +868,15 @@ void checkTransition(void)
     g_acs_mode = next_mode; // update the global state
 }
 
+acs_uhf_packet acs_upd;
+
 void *acs_thread(void *id)
 {
     uint64_t acs_thread_start = get_usec();
     pthread_mutex_lock(&datavis_mutex);
     g_datavis_st.data.tstart = acs_thread_start;
     pthread_mutex_unlock(&datavis_mutex);
+    acs_upd.ct = 0;
     while (!done)
     {
         // first run indication
@@ -938,6 +947,17 @@ void *acs_thread(void *id)
             // wake up datavis thread [DO NOT TOUCH]
             pthread_mutex_unlock(&datavis_mutex);
 #endif
+            acs_upd.mode = g_acs_mode;
+            acs_upd.bx = x_g_B[mag_index];
+            acs_upd.by = y_g_B[mag_index];
+            acs_upd.bz = z_g_B[mag_index];
+            acs_upd.wx = x_g_W[mag_index];
+            acs_upd.wy = y_g_W[mag_index];
+            acs_upd.wz = z_g_W[mag_index];
+            acs_upd.sx = x_g_S[mag_index];
+            acs_upd.sy = y_g_S[mag_index];
+            acs_upd.sz = z_g_S[mag_index];
+            acs_upd.ct++;
         }
 #ifdef ACS_DATALOG
         fprintf(acs_datalog, "%llu %d %e %e %e %e %e %e %e %e %e\n", acs_ct, g_acs_mode, x_g_B[mag_index], y_g_B[mag_index], z_g_B[mag_index], x_g_W[omega_index], y_g_W[omega_index], z_g_W[omega_index], x_g_S[sol_index], y_g_S[sol_index], z_g_S[sol_index]);
@@ -946,8 +966,15 @@ void *acs_thread(void *id)
         g_t_acs = s;
         checkTransition(); // check if the system should transition from one state to another
         unsigned long long e = get_usec();
-        /* TODO: In case a read takes longer, reduce ACS action time in order to conserve loop time */
+        /* In case a read takes longer, reset to keep loop jitter minimal */
         int sleep_time = MEASURE_TIME - e + s;
+        if (sleep_time < 0)
+        {
+            sleep_time = DETUMBLE_TIME_STEP - e + s;
+            sleep_time > 0 ? sleep_time : 0;
+            usleep(sleep_time);
+            continue;
+        }
         sleep_time = sleep_time > 0 ? sleep_time : 0;
         usleep(sleep_time); // sleep for total 20 ms with read
         if (g_acs_mode == STATE_ACS_DETUMBLE)

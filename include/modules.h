@@ -54,6 +54,7 @@ const int num_destroy = sizeof(module_destroy) / sizeof(destroy_func);
 void *module_exec[] = {
     eps_thread,
     acs_thread,
+    xband_thread,
     prsr_thread
 #ifdef DATAVIS
     ,
@@ -64,6 +65,17 @@ void *module_exec[] = {
  * @brief Number of enabled modules
  */
 const int num_systems = sizeof(module_exec) / sizeof(void *);
+
+char *module_name[] = {
+    "eps",
+    "acs",
+    "xband",
+    "uhf"
+#ifdef DATAVIS
+    ,
+    "datavis"
+#endif 
+};
 
 /**
  * @brief List of condition locks for modules to be woken up by signal handler

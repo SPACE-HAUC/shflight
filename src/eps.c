@@ -356,6 +356,12 @@ int eps_init()
     conf->output_initial_on_delay[3] = 10; // at this point, UHF has short on delay
     conf->output_initial_on_delay[7] = 0;  // at this point, thermal knife should not turn on
     conf->output_initial_off_delay[7] = 0; // at this point, thermal knife should not turn on
+    conf->output_normal_value[0] = 1; // at this point, OBC is on in normal startup
+    conf->output_normal_value[3] = 1; // at this point, UHF is on in safe startup
+    conf->output_normal_value[7] = 0; // ensure thermal knife is not on 
+    conf->output_safe_value[0] = 1; // OBC on in safe
+    conf->output_safe_value[3] = 1; // UHF on in safe
+    conf->output_safe_value[7] = 0; // Thermal knife OFF in safe
     if (eps_p31u_set_conf(eps, conf) < 0)
     {
         shprintf("Could not set config file\n");

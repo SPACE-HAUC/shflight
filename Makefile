@@ -9,7 +9,7 @@ ifeq ($(ARCH),UNDEFINED)
 	ARCH=$(shell uname -m)
 endif
 
-EDCFLAGS:= -Wall -fno-strict-aliasing -std=gnu11 -O3 \
+EDCFLAGS:= -Wall -fno-strict-aliasing -std=gnu11 -O3 -mfp16-format=ieee \
 			-I include/ -I drivers/ \
 			-DGPIODEV_PINOUT=0 \
 			-Wno-unused-value \
@@ -18,7 +18,8 @@ EDCFLAGS:= -Wall -fno-strict-aliasing -std=gnu11 -O3 \
 			-Wno-format \
 			-Wno-unused-result \
 			-Wno-array-bounds \
-			$(CFLAGS)
+			$(CFLAGS) \
+			-DDLGR_EPS
 EDLDFLAGS:= -liio -lm -lpthread $(LDFLAGS)
 
 EDCFLAGS+= -DDATAVIS -DACS_PRINT -DACS_DATALOG

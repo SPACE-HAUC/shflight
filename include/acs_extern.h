@@ -31,6 +31,27 @@ extern float fss_0, fss_1;
 extern bool mux_err_0, mux_err_1, mux_err_2;
 #endif
 
+typedef struct __attribute__((packed))
+{
+    uint8_t ct; // count
+    uint8_t mode; // ACS mode
+    __fp16 bx;
+    __fp16 by;
+    __fp16 bz;
+    __fp16 wx;
+    __fp16 wy;
+    __fp16 wz;
+    __fp16 sx;
+    __fp16 sy;
+    __fp16 sz;
+    uint16_t vbatt;
+    uint16_t vboost;
+    uint16_t cursun;
+    uint16_t cursys;
+} acs_uhf_packet;
+
+extern acs_uhf_packet acs_upd;
+
 /**
  * @brief 
  * 

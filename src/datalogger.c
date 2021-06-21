@@ -390,12 +390,13 @@ int dlgr_perform_read(void* storage, int allocated_bytes){
 
 int dlgr_check_registration(const char* var_name, const int fname_buf_size){
     // Establish filename buffer and its size.
-    char fname_buf[fname_buf_size];
+    char fname_buf[128];
 
     // Create the full registration file name, and check for registration.
-    snprintf(fname_buf, fname_buf_size, "%s.reg", var_name);
-    if((access(fname_buf, F_OK || R_OK)) != 0){
-        eprintf("Failed: %s has not been registered.", var_name);
+    snprintf(fname_buf, 128, "%s.reg", var_name);
+    int ret = 0;
+    if((ret = access(fname_buf, F_OK | R_OK)) != 0){
+        eprintf("Failed: %s has not been registered, %d.", fname_buf, ret);
         return -1;
     }
 
