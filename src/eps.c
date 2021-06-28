@@ -355,7 +355,7 @@ int eps_init()
     conf->vboost[1] = 16700;               // 16.7 V boost max (for FIXED)
     conf->vboost[2] = 16700;               // 16.7 V boost max (for FIXED)
     conf->battheater_mode = 1;             // auto mode for battery heater
-    conf->battheater_high = 40;            // turn off at 40 C
+    conf->battheater_high = 20;            // turn off at 40 C
     conf->battheater_low = 5;              // turn on at 5 C
     conf->output_initial_off_delay[0] = 0; // at this point, OBC should not have off delay
     conf->output_initial_on_delay[0] = 15; // at this point, OBC has short on delay
