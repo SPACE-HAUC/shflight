@@ -22,7 +22,7 @@ EDCFLAGS:= -Wall -fno-strict-aliasing -std=gnu11 -O3 -mfp16-format=ieee \
 			-DDLGR_EPS
 EDLDFLAGS:= -liio -lm -lpthread $(LDFLAGS)
 
-EDCFLAGS+= -DDATAVIS -DACS_PRINT -DACS_DATALOG
+EDCFLAGS+= -DDATAVIS # -DACS_PRINT -DACS_DATALOG
 
 DRVOBJS = drivers/adar1000/adar1000.o \
 			drivers/adf4355/adf4355.o \

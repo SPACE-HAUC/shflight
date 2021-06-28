@@ -55,7 +55,7 @@ int sw_sh_receive_file(uhf_modem_t fd, bool *done_recv)
 
     // Variables.
     // Note that unlike the GS, some of these variables cannot be filled in until we have more information from the ground.
-    char filename[20];
+    char filename[128];
     ssize_t file_size = 0;
     ssize_t recv_bytes = 0;
     int recv_packets = 0; 
@@ -606,7 +606,6 @@ int sw_sh_receive_file(uhf_modem_t fd, bool *done_recv)
 
             eprintf(NOTIFY "Currently, the file will remain in the home directory. This is normal.");
             eprintf(NOTIFY "DON'T PANIC!");
-
             return 1;
         }
         }

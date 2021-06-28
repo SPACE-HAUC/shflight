@@ -67,6 +67,11 @@ extern char *sys_bin_name;
  * 
  */ 
 extern volatile uint32_t vermagic;
+/**
+ * @brief Initiate the exit handler
+ * 
+ */ 
+void sys_exit(void);
 
 #ifndef SHPRINT_FILE
 #define SHPRINT_FILE stderr

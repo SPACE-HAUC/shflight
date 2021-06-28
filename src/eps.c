@@ -350,18 +350,29 @@ int eps_init()
         shprintf("Could not get config file\n");
         return -3;
     }
+    conf->ppt_mode = 1;                    // MPPT tracking
+    conf->vboost[0] = 16700;               // 16.7 V boost max (for FIXED)
+    conf->vboost[1] = 16700;               // 16.7 V boost max (for FIXED)
+    conf->vboost[2] = 16700;               // 16.7 V boost max (for FIXED)
+    conf->battheater_mode = 1;             // auto mode for battery heater
+    conf->battheater_high = 40;            // turn off at 40 C
+    conf->battheater_low = 5;              // turn on at 5 C
     conf->output_initial_off_delay[0] = 0; // at this point, OBC should not have off delay
-    conf->output_initial_on_delay[0] = 30; // at this point, OBC has short on delay
+    conf->output_initial_on_delay[0] = 15; // at this point, OBC has short on delay
+    conf->output_initial_off_delay[1] = 0; // make sure PLL 5V does not have on/off delay
+    conf->output_initial_on_delay[1] = 0;  // make sure PLL 5V does not have on/off delay
     conf->output_initial_off_delay[3] = 0; // at this point, UHF should not have off delay
     conf->output_initial_on_delay[3] = 10; // at this point, UHF has short on delay
-    conf->output_initial_on_delay[7] = 0;  // at this point, thermal knife should not turn on
     conf->output_initial_off_delay[7] = 0; // at this point, thermal knife should not turn on
-    conf->output_normal_value[0] = 1; // at this point, OBC is on in normal startup
-    conf->output_normal_value[3] = 1; // at this point, UHF is on in safe startup
-    conf->output_normal_value[7] = 0; // ensure thermal knife is not on 
-    conf->output_safe_value[0] = 1; // OBC on in safe
-    conf->output_safe_value[3] = 1; // UHF on in safe
-    conf->output_safe_value[7] = 0; // Thermal knife OFF in safe
+    conf->output_initial_on_delay[7] = 0;  // at this point, thermal knife should not turn on
+    conf->output_normal_value[0] = 0;      // at this point, OBC is on in normal startup
+    conf->output_normal_value[1] = 0;      // make sure PLL 5V does not turn on
+    conf->output_normal_value[3] = 0;      // at this point, UHF is on in safe startup
+    conf->output_normal_value[7] = 0;      // ensure thermal knife is not on
+    conf->output_safe_value[0] = 1;        // OBC on in safe
+    conf->output_safe_value[1] = 0;        // make sure PLL 5V does not turn on
+    conf->output_safe_value[3] = 1;        // UHF on in safe
+    conf->output_safe_value[7] = 0;        // Thermal knife OFF in safe
     if (eps_p31u_set_conf(eps, conf) < 0)
     {
         shprintf("Could not set config file\n");

@@ -460,16 +460,16 @@ static inline void sunpointAction();
 
 int hbridge_enable(int x, int y, int z)
 {
-    ncv7718_set_output(hbridge, 0, x);
-    ncv7718_set_output(hbridge, 1, y);
+    ncv7718_set_output(hbridge, 1, x);
+    ncv7718_set_output(hbridge, 0, y);
     ncv7718_set_output(hbridge, 2, z);
     return ncv7718_exec_output(hbridge);
 }
 
 int HBRIDGE_DISABLE(int num)
 {
-    ncv7718_set_output(hbridge, 0, 0);
     ncv7718_set_output(hbridge, 1, 0);
+    ncv7718_set_output(hbridge, 0, 0);
     ncv7718_set_output(hbridge, 2, 0);
     return ncv7718_exec_output(hbridge);
 }
@@ -694,8 +694,8 @@ read_css:
     // {
     //     shprintf("Error %d unlocking I2C bus for ACS readouts\n", status);
     // }
-    x_mag_mes = mag_measure[0] / 6.842;
-    y_mag_mes = mag_measure[1] / 6.842;
+    x_mag_mes = -mag_measure[1] / 6.842;
+    y_mag_mes = mag_measure[0] / 6.842;
     z_mag_mes = mag_measure[2] / 6.842;
     x_g_B[mag_index] = x_mag_mes; // scaled to milliGauss
     y_g_B[mag_index] = y_mag_mes;

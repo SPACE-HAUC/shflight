@@ -36,7 +36,8 @@ enum MODULE_ID
     ACS_UPD_ID = 0xe,
     SYS_VER_MAGIC = 0xd,
     SYS_RESTART_PROG = 0xff,
-    SYS_REBOOT = 0xfe
+    SYS_REBOOT = 0xfe,
+    SYS_CLEAN_SHBYTES = 0xfd
 };
 
 #define SYS_RESTART_FUNC_MAGIC 0x3c
@@ -203,6 +204,13 @@ ssize_t replace_file(const char *dest, const char *src)
     return (rd_bytes - wr_bytes); // 0 on success, non-zero on error
 }
 
+int replace_cp(const char *dest, const char *src)
+{
+    char cmd[512];
+    snprintf(cmd, 512, "\\cp %s %s", src, dest);
+    return system(cmd);
+}
+
 void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *output)
 {
     memset(output->data, 0x0, 46);
@@ -212,7 +220,16 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
     output->cmd = input->cmd;
     output->data_size = 0;
     output->retval = -50;
-    if (module_id == SW_UPD_ID)
+    shprintf("Module: %x, Command: %x\n", module_id, function_id);
+    if (module_id == SYS_CLEAN_SHBYTES)
+    {
+        if (function_id == SYS_CLEAN_SHBYTES)
+        {
+            system("/bin/rm -f *.shbytes");
+            output->retval = 1;
+        }
+    }
+    else if (module_id == SW_UPD_ID)
     {
         if (function_id == SW_UPD_FUNC_MAGIC)
         {
@@ -222,18 +239,22 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                 bool rcv = false;
                 output->retval = sw_sh_receive_file(uhf_fd, &rcv);
             }
+            shprintf("sw_sh_receive retval: %d\n", output->retval);
             if (output->retval == 1) // update binary
             {
                 // check if it is our binary
                 if (!access("flight_upd_bin", F_OK))
                 {
-                    while (access("/var/tmp/fsan.running", F_OK))
+                    shprintf("file exists!\n");
+                    while (!access("/var/tmp/fsan.running", F_OK))
                     {
+                        shprintf("fsan running!\n");
                         sleep(1);
                     }
                     // lock fsan.running
                     int fd = open("/var/tmp/fsan.running", O_CREAT | O_RDWR, 0666);
-                    while (write(fd, "1", 1) < 1);
+                    while (write(fd, "1", 1) < 1)
+                        ;
                     close(fd);
                     sync(); // sync FS
                     // Update binary
@@ -243,6 +264,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                     {
                         int ctr = 10, upd_ret = 0;
                         snprintf(bin_name, sizeof(bin_name), "%s%d", sys_bin_name, i);
+                        shprintf("Replacing %s\n", bin_name);
                         while ((upd_ret = replace_file(bin_name, "flight_upd_bin")) && (--ctr))
                         {
                             shprintf("Error updating binary %s\n", bin_name);
@@ -252,16 +274,17 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                     }
                     if (tot_updated > 5)
                     {
-                        if (replace_file(sys_bin_name, "flight_upd_bin"))
+                        if (replace_cp(sys_bin_name, "flight_upd_bin"))
                         {
-                            shprintf("Error updating main binary %s\n", bin_name);
+                            shprintf("Error updating main binary %s\n", sys_bin_name);
                         }
                     }
                     // unlock fsan.running
                     unlink("/var/tmp/fsan.running");
                     // unlink the update file
                     unlink("flight_upd_bin");
-                    sync();
+                    sync();     // write changes to disk
+                    sys_exit(); // exit the current program to load into the new binary
                 }
             }
         }
@@ -292,7 +315,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
             uint64_t val = *((uint64_t *)(input->data));
             if (val == SYS_REBOOT_FUNC_VAL)
             {
-                execl("/bin/shutdown", "-r", "now", (char *) 0);
+                execl("/bin/shutdown", "-r", "now", (char *)0);
             }
         }
     }
@@ -597,7 +620,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
                 phase[i] = ds->phase[i] * 0.01;
             }
             char *ftr_name = NULL;
-            if ((ds->ftr >= 0) && (ds->ftr < sizeof(XBAND_FTR_NAMES) / sizeof(XBAND_FTR_NAMES[0])))
+            if ((ds->ftr >= 0) && (ds->ftr < (sizeof(XBAND_FTR_NAMES) / sizeof(XBAND_FTR_NAMES[0]))))
             {
                 ftr_name = XBAND_FTR_NAMES[ds->ftr];
             }
@@ -643,15 +666,13 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
             xband_tx_data *ds = (xband_tx_data *)input->data;
             if (ds->type > 1)
                 ds->type = 0; // default: text
-            if (ds->f_id < 0 || ds->f_id > XBAND_MAX_FID)
-                ds->f_id = rand() % XBAND_MAX_FID;
             char fname[128];
             snprintf(fname, sizeof(fname), "xband_tx_data/%d.%s", ds->f_id, ds->type > 0 ? ".jpg" : ".txt");
             int fd = open(fname, O_RDONLY);
             if (fd < 3)
             {
                 shprintf("File %s does not exist\n", fname);
-                output->retval = -50;
+                output->retval = -51;
                 break;
             }
             ssize_t fsize = lseek(fd, 0, SEEK_END);
@@ -660,6 +681,7 @@ void prsr_parse_command(uhf_modem_t uhf_fd, cmd_input_t *input, cmd_output_t *ou
             fsize = read(fd, data, fsize);
             close(fd);
             output->retval = xband_do_tx(data, fsize, ds->mtu);
+            free(data);
             break;
         }
         case XBAND_SET_MAX_ON:

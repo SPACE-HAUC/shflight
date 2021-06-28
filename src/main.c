@@ -30,7 +30,7 @@ __thread int sys_status;
 
 char *sys_bin_name;
 
-volatile uint32_t vermagic = 0x2044;
+volatile uint32_t vermagic = 0x666c75; // 0x666c74
 
 void destroy_modules();
 
@@ -41,6 +41,8 @@ void destroy_modules();
  */
 int main(int argc, char *argv[])
 {
+    // Check which binary it is
+    printf("[Main]: Binary magic: 0x%08x\n", vermagic);
     // wait for system to stabilize
     // sleep(60); // wait for another minute
     // Boot counter
@@ -105,6 +107,12 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+void sys_exit(void)
+{
+    catch_sigint(SIGINT);
+}
+
 /**
  * @brief SIGINT handler, sets the global variable `done` as 1, so that thread loops can break.
  * Wakes up sitl_comm and datavis threads to ensure they exit.

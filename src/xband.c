@@ -302,8 +302,8 @@ int xband_set_tx(float LO, float bw, uint16_t samp, uint8_t phy_gain, const char
         }
     }
     // set TX gain
-    double gain = -phy_gain;
-    if (gain < 5)
+    double gain = -phy_gain * 0.25; // quarter stepping
+    if (gain < -5)
     {
         eprintf("PHY gain %lf set too low. Proceed with caution.", gain);
     }
